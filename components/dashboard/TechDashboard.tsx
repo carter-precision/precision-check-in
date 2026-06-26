@@ -171,7 +171,7 @@ function DashboardColumn({
             : "bg-[#e7f1f2] text-[#2f6975]"
 
     return (
-        <section className="flex min-h-[650px] flex-col rounded-[2rem] border border-[#d7e1e3] bg-white p-6 shadow-sm">
+        <section className="flex min-h-162.5 flex-col rounded-[2rem] border border-[#d7e1e3] bg-white p-6 shadow-sm">
             <div className="mb-5 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div className={`flex size-10 items-center justify-center rounded-2xl ${accentClasses}`}>
@@ -259,7 +259,7 @@ function CustomerCard({
 
 function EmptyState({ label }: { label: string }) {
     return (
-        <div className="flex min-h-[420px] flex-col items-center justify-center rounded-[1.4rem] border border-dashed border-[#d7e1e3] bg-[#f7f9f9] text-center">
+        <div className="flex min-h-105 flex-col items-center justify-center rounded-[1.4rem] border border-dashed border-[#d7e1e3] bg-[#f7f9f9] text-center">
             <AlarmClock className="mb-4 size-12 text-[#b6c2c6]" />
             <p className="text-xl font-semibold text-[#9aa8ad]">{label}</p>
         </div>
