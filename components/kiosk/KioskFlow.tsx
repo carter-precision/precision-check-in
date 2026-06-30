@@ -357,7 +357,6 @@ export function KioskFlow({ location }: { location: string }) {
                         <KioskStep title="What’s your name?">
                             <div className="mt-8 space-y-5">
                                 <Input
-                                    autoFocus
                                     value={data.customerName}
                                     onChange={(event) =>
                                         updateData({ customerName: event.target.value })
