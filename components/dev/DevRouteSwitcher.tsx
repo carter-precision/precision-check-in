@@ -4,9 +4,9 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 export function DevRouteSwitcher() {
-    // if (process.env.NODE_ENV !== "development") {
-    //     return null
-    // }
+    if (process.env.NODE_ENV !== "development") {
+        return null
+    }
 
     const pathname = usePathname()
 

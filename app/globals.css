@@ -130,3 +130,9 @@
     @apply font-sans;
   }
 }
+
+@keyframes countdown-ring {
+  to {
+    stroke-dashoffset: 113.097;
+  }
+}

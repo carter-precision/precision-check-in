@@ -1,118 +1,239 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
 import {
     AlarmClock,
     CalendarCheck,
     CheckCircle2,
     Clock,
     UserRound,
+    Volume2,
+    VolumeX,
     Wrench,
 } from "lucide-react"
+import { useCheckInChime } from "@/lib/hooks/useCheckInChime"
 
 import { Button } from "@/components/ui/button"
-import { PrecisionLogo } from "../ui/logo"
 
-type CheckInType = "appointment" | "walk-in"
+import type { Database } from "@/lib/supabase/types"
+import { closeCheckInAction } from "@/app/actions/check-ins"
 
-type CheckIn = {
-    id: string
-    type: CheckInType
-    customerName: string
-    serviceLabel: string
-    createdAt: Date
-}
+type CheckIn = Database["public"]["Tables"]["check_ins"]["Row"]
 
-const demoCheckIns: CheckIn[] = [
-    {
-        id: "1",
-        type: "appointment",
-        customerName: "Maria Alvarez",
-        serviceLabel: "Windshield replacement",
-        createdAt: new Date(Date.now() - 2 * 60 * 1000),
-    },
-    {
-        id: "2",
-        type: "appointment",
-        customerName: "Derek Cho",
-        serviceLabel: "ADAS calibration",
-        createdAt: new Date(Date.now() - 9 * 60 * 1000),
-    },
-    {
-        id: "3",
-        type: "walk-in",
-        customerName: "Sam Whitfield",
-        serviceLabel: "Rock chip repair",
-        createdAt: new Date(Date.now() - 6 * 60 * 1000),
-    },
-]
+const ATTENTION_THRESHOLD_SECONDS = 8
+const RECENTLY_CLOSED_MS = 5 * 60 * 1000
 
-export function TechDashboard({ location }: { location: string }) {
-    const [clock] = useState(() =>
-        new Intl.DateTimeFormat("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-        }).format(new Date()),
-    )
+export function TechDashboard({
+    location,
+    initialCheckIns,
+}: {
+    location: string
+    initialCheckIns: CheckIn[]
+}) {
+    const [now, setNow] = useState(() => new Date())
+    const [checkIns, setCheckIns] = useState(initialCheckIns)
 
-    const [checkIns, setCheckIns] = useState(demoCheckIns)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setNow(new Date())
+        }, 1000)
 
-    const appointments = useMemo(
-        () => checkIns.filter((checkIn) => checkIn.type === "appointment"),
+        return () => clearInterval(interval)
+    }, [])
+
+    useEffect(() => {
+        setCheckIns((current) =>
+            current.filter((checkIn) => {
+                if (checkIn.status !== "closed") return true
+                if (!checkIn.closed_at) return false
+
+                return now.getTime() - new Date(checkIn.closed_at).getTime() < RECENTLY_CLOSED_MS
+            }),
+        )
+    }, [now])
+
+    const waitingCheckIns = useMemo(
+        () => checkIns.filter((checkIn) => checkIn.status === "waiting"),
         [checkIns],
     )
 
-    const walkIns = useMemo(
-        () => checkIns.filter((checkIn) => checkIn.type === "walk-in"),
+    const {
+        isChimeEnabled,
+        isAudioUnlocked,
+        enableChime,
+        disableChime,
+    } = useCheckInChime(waitingCheckIns.length > 0)
+
+    useEffect(() => {
+        const supabase = createClient()
+
+        const channel = supabase
+            .channel(`check-ins-${location}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "check_ins",
+                },
+                (payload) => {
+                    setCheckIns((current) => {
+                        if (payload.eventType === "INSERT") {
+                            const newCheckIn = payload.new as CheckIn
+
+                            if (newCheckIn.status !== "waiting") return current
+                            if (current.some((checkIn) => checkIn.id === newCheckIn.id)) return current
+
+                            return [...current, newCheckIn].sort((a, b) =>
+                                a.created_at.localeCompare(b.created_at),
+                            )
+                        }
+
+                        if (payload.eventType === "UPDATE") {
+                            const updatedCheckIn = payload.new as CheckIn
+
+                            if (updatedCheckIn.status === "closed" && !updatedCheckIn.closed_at) {
+                                return current
+                            }
+
+                            const exists = current.some((checkIn) => checkIn.id === updatedCheckIn.id)
+
+                            if (!exists && updatedCheckIn.status !== "waiting") return current
+
+                            if (!exists) {
+                                return [...current, updatedCheckIn].sort((a, b) =>
+                                    a.created_at.localeCompare(b.created_at),
+                                )
+                            }
+
+                            return current.map((checkIn) =>
+                                checkIn.id === updatedCheckIn.id ? updatedCheckIn : checkIn,
+                            )
+                        }
+
+                        return current
+                    })
+                },
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [location])
+
+    const appointmentWaiting = useMemo(
+        () =>
+            checkIns.filter(
+                (checkIn) =>
+                    checkIn.visit_type === "appointment" &&
+                    checkIn.status === "waiting",
+            ),
         [checkIns],
     )
 
-    function acknowledge(id: string) {
-        setCheckIns((current) => current.filter((checkIn) => checkIn.id !== id))
+    const appointmentRecent = useMemo(
+        () =>
+            checkIns.filter(
+                (checkIn) =>
+                    checkIn.visit_type === "appointment" &&
+                    checkIn.status === "closed",
+            ),
+        [checkIns],
+    )
+
+    const walkInWaiting = useMemo(
+        () =>
+            checkIns.filter(
+                (checkIn) =>
+                    checkIn.visit_type === "walk_in" &&
+                    checkIn.status === "waiting",
+            ),
+        [checkIns],
+    )
+
+    const walkInRecent = useMemo(
+        () =>
+            checkIns.filter(
+                (checkIn) =>
+                    checkIn.visit_type === "walk_in" &&
+                    checkIn.status === "closed",
+            ),
+        [checkIns],
+    )
+
+    const clock = new Intl.DateTimeFormat("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+    }).format(now)
+
+    async function closeCheckIn(id: string) {
+        const previous = checkIns
+        const closedAt = new Date().toISOString()
+
+        setCheckIns((current) =>
+            current.map((checkIn) =>
+                checkIn.id === id
+                    ? {
+                        ...checkIn,
+                        status: "closed",
+                        closed_at: closedAt,
+                    }
+                    : checkIn,
+            ),
+        )
+
+        try {
+            await closeCheckInAction(id)
+        } catch (error) {
+            console.error("Failed to close check-in:", error)
+            setCheckIns(previous)
+            alert("Could not acknowledge check-in. Please try again.")
+        }
     }
 
     return (
         <main className="min-h-screen bg-[#f7f9f9] text-[#1f2933]">
             <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-5 sm:px-8 md:px-10">
-                <DashboardHeader clock={clock} location={location} />
+                <DashboardHeader
+                    clock={clock}
+                    location={location}
+                    isChimeEnabled={isChimeEnabled}
+                    isAudioUnlocked={isAudioUnlocked}
+                    enableChime={enableChime}
+                    disableChime={disableChime}
+                />
 
                 <div className="grid flex-1 gap-6 py-6 lg:grid-cols-2">
                     <DashboardColumn
                         title="Appointments"
-                        count={appointments.length}
+                        count={appointmentWaiting.length}
                         icon={<CalendarCheck />}
                         accent="green"
                     >
-                        {appointments.length > 0 ? (
-                            appointments.map((checkIn) => (
-                                <CustomerCard
-                                    key={checkIn.id}
-                                    checkIn={checkIn}
-                                    onAcknowledge={() => acknowledge(checkIn.id)}
-                                />
-                            ))
-                        ) : (
-                            <EmptyState label="No appointments waiting" />
-                        )}
+                        <CheckInList
+                            waiting={appointmentWaiting}
+                            recent={appointmentRecent}
+                            emptyLabel="No appointments waiting"
+                            now={now}
+                            onCloseCheckIn={closeCheckIn}
+                        />
                     </DashboardColumn>
 
                     <DashboardColumn
                         title="Walk-ins"
-                        count={walkIns.length}
+                        count={walkInWaiting.length}
                         icon={<UserRound />}
                         accent="blue"
                     >
-                        {walkIns.length > 0 ? (
-                            walkIns.map((checkIn) => (
-                                <CustomerCard
-                                    key={checkIn.id}
-                                    checkIn={checkIn}
-                                    onAcknowledge={() => acknowledge(checkIn.id)}
-                                />
-                            ))
-                        ) : (
-                            <EmptyState label="No walk-ins waiting" />
-                        )}
+                        <CheckInList
+                            waiting={walkInWaiting}
+                            recent={walkInRecent}
+                            emptyLabel="No walk-ins waiting"
+                            now={now}
+                            onCloseCheckIn={closeCheckIn}
+                        />
                     </DashboardColumn>
                 </div>
             </div>
@@ -120,31 +241,99 @@ export function TechDashboard({ location }: { location: string }) {
     )
 }
 
+function CheckInList({
+    waiting,
+    recent,
+    emptyLabel,
+    now,
+    onCloseCheckIn,
+}: {
+    waiting: CheckIn[]
+    recent: CheckIn[]
+    emptyLabel: string
+    now: Date
+    onCloseCheckIn: (id: string) => void
+}) {
+    return (
+        <div className="grid gap-4">
+            {waiting.length > 0 ? (
+                waiting.map((checkIn) => (
+                    <CustomerCard
+                        key={checkIn.id}
+                        checkIn={checkIn}
+                        now={now}
+                        onCloseCheckIn={() => onCloseCheckIn(checkIn.id)}
+                    />
+                ))
+            ) : (
+                <EmptyState label={emptyLabel} compact={recent.length > 0} />
+            )}
+
+            {recent.length > 0 && (
+                <div className="mt-3 border-t border-[#d7e1e3] pt-4">
+                    <p className="mb-3 text-sm font-bold uppercase tracking-[0.07em] text-[#9aa8ad]">
+                        Recently acknowledged
+                    </p>
+
+                    <div className="grid gap-3">
+                        {recent.map((checkIn) => (
+                            <CustomerCard
+                                key={checkIn.id}
+                                checkIn={checkIn}
+                                now={now}
+                                onCloseCheckIn={() => onCloseCheckIn(checkIn.id)}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
 function DashboardHeader({
     clock,
     location,
+    isChimeEnabled,
+    isAudioUnlocked,
+    enableChime,
+    disableChime,
 }: {
     clock: string
     location: string
+    isChimeEnabled: boolean
+    isAudioUnlocked: boolean
+    enableChime: () => void
+    disableChime: () => void
 }) {
     return (
-        <header className="grid grid-cols-3 items-center gap-5">
+        <header className="flex items-center justify-between px-1">
             <div>
-                <h1 className="text-3xl font-semibold tracking-[-0.04em] text-[#16262f]">
-                    Front desk
+                <h1 className="text-3xl font-semibold capitalize tracking-[-0.04em] text-[#16262f]">
+                    {location.replaceAll("-", " ") || "Front desk"}
                 </h1>
                 <p className="text-base font-medium capitalize text-[#6f7f86]">
-                    {location.replaceAll("-", " ")} · Live customer activity
+                    Live customer activity
                 </p>
             </div>
 
-            <div className="flex justify-center">
-                <PrecisionLogo />
-            </div>
+            <div className="flex items-center gap-2">
+                <Button
+                    variant="ghost"
+                    className="text-[#6f7f86] hover:bg-transparent"
+                    onClick={isChimeEnabled && isAudioUnlocked ? disableChime : enableChime}
+                >
+                    {isChimeEnabled && isAudioUnlocked ? (
+                        <Volume2 className="size-6 stroke-[2.3]" />
+                    ) : (
+                        <>
+                            <p className="text-lg font-bold text-red-500">MUTED</p>
+                            <VolumeX className="size-6 stroke-[2.3] text-red-500" />
+                        </>
+                    )}
+                </Button>
 
-            <div className="flex justify-end">
-                <div className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold tabular-nums text-[#16262f] shadow-sm">
-                    <span className="size-2 rounded-full bg-[#9ad18b]" />
+                <div className="text-lg font-semibold tabular-nums text-[#6f7f86]">
                     {clock}
                 </div>
             </div>
@@ -188,80 +377,131 @@ function DashboardColumn({
                 </div>
             </div>
 
-            <div className="grid gap-4">{children}</div>
+            {children}
         </section>
     )
 }
 
 function CustomerCard({
     checkIn,
-    onAcknowledge,
+    now,
+    onCloseCheckIn,
 }: {
     checkIn: CheckIn
-    onAcknowledge: () => void
+    now: Date
+    onCloseCheckIn: () => void
 }) {
-    const waitingMinutes = Math.max(
+    const isClosed = checkIn.status === "closed"
+    const createdAt = new Date(checkIn.created_at)
+
+    const elapsedSeconds = Math.max(
         0,
-        Math.floor((Date.now() - checkIn.createdAt.getTime()) / 60000),
+        Math.floor((now.getTime() - createdAt.getTime()) / 1000),
     )
 
-    const needsAttention = waitingMinutes >= 8
+    const needsAttention = !isClosed && elapsedSeconds >= ATTENTION_THRESHOLD_SECONDS
 
     return (
         <article
-            className={`rounded-[1.4rem] border p-5 shadow-sm transition ${needsAttention
-                ? "border-[#e3b75f] bg-[#fff8e8]"
-                : "border-[#d7e1e3] bg-[#f7f9f9]"
+            className={`rounded-[1.4rem] border p-5 shadow-sm transition ${isClosed
+                ? "border-[#d7e1e3] bg-[#f7f9f9] opacity-75"
+                : needsAttention
+                    ? "border-[#e35f5f] bg-[#ffe8e8]"
+                    : "border-[#e3b75f] bg-[#fff8e8]"
                 }`}
         >
             <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
                     <div className="mb-1 flex items-center gap-2">
                         <h3 className="text-2xl font-black tracking-[-0.03em] text-[#16262f]">
-                            {checkIn.customerName}
+                            {checkIn.customer_name}
                         </h3>
 
                         {needsAttention && (
-                            <span className="rounded-full bg-[#fff0c2] px-2 py-1 text-xs font-black uppercase tracking-wide text-[#9b6a00]">
+                            <span className="rounded-full bg-[#ffc2c2] px-2 py-1 text-xs font-black uppercase tracking-wide text-[#9b0000]">
                                 Needs attention
+                            </span>
+                        )}
+
+                        {isClosed && (
+                            <span className="rounded-full bg-[#e5f4ed] px-2 py-1 text-xs font-black uppercase tracking-wide text-[#3b8d65]">
+                                Acknowledged
                             </span>
                         )}
                     </div>
 
                     <p className="text-lg font-medium text-[#6f7f86]">
-                        {checkIn.serviceLabel}
+                        {formatServiceLabel(checkIn)}
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-bold text-[#60727f] shadow-sm">
+                <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-bold tabular-nums text-[#60727f] shadow-sm">
                     <Clock className="size-4" />
-                    {waitingMinutes <= 0 ? "just now" : `${waitingMinutes} min`}
+                    {isClosed ? formatClosedLabel(checkIn, now) : formatWaitingLabel(elapsedSeconds)}
                 </div>
             </div>
 
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.08em] text-[#7c8b91]">
+            <div className="flex items-center justify-end gap-4">
+                {/* <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.08em] text-[#7c8b91]">
                     <Wrench className="size-4" />
-                    Waiting
-                </div>
+                    {isClosed ? "Acknowledged" : "Waiting"}
+                </div> */}
 
-                <Button
-                    className="h-12 rounded-2xl bg-[#2f6975] px-6 text-base font-bold shadow-lg shadow-[#2f6975]/20 hover:bg-[#285a64]"
-                    onClick={onAcknowledge}
-                >
-                    <CheckCircle2 className="size-5" />
-                    Acknowledge
-                </Button>
+                {!isClosed && (
+                    <Button
+                        className="h-12 rounded-2xl bg-[#2f6975] px-6 text-base font-bold shadow-lg shadow-[#2f6975]/20 hover:bg-[#285a64]"
+                        onClick={onCloseCheckIn}
+                    >
+                        <CheckCircle2 className="size-5" />
+                        Acknowledge
+                    </Button>
+                )}
             </div>
         </article>
     )
 }
 
-function EmptyState({ label }: { label: string }) {
+function EmptyState({
+    label,
+    compact = false,
+}: {
+    label: string
+    compact?: boolean
+}) {
     return (
-        <div className="flex min-h-105 flex-col items-center justify-center rounded-[1.4rem] border border-dashed border-[#d7e1e3] bg-[#f7f9f9] text-center">
+        <div className={`flex flex-col items-center justify-center rounded-[1.4rem] border border-dashed border-[#d7e1e3] bg-[#f7f9f9] text-center ${compact ? "min-h-36" : "min-h-105"}`}>
             <AlarmClock className="mb-4 size-12 text-[#b6c2c6]" />
             <p className="text-xl font-semibold text-[#9aa8ad]">{label}</p>
         </div>
     )
+}
+
+function formatWaitingLabel(elapsedSeconds: number) {
+    if (elapsedSeconds < 60) {
+        return `0:${String(elapsedSeconds).padStart(2, "0")}`
+    }
+
+    return `${Math.floor(elapsedSeconds / 60)} min`
+}
+
+function formatClosedLabel(checkIn: CheckIn, now: Date) {
+    if (!checkIn.closed_at) return "Acknowledged"
+
+    const elapsedSeconds = Math.max(
+        0,
+        Math.floor((now.getTime() - new Date(checkIn.closed_at).getTime()) / 1000),
+    )
+
+    if (elapsedSeconds < 60) return "just now"
+
+    return `${Math.floor(elapsedSeconds / 60)} min`
+}
+
+function formatServiceLabel(checkIn: CheckIn) {
+    if (checkIn.service_type === "windshield") return "Windshield"
+    if (checkIn.service_type === "rock_chip" && checkIn.payment_type === "cash") return "Rock Chip – Cash"
+    if (checkIn.service_type === "rock_chip" && checkIn.payment_type === "insurance") return "Rock Chip – Insurance"
+    if (checkIn.service_type === "other") return "Other"
+    if (checkIn.visit_type === "appointment") return "Appointment"
+    return "Walk-in"
 }
