@@ -10,7 +10,6 @@ import {
     UserRound,
     Volume2,
     VolumeX,
-    Wrench,
 } from "lucide-react"
 import { useCheckInChime } from "@/lib/hooks/useCheckInChime"
 
@@ -38,12 +37,14 @@ export function TechDashboard({
     const [checkIns, setCheckIns] = useState(initialCheckIns)
 
     useEffect(() => {
+        if (!now) return
+
         setCheckIns((current) =>
             current.filter((checkIn) => {
                 if (checkIn.status !== "closed") return true
                 if (!checkIn.closed_at) return false
 
-                return now && now.getTime() - new Date(checkIn.closed_at).getTime() < RECENTLY_CLOSED_MS
+                return now.getTime() - new Date(checkIn.closed_at).getTime() < RECENTLY_CLOSED_MS
             }),
         )
     }, [now])
@@ -89,13 +90,15 @@ export function TechDashboard({
                         if (payload.eventType === "UPDATE") {
                             const updatedCheckIn = payload.new as CheckIn
 
-                            if (updatedCheckIn.status === "closed" && !updatedCheckIn.closed_at) {
-                                return current
+                            if (
+                                updatedCheckIn.status === "closed" &&
+                                updatedCheckIn.closed_at &&
+                                Date.now() - new Date(updatedCheckIn.closed_at).getTime() > RECENTLY_CLOSED_MS
+                            ) {
+                                return current.filter((checkIn) => checkIn.id !== updatedCheckIn.id)
                             }
 
                             const exists = current.some((checkIn) => checkIn.id === updatedCheckIn.id)
-
-                            if (!exists && updatedCheckIn.status !== "waiting") return current
 
                             if (!exists) {
                                 return [...current, updatedCheckIn].sort((a, b) =>
