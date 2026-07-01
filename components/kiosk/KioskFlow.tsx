@@ -32,8 +32,8 @@ type StepId =
     | "rockChipInsuranceName"
     | "success"
 
-type VisitType = "appointment" | "walk-in" | null
-type ServiceType = "windshield" | "rock-chip" | "other" | null
+type VisitType = "appointment" | "walk_in" | null
+type ServiceType = "windshield" | "rock_chip" | "other" | "bell" | null
 type PaymentType = "cash" | "insurance" | null
 
 type KioskData = {
@@ -168,9 +168,10 @@ export function KioskFlow({ location }: { location: string }) {
                 locationSlug: location,
                 customerName: data.customerName.trim(),
                 phone: data.phone.trim() || undefined,
-                visitType: data.visitType === "appointment" ? "appointment" : "walk_in",
-                serviceType: data.serviceType === "rock-chip" ? "rock_chip" : data.serviceType,
+                visitType: data.visitType ?? "walk_in",
+                serviceType: data.serviceType,
                 paymentType: data.paymentType,
+                repairAuthorized: data.repairAuthorized,
                 source: "kiosk",
             })
 
@@ -233,7 +234,7 @@ export function KioskFlow({ location }: { location: string }) {
                                     description="A technician will come assist you."
                                     onClick={() =>
                                         goTo("serviceType", {
-                                            visitType: "walk-in",
+                                            visitType: "walk_in",
                                             serviceType: null,
                                             paymentType: null,
                                         })
@@ -264,7 +265,7 @@ export function KioskFlow({ location }: { location: string }) {
                                     description="Repair for small chips or cracks."
                                     onClick={() =>
                                         goTo("paymentType", {
-                                            serviceType: "rock-chip",
+                                            serviceType: "rock_chip",
                                             paymentType: null,
                                         })
                                     }
@@ -498,7 +499,11 @@ export function KioskFlow({ location }: { location: string }) {
                     {["appointment"].includes(step) && (
                         <RingTeamButton
                             onClick={() => {
-                                console.log("Ring team member:", { location })
+                                goTo("name", {
+                                    visitType: "walk_in",
+                                    serviceType: "bell",
+                                    paymentType: null,
+                                })
                             }}
                         />
                     )}

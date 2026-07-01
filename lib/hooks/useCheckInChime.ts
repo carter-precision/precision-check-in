@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react"
 const CHIME_ESCALATION_DELAY_MS = 8000
 const CHIME_REPEAT_INTERVAL_MS = 3000
 const CHIME_STORAGE_KEY = "pag_chime_enabled"
+const CHIME_SOUND_STORAGE_KEY = "pag_chime_sound"
 
 type UseCheckInChimeOptions = {
     soundPath?: string
@@ -14,11 +15,13 @@ export function useCheckInChime(
     shouldChime: boolean,
     options: UseCheckInChimeOptions = {},
 ) {
-    const soundPath = options.soundPath ?? "/soft-tone.mp3"
+    const [soundPath, setSoundPath] = useState(options.soundPath ?? "/sound-1.mp3")
 
     const escalationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const repeatIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
     const audioRef = useRef<HTMLAudioElement | null>(null)
+    const previewAudioRef = useRef<HTMLAudioElement | null>(null)
 
     const [isChimeEnabled, setIsChimeEnabled] = useState(true)
     const [isAudioUnlocked, setIsAudioUnlocked] = useState(false)
@@ -28,6 +31,14 @@ export function useCheckInChime(
 
         if (stored === "false") {
             setIsChimeEnabled(false)
+        }
+    }, [])
+
+    useEffect(() => {
+        const storedSound = window.localStorage.getItem(CHIME_SOUND_STORAGE_KEY)
+
+        if (storedSound) {
+            setSoundPath(storedSound)
         }
     }, [])
 
@@ -90,7 +101,7 @@ export function useCheckInChime(
         }, CHIME_ESCALATION_DELAY_MS)
 
         return stopChimeLoop
-    }, [shouldChime, isChimeEnabled, isAudioUnlocked])
+    }, [shouldChime, isChimeEnabled, isAudioUnlocked, soundPath])
 
     async function enableChime() {
         setIsChimeEnabled(true)
@@ -119,10 +130,17 @@ export function useCheckInChime(
         stopChimeLoop()
     }
 
+    function changeSound(nextSoundPath: string) {
+        setSoundPath(nextSoundPath)
+        window.localStorage.setItem(CHIME_SOUND_STORAGE_KEY, nextSoundPath)
+    }
+
     return {
         isChimeEnabled,
         isAudioUnlocked,
+        soundPath,
         enableChime,
         disableChime,
+        changeSound,
     }
 }

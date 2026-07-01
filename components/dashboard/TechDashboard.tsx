@@ -4,12 +4,12 @@ import { useEffect, useMemo, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import {
     AlarmClock,
+    BellRing,
     CalendarCheck,
     CheckCircle2,
     Clock,
     UserRound,
     Volume2,
-    VolumeX,
 } from "lucide-react"
 import { useCheckInChime } from "@/lib/hooks/useCheckInChime"
 
@@ -24,6 +24,14 @@ type CheckIn = Database["public"]["Tables"]["check_ins"]["Row"]
 const ATTENTION_THRESHOLD_SECONDS = 8
 const RECENTLY_CLOSED_MS = 30 * 60 * 1000
 
+const CHIME_SOUNDS = [
+    { label: "Chime 1", path: "/sound-1.mp3" },
+    { label: "Chime 2", path: "/sound-2.mp3" },
+    { label: "Chime 3", path: "/sound-3.mp3" },
+    { label: "Chime 4", path: "/sound-4.mp3" },
+    { label: "Chime 5", path: "/sound-5.mp3" },
+]
+
 export function TechDashboard({
     location,
     locationId,
@@ -35,6 +43,7 @@ export function TechDashboard({
 }) {
     const now = useNow()
     const [checkIns, setCheckIns] = useState(initialCheckIns)
+    const [showSoundSettings, setShowSoundSettings] = useState(false)
 
     useEffect(() => {
         if (!now) return
@@ -55,10 +64,12 @@ export function TechDashboard({
     )
 
     const {
-        isChimeEnabled,
+        // isChimeEnabled,
         isAudioUnlocked,
+        soundPath,
         enableChime,
-        disableChime,
+        // disableChime,
+        changeSound,
     } = useCheckInChime(waitingCheckIns.length > 0)
 
     useEffect(() => {
@@ -198,10 +209,11 @@ export function TechDashboard({
                 <DashboardHeader
                     clock={clock}
                     location={location}
-                    isChimeEnabled={isChimeEnabled}
-                    isAudioUnlocked={isAudioUnlocked}
+                    // isChimeEnabled={isChimeEnabled}
+                    // isAudioUnlocked={isAudioUnlocked}
                     enableChime={enableChime}
-                    disableChime={disableChime}
+                    // disableChime={disableChime}
+                    setShowSoundSettings={setShowSoundSettings}
                 />
 
                 <div className="grid flex-1 gap-6 py-6 lg:grid-cols-2">
@@ -236,6 +248,16 @@ export function TechDashboard({
                     </DashboardColumn>
                 </div>
             </div>
+            {!isAudioUnlocked && (
+                <EnableSoundOverlay onEnableSound={enableChime} />
+            )}
+            {showSoundSettings && (
+                <SoundSettingsDialog
+                    selectedSoundPath={soundPath}
+                    onSelectSound={changeSound}
+                    onClose={() => setShowSoundSettings(false)}
+                />
+            )}
         </main>
     )
 }
@@ -293,22 +315,24 @@ function CheckInList({
 function DashboardHeader({
     clock,
     location,
-    isChimeEnabled,
-    isAudioUnlocked,
+    // isChimeEnabled,
+    // isAudioUnlocked,
     enableChime,
-    disableChime,
+    // disableChime,
+    setShowSoundSettings,
 }: {
     clock: string
     location: string
-    isChimeEnabled: boolean
-    isAudioUnlocked: boolean
+    // isChimeEnabled: boolean
+    // isAudioUnlocked: boolean
     enableChime: () => void
-    disableChime: () => void
+    // disableChime: () => void
+    setShowSoundSettings: (show: boolean) => void
 }) {
     return (
         <header className="flex items-center justify-between px-1">
             <div>
-                <h1 className="text-3xl font-semibold capitalize tracking-[-0.04em] text-[#16262f]">
+                <h1 className="text-3xl font-bold capitalize tracking-[-0.04em] text-[#16262f]">
                     {location.replaceAll("-", " ") || "Front desk"}
                 </h1>
                 <p className="text-base font-medium capitalize text-[#6f7f86]">
@@ -317,7 +341,7 @@ function DashboardHeader({
             </div>
 
             <div className="flex items-center gap-2">
-                <Button
+                {/* <Button
                     variant="ghost"
                     className="text-[#6f7f86] hover:bg-transparent"
                     onClick={isChimeEnabled && isAudioUnlocked ? disableChime : enableChime}
@@ -330,6 +354,14 @@ function DashboardHeader({
                             <VolumeX className="size-6 stroke-[2.3] text-red-500" />
                         </>
                     )}
+                </Button> */}
+
+                <Button
+                    variant="ghost"
+                    className="text-[#6f7f86] hover:bg-transparent"
+                    onClick={() => setShowSoundSettings(true)}
+                >
+                    <Volume2 className="size-6 stroke-[2.3]" />
                 </Button>
 
                 <div className="text-lg font-semibold tabular-nums text-[#6f7f86]">
@@ -412,7 +444,7 @@ function CustomerCard({
             <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
                     <div className="mb-1 flex items-center gap-2">
-                        <h3 className="text-2xl font-black tracking-[-0.03em] text-[#16262f]">
+                        <h3 className="text-2xl font-bold tracking-[-0.03em] text-[#16262f]">
                             {checkIn.customer_name}
                         </h3>
 
@@ -475,6 +507,96 @@ function EmptyState({
     )
 }
 
+function EnableSoundOverlay({
+    onEnableSound,
+}: {
+    onEnableSound: () => void
+}) {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#16262f]/80 px-6 backdrop-blur-sm">
+            <button
+                type="button"
+                onClick={onEnableSound}
+                className="w-full max-w-lg rounded-[2rem] bg-white p-10 text-center shadow-2xl transition hover:scale-[1.01] active:scale-[0.99]"
+            >
+                <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-[#e7f1f2] text-[#2f6975]">
+                    <Volume2 className="size-10" />
+                </div>
+
+                <h2 className="mb-3 text-4xl font-bold tracking-[-0.04em] text-[#16262f]">
+                    Tap to enable sound
+                </h2>
+            </button>
+        </div>
+    )
+}
+
+function SoundSettingsDialog({
+    selectedSoundPath,
+    onSelectSound,
+    onClose,
+}: {
+    selectedSoundPath: string
+    onSelectSound: (soundPath: string) => void
+    onClose: () => void
+}) {
+
+    const [pendingSoundPath, setPendingSoundPath] = useState(selectedSoundPath)
+
+    async function previewSound(soundPath: string) {
+        setPendingSoundPath(soundPath)
+
+        const audio = new Audio(soundPath)
+        audio.volume = 1
+
+        try {
+            await audio.play()
+        } catch (error) {
+            console.error("Unable to preview sound:", error)
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#16262f]/40 px-6 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-[2rem] bg-white p-8 shadow-2xl">
+                <h2 className="mb-2 text-3xl font-bold tracking-[-0.04em] text-[#16262f]">
+                    Chime sound
+                </h2>
+
+                <p className="mb-6 text-base font-medium text-[#60727f]">
+                    Choose the sound this dashboard plays for new check-ins.
+                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                    {CHIME_SOUNDS.map((sound) => (
+                        <button
+                            key={sound.path}
+                            type="button"
+                            onClick={() => previewSound(sound.path)}
+                            className={`rounded-2xl border p-4 text-left font-bold transition ${pendingSoundPath === sound.path
+                                    ? "border-[#2f6975] bg-[#e7f1f2] text-[#2f6975]"
+                                    : "border-[#d7e1e3] bg-white text-[#16262f] hover:bg-[#f7f9f9]"
+                                }`}
+                        >
+                            {sound.label}
+                        </button>
+                    ))}
+                </div>
+
+                <Button
+                    className="mt-6 h-12 w-full rounded-2xl bg-[#2f6975] font-bold hover:bg-[#285a64]"
+                    onClick={() => {
+                        onSelectSound(pendingSoundPath)
+                        onClose()
+                    }}
+                >
+                    Done
+                </Button>
+            </div>
+        </div>
+    )
+}
+
 function formatWaitingLabel(elapsedSeconds: number) {
     if (elapsedSeconds < 60) {
         return `0:${String(elapsedSeconds).padStart(2, "0")}`
@@ -497,10 +619,11 @@ function formatClosedLabel(checkIn: CheckIn, now: Date | null) {
 }
 
 function formatServiceLabel(checkIn: CheckIn) {
+    if (checkIn.visit_type === "appointment") return "Appointment"
     if (checkIn.service_type === "windshield") return "Windshield"
     if (checkIn.service_type === "rock_chip" && checkIn.payment_type === "cash") return "Rock Chip – Cash"
     if (checkIn.service_type === "rock_chip" && checkIn.payment_type === "insurance") return "Rock Chip – Insurance"
-    if (checkIn.service_type === "other") return "Other"
-    if (checkIn.visit_type === "appointment") return "Appointment"
+    if (checkIn.service_type === "other") return "Other Service"
+    if (checkIn.service_type === "bell") return <span className="flex items-center gap-2"><BellRing className="size-5 stroke-2 stroke-yellow-500" />Help Requested</span>
     return "Walk-in"
 }

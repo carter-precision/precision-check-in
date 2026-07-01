@@ -23,6 +23,7 @@ export type Database = {
           location_id: string
           payment_type: string | null
           phone: string | null
+          repair_authorized: boolean
           service_type: string | null
           source: string
           status: string
@@ -36,6 +37,7 @@ export type Database = {
           location_id: string
           payment_type?: string | null
           phone?: string | null
+          repair_authorized?: boolean
           service_type?: string | null
           source: string
           status?: string
@@ -49,6 +51,7 @@ export type Database = {
           location_id?: string
           payment_type?: string | null
           phone?: string | null
+          repair_authorized?: boolean
           service_type?: string | null
           source?: string
           status?: string

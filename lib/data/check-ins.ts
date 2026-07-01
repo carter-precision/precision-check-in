@@ -9,9 +9,10 @@ export type CreateCheckInInput = {
     customerName: string
     phone?: string
     visitType: "appointment" | "walk_in"
-    serviceType?: "windshield" | "rock_chip" | "other" | null
+    serviceType?: "windshield" | "rock_chip" | "other" | "bell" | null
     paymentType?: "cash" | "insurance" | null
     source: "kiosk" | "phone"
+    repairAuthorized?: boolean
 }
 
 export async function createCheckIn(input: CreateCheckInInput) {
@@ -37,6 +38,7 @@ export async function createCheckIn(input: CreateCheckInInput) {
         payment_type: input.paymentType ?? null,
         source: input.source,
         status: "waiting",
+        repair_authorized: input.repairAuthorized ?? false,
     }
 
     const { data, error } = await supabase
