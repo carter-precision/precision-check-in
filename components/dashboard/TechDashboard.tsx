@@ -89,15 +89,13 @@ export function TechDashboard({
                         if (payload.eventType === "UPDATE") {
                             const updatedCheckIn = payload.new as CheckIn
 
-                            if (
-                                updatedCheckIn.status === "closed" &&
-                                updatedCheckIn.closed_at &&
-                                Date.now() - new Date(updatedCheckIn.closed_at).getTime() > RECENTLY_CLOSED_MS
-                            ) {
-                                return current.filter((checkIn) => checkIn.id !== updatedCheckIn.id)
+                            if (updatedCheckIn.status === "closed" && !updatedCheckIn.closed_at) {
+                                return current
                             }
 
                             const exists = current.some((checkIn) => checkIn.id === updatedCheckIn.id)
+
+                            if (!exists && updatedCheckIn.status !== "waiting") return current
 
                             if (!exists) {
                                 return [...current, updatedCheckIn].sort((a, b) =>
