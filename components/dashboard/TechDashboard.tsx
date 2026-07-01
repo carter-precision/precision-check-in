@@ -65,70 +65,51 @@ export function TechDashboard({
         const supabase = createClient()
 
         const channel = supabase
-            .channel(`check-ins-${locationId}`)
+            .channel(`check-ins-${location}`)
             .on(
                 "postgres_changes",
                 {
-                    event: "INSERT",
+                    event: "*",
                     schema: "public",
                     table: "check_ins",
                     filter: `location_id=eq.${locationId}`,
                 },
                 (payload) => {
-                    const newCheckIn = payload.new as CheckIn
-
-                    if (newCheckIn.status !== "waiting") return
-
                     setCheckIns((current) => {
-                        if (current.some((checkIn) => checkIn.id === newCheckIn.id)) {
-                            return current
-                        }
+                        if (payload.eventType === "INSERT") {
+                            const newCheckIn = payload.new as CheckIn
 
-                        return [...current, newCheckIn].sort((a, b) =>
-                            a.created_at.localeCompare(b.created_at),
-                        )
-                    })
-                },
-            )
-            .on(
-                "postgres_changes",
-                {
-                    event: "UPDATE",
-                    schema: "public",
-                    table: "check_ins",
-                    filter: `location_id=eq.${locationId}`,
-                },
-                (payload) => {
-                    const updatedCheckIn = payload.new as CheckIn
+                            if (newCheckIn.status !== "waiting") return current
+                            if (current.some((checkIn) => checkIn.id === newCheckIn.id)) return current
 
-                    setCheckIns((current) => {
-                        const exists = current.some(
-                            (checkIn) => checkIn.id === updatedCheckIn.id,
-                        )
-
-                        if (
-                            updatedCheckIn.status === "closed" &&
-                            updatedCheckIn.closed_at &&
-                            Date.now() -
-                            new Date(updatedCheckIn.closed_at).getTime() >
-                            RECENTLY_CLOSED_MS
-                        ) {
-                            return current.filter(
-                                (checkIn) => checkIn.id !== updatedCheckIn.id,
-                            )
-                        }
-
-                        if (!exists) {
-                            return [...current, updatedCheckIn].sort((a, b) =>
+                            return [...current, newCheckIn].sort((a, b) =>
                                 a.created_at.localeCompare(b.created_at),
                             )
                         }
 
-                        return current.map((checkIn) =>
-                            checkIn.id === updatedCheckIn.id
-                                ? updatedCheckIn
-                                : checkIn,
-                        )
+                        if (payload.eventType === "UPDATE") {
+                            const updatedCheckIn = payload.new as CheckIn
+
+                            if (updatedCheckIn.status === "closed" && !updatedCheckIn.closed_at) {
+                                return current
+                            }
+
+                            const exists = current.some((checkIn) => checkIn.id === updatedCheckIn.id)
+
+                            if (!exists && updatedCheckIn.status !== "waiting") return current
+
+                            if (!exists) {
+                                return [...current, updatedCheckIn].sort((a, b) =>
+                                    a.created_at.localeCompare(b.created_at),
+                                )
+                            }
+
+                            return current.map((checkIn) =>
+                                checkIn.id === updatedCheckIn.id ? updatedCheckIn : checkIn,
+                            )
+                        }
+
+                        return current
                     })
                 },
             )
@@ -137,7 +118,7 @@ export function TechDashboard({
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [locationId])
+    }, [location, locationId])
 
     const appointmentWaiting = useMemo(
         () =>
