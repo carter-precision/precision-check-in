@@ -573,7 +573,7 @@ function SoundSettingsDialog({
                             key={sound.path}
                             type="button"
                             onClick={() => previewSound(sound.path)}
-                            className={`rounded-2xl border p-4 text-left font-bold transition ${pendingSoundPath === sound.path
+                            className={`cursor-pointer rounded-2xl border p-4 text-left font-bold transition ${pendingSoundPath === sound.path
                                 ? "border-[#2f6975] bg-[#e7f1f2] text-[#2f6975]"
                                 : "border-[#d7e1e3] bg-white text-[#16262f] hover:bg-[#f7f9f9]"
                                 }`}
