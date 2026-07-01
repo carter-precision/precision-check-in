@@ -31,7 +31,7 @@ export function DevRouteSwitcher() {
                         key={route.href}
                         href={route.href}
                         className={`px-5 py-2 text-sm font-bold transition ${active
-                            ? "bg-[#2f6975] text-white"
+                            ? "bg-slate-900 text-white"
                             : "bg-white text-slate-600 hover:bg-slate-100"
                             }`}
                     >

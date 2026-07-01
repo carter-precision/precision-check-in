@@ -11,13 +11,13 @@ import {
     UserRound,
     Volume2,
 } from "lucide-react"
-import { useCheckInChime } from "@/lib/hooks/useCheckInChime"
+import { useCheckInChime } from "@/hooks/useCheckInChime"
 
 import { Button } from "@/components/ui/button"
 
 import type { Database } from "@/lib/supabase/types"
 import { closeCheckInAction } from "@/app/actions/check-ins"
-import { useNow } from "@/lib/hooks/useNow"
+import { useNow } from "@/hooks/useNow"
 
 type CheckIn = Database["public"]["Tables"]["check_ins"]["Row"]
 
@@ -330,7 +330,7 @@ function DashboardHeader({
     setShowSoundSettings: (show: boolean) => void
 }) {
     return (
-        <header className="flex items-center justify-between px-1">
+        <header className="flex items-center justify-between px-0.5">
             <div>
                 <h1 className="text-3xl font-bold capitalize tracking-[-0.04em] text-[#16262f]">
                     {location.replaceAll("-", " ") || "Front desk"}
@@ -403,7 +403,7 @@ function DashboardColumn({
                     </h2>
                 </div>
 
-                <div className="rounded-full bg-[#eef3ee] px-3 py-1 text-lg font-black text-[#60727f]">
+                <div className="rounded-full bg-[#eef3ee] px-3 py-1 text-lg font-black text-muted-foreground">
                     {count}
                 </div>
             </div>
@@ -466,7 +466,7 @@ function CustomerCard({
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-bold tabular-nums text-[#60727f] shadow-sm">
+                <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-bold tabular-nums text-muted-foreground shadow-sm">
                     <Clock className="size-4" />
                     {isClosed ? formatClosedLabel(checkIn, now) : formatWaitingLabel(elapsedSeconds)}
                 </div>
@@ -563,7 +563,7 @@ function SoundSettingsDialog({
                     Chime sound
                 </h2>
 
-                <p className="mb-6 text-base font-medium text-[#60727f]">
+                <p className="mb-6 text-base font-medium text-muted-foreground">
                     Choose the sound this dashboard plays for new check-ins.
                 </p>
 
@@ -574,8 +574,8 @@ function SoundSettingsDialog({
                             type="button"
                             onClick={() => previewSound(sound.path)}
                             className={`rounded-2xl border p-4 text-left font-bold transition ${pendingSoundPath === sound.path
-                                    ? "border-[#2f6975] bg-[#e7f1f2] text-[#2f6975]"
-                                    : "border-[#d7e1e3] bg-white text-[#16262f] hover:bg-[#f7f9f9]"
+                                ? "border-[#2f6975] bg-[#e7f1f2] text-[#2f6975]"
+                                : "border-[#d7e1e3] bg-white text-[#16262f] hover:bg-[#f7f9f9]"
                                 }`}
                         >
                             {sound.label}

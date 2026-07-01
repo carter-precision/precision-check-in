@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 import { createCheckInAction } from "@/app/actions/check-ins"
-import { useNow } from "@/lib/hooks/useNow"
+import { useNow } from "@/hooks/useNow"
 
 type StepId =
     | "welcome"
@@ -186,7 +186,7 @@ export function KioskFlow({ location }: { location: string }) {
     }
 
     return (
-        <main className="min-h-screen bg-[#f7f9f9] text-[#1f2933]">
+        <main className="min-h-screen">
             <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 sm:px-8 md:px-12">
                 <KioskHeader clock={clock} />
 
@@ -194,16 +194,16 @@ export function KioskFlow({ location }: { location: string }) {
                     {step === "welcome" && (
                         <KioskStep>
                             <div className="flex flex-1 flex-col items-center justify-center text-center -mt-30">
-                                <h1 className="mb-4 text-5xl font-semibold tracking-[-0.04em] text-[#16262f]">
+                                <h1 className="mb-4 text-5xl font-semibold tracking-[-0.04em]">
                                     Happy to see you!
                                 </h1>
 
-                                <p className="mb-10 max-w-sm text-xl font-medium leading-snug text-[#60727f]">
+                                <p className="mb-10 max-w-sm text-xl font-medium leading-snug text-muted-foreground">
                                     Let's get things rolling.
                                 </p>
 
                                 <Button
-                                    className="h-20 w-70 rounded-full bg-[#2f6975] text-xl font-bold shadow-lg shadow-[#2f6975]/20 hover:bg-[#285a64]"
+                                    className="h-20 w-70 rounded-full bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
                                     onClick={() => goTo("appointment")}
                                 >
                                     Tap to check in
@@ -289,15 +289,15 @@ export function KioskFlow({ location }: { location: string }) {
                     {step === "quoteTool" && (
                         <KioskStep title="Let’s get your quote started">
                             <div className="rounded-[1.4rem] border border-dashed border-[#a9c7ce] bg-white p-8 text-center shadow-sm">
-                                <FileText className="mx-auto mb-5 size-12 text-[#2f6975]" />
+                                <FileText className="mx-auto mb-5 size-12 text-accent" />
                                 <h2 className="mb-3 text-2xl font-bold tracking-[-0.02em] text-[#16262f]">
                                     Quote tool placeholder
                                 </h2>
-                                <p className="mb-7 text-base font-medium leading-snug text-[#6f7f86]">
+                                <p className="mb-7 text-base font-medium leading-snug text-muted-foreground">
                                     We’ll connect this step to the windshield quote flow later.
                                 </p>
                                 <Button
-                                    className="h-14 w-full rounded-2xl bg-[#2f6975] text-lg font-bold shadow-lg shadow-[#2f6975]/20 hover:bg-[#285a64]"
+                                    className="h-14 w-full rounded-2xl bg-accent text-lg font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
                                     onClick={() => goTo("name")}
                                 >
                                     Continue for now
@@ -315,10 +315,10 @@ export function KioskFlow({ location }: { location: string }) {
                                     description="You’ll pay directly for the repair."
                                     trailing={
                                         <div className="flex gap-4">
-                                            <div className="text-3xl font-bold tracking-tight text-[#349c42] -mt-1">
+                                            <div className="text-3xl font-bold tracking-tight text-accent -mt-1">
                                                 $65
                                             </div>
-                                            <div className="flex flex-col text-xs text-[#6f7f86]">
+                                            <div className="flex flex-col text-xs text-muted-foreground">
                                                 <span>First chip included</span>
                                                 <span>$20 each additional</span>
                                             </div>
@@ -360,7 +360,7 @@ export function KioskFlow({ location }: { location: string }) {
                                 />
 
                                 <Button
-                                    className="h-16 w-full rounded-2xl bg-[#2f6975] text-xl font-bold shadow-lg shadow-[#2f6975]/20 hover:bg-[#285a64]"
+                                    className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
                                     disabled={isSubmitting || data.customerName.trim().length < 2}
                                     onClick={submitCheckIn}
                                 >
@@ -378,7 +378,7 @@ export function KioskFlow({ location }: { location: string }) {
                         <KioskStep title="Repair Authorization">
                             <div className="mt-4 space-y-5">
                                 <div className="rounded-[1.4rem] border border-[#d7e1e3] bg-white p-6 text-left shadow-sm">
-                                    <p className="text-lg font-medium leading-relaxed text-[#60727f]">
+                                    <p className="text-lg font-medium leading-relaxed text-muted-foreground">
                                         I authorize Precision Auto Glass to inspect and perform the agreed repair on my vehicle. Resin repairs improve appearance and structural integrity but may leave a faint blemish. I understand a chip can occasionally spread during repair, in which case a replacement may be recommended.
                                     </p>
 
@@ -389,7 +389,7 @@ export function KioskFlow({ location }: { location: string }) {
                                             onChange={(event) =>
                                                 updateData({ repairAuthorized: event.target.checked })
                                             }
-                                            className="mt-1 size-5 accent-[#2f6975]"
+                                            className="mt-1 size-5 accent-accent"
                                         />
 
                                         <span className="text-base font-bold leading-snug text-[#16262f]">
@@ -408,7 +408,7 @@ export function KioskFlow({ location }: { location: string }) {
                                 />
 
                                 <Button
-                                    className="h-16 w-full rounded-2xl bg-[#2f6975] text-xl font-bold shadow-lg shadow-[#2f6975]/20 hover:bg-[#285a64]"
+                                    className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
                                     disabled={
                                         isSubmitting ||
                                         data.customerName.trim().length < 2 ||
@@ -425,14 +425,14 @@ export function KioskFlow({ location }: { location: string }) {
                     {step === "rockChipInsuranceName" && (
                         <KioskStep>
                             <div className="mt-4 space-y-5">
-                                <div className="flex flex-col items-center rounded-[1.4rem] border border-[#a9c7ce] bg-[#e7f1f2] p-6 text-center shadow-sm">
-                                    <ShieldCheck className="mx-auto mb-4 size-10 text-[#2f6975]" />
+                                <div className="flex flex-col items-center rounded-[1.4rem] border border-[#a9c7ce] bg-accent-tint/50 p-6 text-center shadow-sm">
+                                    <ShieldCheck className="mx-auto mb-4 size-10 text-accent" />
 
                                     <p className="text-xl font-bold leading-snug text-[#16262f]">
                                         We’re thrilled to help you!
                                     </p>
 
-                                    <p className="max-w-150 mt-3 text-lg font-medium leading-snug text-[#60727f]">
+                                    <p className="max-w-150 mt-3 text-lg font-medium leading-snug text-muted-foreground">
                                         Insurance rock chip setups can be a rather arduous process — but we’re here to make things as smooth as possible.
                                     </p>
                                 </div>
@@ -447,7 +447,7 @@ export function KioskFlow({ location }: { location: string }) {
                                 />
 
                                 <Button
-                                    className="h-16 w-full rounded-2xl bg-[#2f6975] text-xl font-bold shadow-lg shadow-[#2f6975]/20 hover:bg-[#285a64]"
+                                    className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
                                     disabled={isSubmitting || data.customerName.trim().length < 2}
                                     onClick={submitCheckIn}
                                 >
@@ -468,7 +468,7 @@ export function KioskFlow({ location }: { location: string }) {
                                     You’re checked in
                                 </h1>
 
-                                <p className="max-w-sm text-xl font-medium leading-snug text-[#60727f]">
+                                <p className="max-w-sm text-xl font-medium leading-snug text-muted-foreground">
                                     A technician has been notified and will be with you shortly.
                                 </p>
                             </div>
@@ -479,7 +479,7 @@ export function KioskFlow({ location }: { location: string }) {
                         <div className="flex items-center justify-between px-5 mb-2">
                             <Button
                                 variant="ghost"
-                                className="rounded-full border-4 px-4 text-[#60727f] text-md"
+                                className="rounded-full border-4 px-4 text-muted-foreground text-md"
                                 onClick={goBack}
                             >
                                 <ArrowLeft className="size-5" />
@@ -487,7 +487,7 @@ export function KioskFlow({ location }: { location: string }) {
                             </Button>
                             <Button
                                 variant="ghost"
-                                className="rounded-full border-4 px-4 text-[#60727f] text-md"
+                                className="rounded-full border-4 px-4 text-muted-foreground text-md"
                                 onClick={resetFlow}
                             >
                                 <Undo2 className="size-5" />
@@ -541,13 +541,13 @@ function KioskHeader({ clock }: { clock: string }) {
             <Button
                 variant="ghost"
                 size="icon"
-                className="text-[#60727f]"
+                className="text-muted-foreground"
                 onClick={() => { }}
             >
                 <FileText className="size-6" />
             </Button>
 
-            <div className="text-sm font-semibold text-[#6f7f86]">
+            <div className="text-sm font-semibold text-muted-foreground">
                 {clock}
             </div>
         </div>
@@ -604,7 +604,7 @@ function ChoiceButton({
             onClick={onClick}
             className="group flex min-h-28 w-full cursor-pointer items-center gap-4 rounded-[1.4rem] border border-[#d7e1e3] bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#a9c7ce] hover:shadow-md active:translate-y-0"
         >
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#e7f1f2] text-[#2f6975] transition group-hover:bg-[#dbecee]">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent-tint text-accent transition group-hover:brightness-97">
                 <div className="[&_svg]:h-7 [&_svg]:w-7">
                     {icon}
                 </div>
@@ -614,7 +614,7 @@ function ChoiceButton({
                 <div className="text-xl font-bold tracking-[-0.02em] text-[#16262f]">
                     {label}
                 </div>
-                <div className="mt-1 text-base font-medium leading-snug text-[#6f7f86]">
+                <div className="mt-1 text-base font-medium leading-snug text-muted-foreground">
                     {description}
                 </div>
             </div>
@@ -633,7 +633,7 @@ function PayCashInsteadButton({ onClick }: { onClick: () => void }) {
     return (
         <div className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center px-5">
             <Button
-                className="pointer-events-auto h-14 rounded-full bg-white px-7 text-base font-bold text-[#2f6975] shadow-lg ring-1 ring-[#d7e1e3] hover:bg-[#eef6f7]"
+                className="pointer-events-auto h-14 rounded-full bg-white px-7 text-base font-bold text-[#16262f] shadow-md border border-[#d7e1e3] hover:bg-[#d7e1e3]/20"
                 onClick={onClick}
             >
                 <CreditCard className="size-5" />
@@ -647,7 +647,7 @@ function RingTeamButton({ onClick }: { onClick: () => void }) {
     return (
         <div className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center px-5">
             <Button
-                className="pointer-events-auto h-14 rounded-full bg-white px-7 text-base font-bold text-[#2f6975] shadow-lg ring-1 ring-[#d7e1e3] hover:bg-[#eef6f7]"
+                className="pointer-events-auto h-14 rounded-full bg-white px-7 text-base font-bold text-[#16262f] shadow-md border border-[#d7e1e3] hover:bg-[#d7e1e3]/20"
                 onClick={onClick}
             >
                 <BellRing className="size-5" />
@@ -675,13 +675,13 @@ function InactivityWarning({
                     Are you still there?
                 </h2>
 
-                <p className="mb-7 text-lg font-medium leading-snug text-[#60727f]">
+                <p className="mb-7 text-lg font-medium leading-snug text-muted-foreground">
                     Tap continue to keep checking in.
                 </p>
 
                 <div className="grid gap-3">
                     <Button
-                        className="h-14 rounded-2xl bg-[#2f6975] text-lg font-bold shadow-lg shadow-[#2f6975]/20 hover:bg-[#285a64]"
+                        className="h-14 rounded-2xl bg-accent text-lg font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
                         onClick={onContinue}
                     >
                         Continue
@@ -689,7 +689,7 @@ function InactivityWarning({
 
                     <Button
                         variant="outline"
-                        className="h-14 rounded-2xl border-[#d7e1e3] text-lg font-bold text-[#60727f]"
+                        className="h-14 rounded-2xl border-[#d7e1e3] text-lg font-bold text-muted-foreground"
                         onClick={onReset}
                     >
                         Start over
