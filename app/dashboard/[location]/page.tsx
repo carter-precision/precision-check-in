@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation"
 import { TechDashboard } from "@/components/dashboard/TechDashboard"
+import { getLocationBySlug } from "@/lib/data/locations"
 import { getDeviceCookie } from "@/lib/auth/device-session"
-import { getWaitingCheckIns } from "@/lib/data/check-ins"
+import { getActiveDashboardCheckIns } from "@/lib/data/check-ins"
 import { getDeviceByToken } from "@/lib/data/devices"
 import { isDevAuthBypassEnabled } from "@/lib/auth/dev-auth"
 
@@ -13,8 +14,9 @@ export default async function DashboardPage({
     const { location } = await params
 
     if (isDevAuthBypassEnabled()) {
-        const checkIns = await getWaitingCheckIns(location)
-        return <TechDashboard location={location} initialCheckIns={checkIns} />
+        const locationRecord = await getLocationBySlug(location)
+        const checkIns = await getActiveDashboardCheckIns(location)
+        return <TechDashboard location={location} locationId={locationRecord.id} initialCheckIns={checkIns} />
     }
 
     const token = await getDeviceCookie()
@@ -33,7 +35,7 @@ export default async function DashboardPage({
         redirect("/register")
     }
 
-    const checkIns = await getWaitingCheckIns(location)
+    const checkIns = await getActiveDashboardCheckIns(location)
 
-    return <TechDashboard location={location} initialCheckIns={checkIns} />
+    return <TechDashboard location={location} locationId={device.location_id} initialCheckIns={checkIns} />
 }

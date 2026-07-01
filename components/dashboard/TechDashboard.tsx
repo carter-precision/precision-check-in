@@ -22,13 +22,15 @@ import { closeCheckInAction } from "@/app/actions/check-ins"
 type CheckIn = Database["public"]["Tables"]["check_ins"]["Row"]
 
 const ATTENTION_THRESHOLD_SECONDS = 8
-const RECENTLY_CLOSED_MS = 5 * 60 * 1000
+const RECENTLY_CLOSED_MS = 30 * 60 * 1000
 
 export function TechDashboard({
     location,
+    locationId,
     initialCheckIns,
 }: {
     location: string
+    locationId: string
     initialCheckIns: CheckIn[]
 }) {
     const [now, setNow] = useState(() => new Date())
@@ -76,6 +78,7 @@ export function TechDashboard({
                     event: "*",
                     schema: "public",
                     table: "check_ins",
+                    filter: `location_id=eq.${locationId}`,
                 },
                 (payload) => {
                     setCheckIns((current) => {
@@ -121,7 +124,7 @@ export function TechDashboard({
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [location])
+    }, [location, locationId])
 
     const appointmentWaiting = useMemo(
         () =>

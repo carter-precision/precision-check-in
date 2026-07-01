@@ -52,6 +52,36 @@ export async function createCheckIn(input: CreateCheckInInput) {
     return data
 }
 
+export async function getActiveDashboardCheckIns(locationSlug: string) {
+    const supabase = createAdminClient()
+
+    const { data: location, error: locationError } = await supabase
+        .from("locations")
+        .select("id")
+        .eq("slug", locationSlug)
+        .eq("active", true)
+        .single()
+
+    if (locationError || !location) {
+        throw new Error("Invalid location")
+    }
+
+    const recentCutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString()
+
+    const { data, error } = await supabase
+        .from("check_ins")
+        .select("*")
+        .eq("location_id", location.id)
+        .or(`status.eq.waiting,and(status.eq.closed,closed_at.gte.${recentCutoff})`)
+        .order("created_at", { ascending: true })
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    return data
+}
+
 export async function getWaitingCheckIns(locationSlug: string): Promise<CheckInRow[]> {
     const supabase = createAdminClient()
 

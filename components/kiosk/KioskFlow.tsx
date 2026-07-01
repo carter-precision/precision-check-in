@@ -370,7 +370,7 @@ export function KioskFlow({ location }: { location: string }) {
                                     disabled={isSubmitting || data.customerName.trim().length < 2}
                                     onClick={submitCheckIn}
                                 >
-                                    {isSubmitting ? "Notifying..." : "Notify Technician"}
+                                    {isSubmitting ? "Submitting..." : "Submit"}
                                 </Button>
 
                                 {/* <p className="text-center text-sm font-medium text-[#7c8b91]">
@@ -405,7 +405,6 @@ export function KioskFlow({ location }: { location: string }) {
                                 </div>
 
                                 <Input
-                                    autoFocus
                                     value={data.customerName}
                                     onChange={(event) =>
                                         updateData({ customerName: event.target.value })
@@ -423,7 +422,7 @@ export function KioskFlow({ location }: { location: string }) {
                                     }
                                     onClick={submitCheckIn}
                                 >
-                                    {isSubmitting ? "Notifying..." : "Notify Technician"}
+                                    {isSubmitting ? "Submitting..." : "Submit"}
                                 </Button>
                             </div>
                         </KioskStep>
@@ -445,7 +444,6 @@ export function KioskFlow({ location }: { location: string }) {
                                 </div>
 
                                 <Input
-                                    autoFocus
                                     value={data.customerName}
                                     onChange={(event) =>
                                         updateData({ customerName: event.target.value })
@@ -459,7 +457,7 @@ export function KioskFlow({ location }: { location: string }) {
                                     disabled={isSubmitting || data.customerName.trim().length < 2}
                                     onClick={submitCheckIn}
                                 >
-                                    {isSubmitting ? "Notifying..." : "Notify Technician"}
+                                    {isSubmitting ? "Submitting..." : "Submit"}
                                 </Button>
                             </div>
                         </KioskStep>
@@ -467,7 +465,7 @@ export function KioskFlow({ location }: { location: string }) {
 
                     {step === "success" && (
                         <KioskStep>
-                            <div className="flex flex-1 flex-col items-center justify-center text-center">
+                            <div className="flex flex-1 flex-col items-center justify-center text-center -mt-30">
                                 <div className="mb-7 flex h-24 w-24 items-center justify-center rounded-full bg-[#e5f4ed] text-[#3b8d65]">
                                     <CheckCircle2 className="h-14 w-14" />
                                 </div>
