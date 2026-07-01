@@ -61,28 +61,17 @@ export function KioskFlow({ location }: { location: string }) {
     const [step, setStep] = useState<StepId>("welcome")
     const [history, setHistory] = useState<StepId[]>([])
     const [data, setData] = useState<KioskData>(initialData)
-    const [clock, setClock] = useState("")
     const [lastActivityAt, setLastActivityAt] = useState(Date.now())
     const [showInactiveWarning, setShowInactiveWarning] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const now = useNow()
 
-    useEffect(() => {
-        function updateClock() {
-            setClock(
-                now
-                    ? new Intl.DateTimeFormat("en-US", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                    }).format(now)
-                    : "--:-- --"
-            )
-        }
-
-        updateClock()
-        const interval = setInterval(updateClock, 30_000)
-        return () => clearInterval(interval)
-    }, [])
+    const clock = now
+        ? new Intl.DateTimeFormat("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+        }).format(now)
+        : ""
 
     useEffect(() => {
         if (step !== "success") return

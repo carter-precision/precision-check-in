@@ -164,7 +164,7 @@ export function TechDashboard({
             hour: "numeric",
             minute: "2-digit",
         }).format(now)
-        : "--:-- --"
+        : ""
 
     async function closeCheckIn(id: string) {
         const previous = checkIns
