@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 
 import type { Database } from "@/lib/supabase/types"
 import { closeCheckInAction } from "@/app/actions/check-ins"
+import { useNow } from "@/lib/hooks/useNow"
 
 type CheckIn = Database["public"]["Tables"]["check_ins"]["Row"]
 
@@ -33,16 +34,8 @@ export function TechDashboard({
     locationId: string
     initialCheckIns: CheckIn[]
 }) {
-    const [now, setNow] = useState(() => new Date())
+    const now = useNow()
     const [checkIns, setCheckIns] = useState(initialCheckIns)
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setNow(new Date())
-        }, 1000)
-
-        return () => clearInterval(interval)
-    }, [])
 
     useEffect(() => {
         setCheckIns((current) =>
@@ -50,7 +43,7 @@ export function TechDashboard({
                 if (checkIn.status !== "closed") return true
                 if (!checkIn.closed_at) return false
 
-                return now.getTime() - new Date(checkIn.closed_at).getTime() < RECENTLY_CLOSED_MS
+                return now && now.getTime() - new Date(checkIn.closed_at).getTime() < RECENTLY_CLOSED_MS
             }),
         )
     }, [now])
@@ -96,13 +89,15 @@ export function TechDashboard({
                         if (payload.eventType === "UPDATE") {
                             const updatedCheckIn = payload.new as CheckIn
 
-                            if (updatedCheckIn.status === "closed" && !updatedCheckIn.closed_at) {
-                                return current
+                            if (
+                                updatedCheckIn.status === "closed" &&
+                                updatedCheckIn.closed_at &&
+                                Date.now() - new Date(updatedCheckIn.closed_at).getTime() > RECENTLY_CLOSED_MS
+                            ) {
+                                return current.filter((checkIn) => checkIn.id !== updatedCheckIn.id)
                             }
 
                             const exists = current.some((checkIn) => checkIn.id === updatedCheckIn.id)
-
-                            if (!exists && updatedCheckIn.status !== "waiting") return current
 
                             if (!exists) {
                                 return [...current, updatedCheckIn].sort((a, b) =>
@@ -166,10 +161,12 @@ export function TechDashboard({
         [checkIns],
     )
 
-    const clock = new Intl.DateTimeFormat("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-    }).format(now)
+    const clock = now
+        ? new Intl.DateTimeFormat("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+        }).format(now)
+        : "--:-- --"
 
     async function closeCheckIn(id: string) {
         const previous = checkIns
@@ -254,7 +251,7 @@ function CheckInList({
     waiting: CheckIn[]
     recent: CheckIn[]
     emptyLabel: string
-    now: Date
+    now: Date | null
     onCloseCheckIn: (id: string) => void
 }) {
     return (
@@ -391,16 +388,16 @@ function CustomerCard({
     onCloseCheckIn,
 }: {
     checkIn: CheckIn
-    now: Date
+    now: Date | null
     onCloseCheckIn: () => void
 }) {
     const isClosed = checkIn.status === "closed"
     const createdAt = new Date(checkIn.created_at)
 
-    const elapsedSeconds = Math.max(
+    const elapsedSeconds = now ? Math.max(
         0,
         Math.floor((now.getTime() - createdAt.getTime()) / 1000),
-    )
+    ) : 0
 
     const needsAttention = !isClosed && elapsedSeconds >= ATTENTION_THRESHOLD_SECONDS
 
@@ -487,13 +484,13 @@ function formatWaitingLabel(elapsedSeconds: number) {
     return `${Math.floor(elapsedSeconds / 60)} min`
 }
 
-function formatClosedLabel(checkIn: CheckIn, now: Date) {
+function formatClosedLabel(checkIn: CheckIn, now: Date | null) {
     if (!checkIn.closed_at) return "Acknowledged"
 
-    const elapsedSeconds = Math.max(
+    const elapsedSeconds = now ? Math.max(
         0,
         Math.floor((now.getTime() - new Date(checkIn.closed_at).getTime()) / 1000),
-    )
+    ) : 0
 
     if (elapsedSeconds < 60) return "just now"
 

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 import { createCheckInAction } from "@/app/actions/check-ins"
+import { useNow } from "@/lib/hooks/useNow"
 
 type StepId =
     | "welcome"
@@ -64,14 +65,17 @@ export function KioskFlow({ location }: { location: string }) {
     const [lastActivityAt, setLastActivityAt] = useState(Date.now())
     const [showInactiveWarning, setShowInactiveWarning] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const now = useNow()
 
     useEffect(() => {
         function updateClock() {
             setClock(
-                new Intl.DateTimeFormat("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                }).format(new Date()),
+                now
+                    ? new Intl.DateTimeFormat("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                    }).format(now)
+                    : "--:-- --"
             )
         }
 
