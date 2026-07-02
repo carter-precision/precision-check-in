@@ -64,7 +64,7 @@ const initialData: KioskData = {
     quoteSource: null
 }
 
-const INACTIVITY_WARNING_MS = 8000
+const INACTIVITY_WARNING_MS = 53_000
 const INACTIVITY_RESET_MS = 7000
 
 export function KioskFlow({ location }: { location: string }) {
