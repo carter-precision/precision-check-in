@@ -25,9 +25,13 @@ type StepId =
     | "welcome"
     | "appointment"
     | "serviceType"
-    | "quoteTool"
     | "paymentType"
     | "name"
+    | "windshieldName"
+    | "windshieldIntent"
+    | "windshieldQuotePayType"
+    | "windshieldInsuranceQuote"
+    | "windshieldCashQuote"
     | "rockChipCashAuthorization"
     | "rockChipInsuranceName"
     | "success"
@@ -42,7 +46,10 @@ type KioskData = {
     paymentType: PaymentType
     customerName: string
     phone: string
+    windshieldIntent: "quoted" | "unquoted" | null
     repairAuthorized: boolean
+    quotePayType: "insurance" | "cash" | null
+    quoteSource: "walk_in" | "header" | null
 }
 
 const initialData: KioskData = {
@@ -51,10 +58,13 @@ const initialData: KioskData = {
     paymentType: null,
     customerName: "",
     phone: "",
+    windshieldIntent: null,
     repairAuthorized: false,
+    quotePayType: null,
+    quoteSource: null
 }
 
-const INACTIVITY_WARNING_MS = 23_000
+const INACTIVITY_WARNING_MS = 8000
 const INACTIVITY_RESET_MS = 7000
 
 export function KioskFlow({ location }: { location: string }) {
@@ -158,7 +168,8 @@ export function KioskFlow({ location }: { location: string }) {
         setStep("welcome")
     }
 
-    async function submitCheckIn() {
+    async function submitCheckIn(overrides?: Partial<KioskData>) {
+        const finalData = { ...data, ...overrides }
         if (isSubmitting) return
 
         setIsSubmitting(true)
@@ -166,12 +177,13 @@ export function KioskFlow({ location }: { location: string }) {
         try {
             await createCheckInAction({
                 locationSlug: location,
-                customerName: data.customerName.trim(),
-                phone: data.phone.trim() || undefined,
-                visitType: data.visitType ?? "walk_in",
-                serviceType: data.serviceType,
-                paymentType: data.paymentType,
-                repairAuthorized: data.repairAuthorized,
+                customerName: finalData.customerName.trim(),
+                phone: finalData.phone.trim() || undefined,
+                visitType: finalData.visitType ?? "walk_in",
+                serviceType: finalData.serviceType,
+                paymentType: finalData.paymentType,
+                windshieldIntent: finalData.windshieldIntent,
+                repairAuthorized: finalData.repairAuthorized,
                 source: "kiosk",
             })
 
@@ -188,7 +200,7 @@ export function KioskFlow({ location }: { location: string }) {
     return (
         <main className="min-h-screen">
             <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 sm:px-8 md:px-12">
-                <KioskHeader clock={clock} />
+                <KioskHeader clock={clock} goTo={goTo} />
 
                 <div className="flex flex-1 flex-col overflow-hidden px-8 pb-8 pt-6">
                     {step === "welcome" && (
@@ -251,12 +263,14 @@ export function KioskFlow({ location }: { location: string }) {
                                     icon={<ShieldCheck />}
                                     label="Windshield"
                                     description="For windshield service or replacement."
-                                    onClick={() =>
-                                        goTo("name", {
+                                    onClick={() => {
+                                        updateData({ quoteSource: "walk_in" })
+                                        goTo("windshieldName", {
+                                            quoteSource: "walk_in",
                                             serviceType: "windshield",
                                             paymentType: null,
                                         })
-                                    }
+                                    }}
                                 />
 
                                 <ChoiceButton
@@ -286,26 +300,6 @@ export function KioskFlow({ location }: { location: string }) {
                         </KioskStep>
                     )}
 
-                    {step === "quoteTool" && (
-                        <KioskStep title="Let’s get your quote started">
-                            <div className="rounded-[1.4rem] border border-dashed border-[#a9c7ce] bg-white p-8 text-center shadow-sm">
-                                <FileText className="mx-auto mb-5 size-12 text-accent" />
-                                <h2 className="mb-3 text-2xl font-bold tracking-[-0.02em] text-[#16262f]">
-                                    Quote tool placeholder
-                                </h2>
-                                <p className="mb-7 text-base font-medium leading-snug text-muted-foreground">
-                                    We’ll connect this step to the windshield quote flow later.
-                                </p>
-                                <Button
-                                    className="h-14 w-full rounded-2xl bg-accent text-lg font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
-                                    onClick={() => goTo("name")}
-                                >
-                                    Continue for now
-                                </Button>
-                            </div>
-                        </KioskStep>
-                    )}
-
                     {step === "paymentType" && (
                         <KioskStep title="How would you like to pay?">
                             <div className="grid gap-4">
@@ -316,12 +310,12 @@ export function KioskFlow({ location }: { location: string }) {
                                     trailing={
                                         <div className="flex gap-4">
                                             <div className="text-3xl font-bold tracking-tight text-accent -mt-1">
-                                                $65
+                                                $79.99
                                             </div>
-                                            <div className="flex flex-col text-xs text-muted-foreground">
+                                            {/* <div className="flex flex-col text-xs text-muted-foreground">
                                                 <span>First chip included</span>
                                                 <span>$20 each additional</span>
-                                            </div>
+                                            </div> */}
                                         </div>
                                     }
                                     onClick={() =>
@@ -362,7 +356,7 @@ export function KioskFlow({ location }: { location: string }) {
                                 <Button
                                     className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
                                     disabled={isSubmitting || data.customerName.trim().length < 2}
-                                    onClick={submitCheckIn}
+                                    onClick={() => submitCheckIn()}
                                 >
                                     {isSubmitting ? "Submitting..." : "Submit"}
                                 </Button>
@@ -370,6 +364,114 @@ export function KioskFlow({ location }: { location: string }) {
                                 {/* <p className="text-center text-sm font-medium text-[#7c8b91]">
                                     We’ll use your name to pull up your account.
                                 </p> */}
+                            </div>
+                        </KioskStep>
+                    )}
+
+                    {step === "windshieldName" && (
+                        <KioskStep title="What’s your name?">
+                            <div className="mt-8 space-y-5">
+                                <Input
+                                    autoFocus
+                                    value={data.customerName}
+                                    onChange={(event) =>
+                                        updateData({ customerName: event.target.value })
+                                    }
+                                    placeholder="Enter your name"
+                                    className="h-16 rounded-2xl border-[#d7e1e3] bg-white text-center text-2xl font-semibold shadow-sm placeholder:text-[#9aa8ad]"
+                                />
+
+                                <Button
+                                    className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
+                                    disabled={data.customerName.trim().length < 2}
+                                    onClick={() => setStep("windshieldIntent")}
+                                >
+                                    Continue
+                                </Button>
+                            </div>
+                        </KioskStep>
+                    )}
+
+                    {step === "windshieldIntent" && (
+                        <KioskStep title="What do you need today?">
+                            <div className="grid gap-4">
+                                <ChoiceButton
+                                    icon={<FileText />}
+                                    label="Get a quote and schedule"
+                                    description="I know I need windshield service and want to start the quote."
+                                    onClick={async () => {
+                                        updateData({ windshieldIntent: "quoted" })
+                                        await submitCheckIn({ windshieldIntent: "quoted" })
+                                        setStep("windshieldQuotePayType")
+                                    }}
+                                />
+
+                                <ChoiceButton
+                                    icon={<CircleHelp />}
+                                    label="Talk to a technician"
+                                    description="I need help, have questions, or need an on-site inspection."
+                                    onClick={async () => {
+                                        updateData({ windshieldIntent: "unquoted" })
+                                        await submitCheckIn({ windshieldIntent: "unquoted" })
+                                    }}
+                                />
+                            </div>
+                        </KioskStep>
+                    )}
+
+                    {step === "windshieldQuotePayType" && (
+                        <KioskStep title="How will you be using the quote?">
+                            <div className="grid gap-4">
+                                <ChoiceButton
+                                    icon={<ShieldCheck />}
+                                    label="With insurance"
+                                    description="Use insurance information for the quote."
+                                    onClick={() => {
+                                        updateData({ quotePayType: "insurance" })
+                                        setStep("windshieldInsuranceQuote")
+                                    }}
+                                />
+
+                                <ChoiceButton
+                                    icon={<CreditCard />}
+                                    label="Cash or self-pay"
+                                    description="Get a quote without using your insurance."
+                                    onClick={() => {
+                                        updateData({ quotePayType: "cash" })
+                                        setStep("windshieldCashQuote")
+                                    }}
+                                />
+                            </div>
+                        </KioskStep>
+                    )}
+
+                    {step === "windshieldInsuranceQuote" && (
+                        <KioskStep>
+                            <div className="h-[85vh] mb-10 pt-4 pr-4 pb-4 overflow-hidden rounded-[1.4rem] border border-[#d7e1e3] bg-white shadow-sm">
+                                <iframe
+                                    src={getOmegaQuoteUrl({
+                                        location,
+                                        type: "insurance",
+                                    })}
+                                    className="h-full w-full"
+                                />
+                            </div>
+                        </KioskStep>
+                    )}
+
+                    {step === "windshieldCashQuote" && (
+                        <KioskStep>
+                            <div className="flex flex-col items-center h-[92vh] mb-10 pt-8 pr-4 pb-4 overflow-hidden rounded-[1.4rem] border border-[#d7e1e3] bg-white shadow-sm">
+                                <h3 className="text-3xl font-bold leading-snug text-[#16262f]">
+                                    Quote Form
+                                </h3>
+                                <iframe
+                                    src={getOmegaQuoteUrl({
+                                        location,
+                                        type: "cash",
+                                    })}
+                                    className="h-full w-full"
+                                />
                             </div>
                         </KioskStep>
                     )}
@@ -414,7 +516,7 @@ export function KioskFlow({ location }: { location: string }) {
                                         data.customerName.trim().length < 2 ||
                                         !data.repairAuthorized
                                     }
-                                    onClick={submitCheckIn}
+                                    onClick={() => submitCheckIn()}
                                 >
                                     {isSubmitting ? "Submitting..." : "Submit"}
                                 </Button>
@@ -449,7 +551,7 @@ export function KioskFlow({ location }: { location: string }) {
                                 <Button
                                     className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
                                     disabled={isSubmitting || data.customerName.trim().length < 2}
-                                    onClick={submitCheckIn}
+                                    onClick={() => submitCheckIn()}
                                 >
                                     {isSubmitting ? "Submitting..." : "Submit"}
                                 </Button>
@@ -475,7 +577,7 @@ export function KioskFlow({ location }: { location: string }) {
                         </KioskStep>
                     )}
 
-                    {step !== "welcome" && step !== "appointment" && step !== "success" && (
+                    {step !== "welcome" && step !== "appointment" && step !== "windshieldInsuranceQuote" && step !== "windshieldCashQuote" && step !== "success" && (
                         <div className="flex items-center justify-between px-5 mb-2">
                             <Button
                                 variant="ghost"
@@ -535,14 +637,20 @@ export function KioskFlow({ location }: { location: string }) {
     )
 }
 
-function KioskHeader({ clock }: { clock: string }) {
+function KioskHeader({ clock, goTo }: { clock: string; goTo: (step: StepId, partial?: Partial<KioskData>) => void }) {
     return (
         <div className="flex items-center justify-between p-4">
             <Button
                 variant="ghost"
                 size="icon"
                 className="text-muted-foreground"
-                onClick={() => { }}
+                onClick={() =>
+                    goTo("windshieldQuotePayType", {
+                        quoteSource: "header",
+                        serviceType: "windshield",
+                        paymentType: null,
+                    })
+                }
             >
                 <FileText className="size-6" />
             </Button>
@@ -627,7 +735,6 @@ function ChoiceButton({
         </button>
     )
 }
-
 
 function PayCashInsteadButton({ onClick }: { onClick: () => void }) {
     return (
@@ -730,4 +837,64 @@ function CountdownPie({ durationMs }: { durationMs: number }) {
             />
         </svg>
     )
+}
+
+const OMEGA_CAMPAIGNS = {
+    layton: {
+        cash: "Lobby Layton",
+        insurance: "Lobby Layton Ins",
+    },
+    centerville: {
+        cash: "Lobby Centerville",
+        insurance: "Lobby Centerville Ins",
+    },
+    ogden: {
+        cash: "Lobby Ogden",
+        insurance: "Lobby Ogden Ins",
+    },
+    "south-jordan": {
+        cash: "Lobby South Jordan",
+        insurance: "Lobby South Jordan Ins",
+    },
+    "cedar-city": {
+        cash: "Lobby Cedar City",
+        insurance: "Lobby Cedar City Ins",
+    },
+    "st-george": {
+        cash: "Lobby St George",
+        insurance: "Lobby St George Ins",
+    },
+} as const
+
+function getOmegaQuoteUrl({
+    location,
+    type,
+}: {
+    location: string
+    type: "cash" | "insurance"
+}) {
+    const campaign =
+        OMEGA_CAMPAIGNS[location as keyof typeof OMEGA_CAMPAIGNS]?.[type]
+
+    if (!campaign) {
+        throw new Error(`Missing Omega campaign for ${location} / ${type}`)
+    }
+
+    const baseUrl =
+        type === "insurance"
+            ? "https://app.omegaedi.com/quoter15/"
+            : "https://app.omegaedi.com/quoter/"
+
+    const params = new URLSearchParams({
+        folder: "pag",
+        campaign,
+        smart: "true",
+        include_recal: "true",
+    })
+
+    if (type === "insurance") {
+        params.set("template_id", "136")
+    }
+
+    return `${baseUrl}?${params.toString()}`
 }

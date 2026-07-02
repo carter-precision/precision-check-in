@@ -12,6 +12,7 @@ export type CreateCheckInInput = {
     serviceType?: "windshield" | "rock_chip" | "other" | "bell" | null
     paymentType?: "cash" | "insurance" | null
     source: "kiosk" | "phone"
+    windshieldIntent?: "quoted" | "unquoted" | null
     repairAuthorized?: boolean
 }
 
@@ -39,6 +40,7 @@ export async function createCheckIn(input: CreateCheckInInput) {
         source: input.source,
         status: "waiting",
         repair_authorized: input.repairAuthorized ?? false,
+        windshield_intent: input.windshieldIntent ?? null,
     }
 
     const { data, error } = await supabase

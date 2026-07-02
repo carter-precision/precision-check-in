@@ -28,6 +28,7 @@ export type Database = {
           source: string
           status: string
           visit_type: string
+          windshield_intent: string | null
         }
         Insert: {
           closed_at?: string | null
@@ -42,6 +43,7 @@ export type Database = {
           source: string
           status?: string
           visit_type: string
+          windshield_intent?: string | null
         }
         Update: {
           closed_at?: string | null
@@ -56,6 +58,7 @@ export type Database = {
           source?: string
           status?: string
           visit_type?: string
+          windshield_intent?: string | null
         }
         Relationships: [
           {

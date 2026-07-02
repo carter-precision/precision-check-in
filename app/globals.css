@@ -55,12 +55,12 @@
 /* Body text text-[#60727f] */
 
 /* PAG Green #679a40 */
-/* bg-[#679a40] text-xl font-bold shadow-lg shadow-[#679a40]/20 hover:bg-[#5c8b3a] */
+/* bg-[#679a40] text-xl font-bold shadow-lg shadow-[#679a40]/20 hover:bg-[#527b33] */
 
 /* PAG Blue #36366d */
 
 /* Demo Green #57a23e */
-/* bg-[#57a23e] text-xl font-bold shadow-lg shadow-[#57a23e]/20 hover:bg-[#4e8f38] */
+/* bg-[#57a23e] text-xl font-bold shadow-lg shadow-[#57a23e]/20 hover:bg-[#4e8f38 - shade / #e5ffdc - tint ] */
 
 /* GPT Accent #2f6975 */
 /* bg-[#2f6975] text-xl font-bold shadow-lg shadow-[#2f6975]/20 hover:bg-[#285a64] */
@@ -79,10 +79,10 @@
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: #6f7f86;
-  --accent: #57a23e;
+  --accent: #679a40;
   --accent-foreground: oklch(1 0 0);
-  --accent-shade: #4e8f38;
-  --accent-tint: #e5ffdc;
+  --accent-shade: #527b33;
+  --accent-tint: #f2fdea;
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
