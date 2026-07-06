@@ -12,7 +12,7 @@ export type CreateCheckInInput = {
     serviceType?: "windshield" | "rock_chip" | "other" | "bell" | null
     paymentType?: "cash" | "insurance" | null
     source: "kiosk" | "phone"
-    windshieldIntent?: "quoted" | "unquoted" | null
+    windshieldIntent?: "quote" | "inspection" | null
     repairAuthorized?: boolean
 }
 

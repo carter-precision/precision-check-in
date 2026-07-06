@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
     CalendarCheck,
     CarFront,
@@ -27,7 +27,6 @@ type StepId =
     | "serviceType"
     | "paymentType"
     | "name"
-    | "windshieldName"
     | "windshieldIntent"
     | "windshieldQuotePayType"
     | "windshieldInsuranceQuote"
@@ -35,6 +34,8 @@ type StepId =
     | "rockChipCashAuthorization"
     | "rockChipInsuranceName"
     | "success"
+    | "quoteServiceType"
+    | "rockChipQuote"
 
 type VisitType = "appointment" | "walk_in" | null
 type ServiceType = "windshield" | "rock_chip" | "other" | "bell" | null
@@ -46,7 +47,7 @@ type KioskData = {
     paymentType: PaymentType
     customerName: string
     phone: string
-    windshieldIntent: "quoted" | "unquoted" | null
+    windshieldIntent: "quote" | "inspection" | null
     repairAuthorized: boolean
     quotePayType: "insurance" | "cash" | null
     quoteSource: "walk_in" | "header" | null
@@ -64,8 +65,9 @@ const initialData: KioskData = {
     quoteSource: null
 }
 
-const INACTIVITY_WARNING_MS = 53_000
-const INACTIVITY_RESET_MS = 7000
+const INACTIVITY_WARNING_MS = 52_000
+const INACTIVITY_RESET_MS = 8_000
+const ROCK_CHIP_CHECK_IN_DELAY_MS = 20_000
 
 export function KioskFlow({ location }: { location: string }) {
     const [step, setStep] = useState<StepId>("welcome")
@@ -74,6 +76,8 @@ export function KioskFlow({ location }: { location: string }) {
     const [lastActivityAt, setLastActivityAt] = useState(Date.now())
     const [showInactiveWarning, setShowInactiveWarning] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [pendingRockChipCheckIn, setPendingRockChipCheckIn] = useState(false)
+    const rockChipCheckInTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const now = useNow()
 
     const clock = now
@@ -90,6 +94,12 @@ export function KioskFlow({ location }: { location: string }) {
 
         return () => clearTimeout(timeout)
     }, [step])
+
+    useEffect(() => {
+        return () => {
+            clearRockChipCheckInTimeout()
+        }
+    }, [])
 
     useEffect(() => {
         function handleActivity() {
@@ -161,40 +171,80 @@ export function KioskFlow({ location }: { location: string }) {
     }
 
     function resetFlow() {
+        clearRockChipCheckInTimeout()
         setData(initialData)
         setHistory([])
         setShowInactiveWarning(false)
+        setPendingRockChipCheckIn(false)
         setLastActivityAt(Date.now())
         setStep("welcome")
     }
 
-    async function submitCheckIn(overrides?: Partial<KioskData>) {
-        const finalData = { ...data, ...overrides }
-        if (isSubmitting) return
+    async function submitCheckIn(
+        overrides?: Partial<KioskData>,
+        options: { showSuccess?: boolean } = {},
+    ) {
+        if (isSubmitting) return false
 
         setIsSubmitting(true)
+
+        const finalData = { ...data, ...overrides }
+        const showSuccess = options.showSuccess ?? true
 
         try {
             await createCheckInAction({
                 locationSlug: location,
                 customerName: finalData.customerName.trim(),
-                phone: finalData.phone.trim() || undefined,
                 visitType: finalData.visitType ?? "walk_in",
                 serviceType: finalData.serviceType,
                 paymentType: finalData.paymentType,
-                windshieldIntent: finalData.windshieldIntent,
-                repairAuthorized: finalData.repairAuthorized,
                 source: "kiosk",
+                repairAuthorized: finalData.repairAuthorized,
+                windshieldIntent: finalData.windshieldIntent,
             })
 
-            setHistory([])
-            setStep("success")
+            if (showSuccess) {
+                setHistory([])
+                setStep("success")
+            }
+
+            return true
         } catch (error) {
             console.error("Failed to create check-in:", error)
             alert("Something went wrong. Please try again.")
+            return false
         } finally {
             setIsSubmitting(false)
         }
+    }
+
+    function clearRockChipCheckInTimeout() {
+        if (!rockChipCheckInTimeoutRef.current) return
+
+        clearTimeout(rockChipCheckInTimeoutRef.current)
+        rockChipCheckInTimeoutRef.current = null
+    }
+
+    function startRockChipDelayedCheckIn() {
+        if (pendingRockChipCheckIn) return
+
+        clearRockChipCheckInTimeout()
+        setPendingRockChipCheckIn(true)
+
+        rockChipCheckInTimeoutRef.current = setTimeout(async () => {
+            rockChipCheckInTimeoutRef.current = null
+
+            await submitCheckIn(
+                {
+                    serviceType: "rock_chip",
+                },
+                {
+                    showSuccess: false,
+                },
+            )
+
+            setPendingRockChipCheckIn(false)
+        }, ROCK_CHIP_CHECK_IN_DELAY_MS)
     }
 
     return (
@@ -264,8 +314,7 @@ export function KioskFlow({ location }: { location: string }) {
                                     label="Windshield"
                                     description="For windshield service or replacement."
                                     onClick={() => {
-                                        updateData({ quoteSource: "walk_in" })
-                                        goTo("windshieldName", {
+                                        goTo("windshieldIntent", {
                                             quoteSource: "walk_in",
                                             serviceType: "windshield",
                                             paymentType: null,
@@ -358,36 +407,12 @@ export function KioskFlow({ location }: { location: string }) {
                                     disabled={isSubmitting || data.customerName.trim().length < 2}
                                     onClick={() => submitCheckIn()}
                                 >
-                                    {isSubmitting ? "Submitting..." : "Submit"}
+                                    {isSubmitting || pendingRockChipCheckIn ? "Submitting..." : "Submit"}
                                 </Button>
 
                                 {/* <p className="text-center text-sm font-medium text-[#7c8b91]">
                                     We’ll use your name to pull up your account.
                                 </p> */}
-                            </div>
-                        </KioskStep>
-                    )}
-
-                    {step === "windshieldName" && (
-                        <KioskStep title="What’s your name?">
-                            <div className="mt-8 space-y-5">
-                                <Input
-                                    autoFocus
-                                    value={data.customerName}
-                                    onChange={(event) =>
-                                        updateData({ customerName: event.target.value })
-                                    }
-                                    placeholder="Enter your name"
-                                    className="h-16 rounded-2xl border-[#d7e1e3] bg-white text-center text-2xl font-semibold shadow-sm placeholder:text-[#9aa8ad]"
-                                />
-
-                                <Button
-                                    className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
-                                    disabled={data.customerName.trim().length < 2}
-                                    onClick={() => setStep("windshieldIntent")}
-                                >
-                                    Continue
-                                </Button>
                             </div>
                         </KioskStep>
                     )}
@@ -399,21 +424,25 @@ export function KioskFlow({ location }: { location: string }) {
                                     icon={<FileText />}
                                     label="Get a quote and schedule"
                                     description="I know I need windshield service and want to start the quote."
-                                    onClick={async () => {
-                                        updateData({ windshieldIntent: "quoted" })
-                                        await submitCheckIn({ windshieldIntent: "quoted" })
-                                        setStep("windshieldQuotePayType")
-                                    }}
+                                    onClick={() =>
+                                        goTo("windshieldQuotePayType", {
+                                            windshieldIntent: "quote",
+                                            quoteSource: "walk_in",
+                                        })
+                                    }
                                 />
 
                                 <ChoiceButton
                                     icon={<CircleHelp />}
                                     label="Talk to a technician"
                                     description="I need help, have questions, or need an on-site inspection."
-                                    onClick={async () => {
-                                        updateData({ windshieldIntent: "unquoted" })
-                                        await submitCheckIn({ windshieldIntent: "unquoted" })
-                                    }}
+                                    onClick={() =>
+                                        goTo("name", {
+                                            windshieldIntent: "inspection",
+                                            serviceType: "windshield",
+                                            paymentType: null,
+                                        })
+                                    }
                                 />
                             </div>
                         </KioskStep>
@@ -463,12 +492,29 @@ export function KioskFlow({ location }: { location: string }) {
                         <KioskStep>
                             <div className="flex flex-col items-center h-[92vh] mb-10 pt-8 pr-4 pb-4 overflow-hidden rounded-[1.4rem] border border-[#d7e1e3] bg-white shadow-sm">
                                 <h3 className="text-3xl font-bold leading-snug text-[#16262f]">
-                                    Quote Form
+                                    Windshield Quote
                                 </h3>
                                 <iframe
                                     src={getOmegaQuoteUrl({
                                         location,
                                         type: "cash",
+                                    })}
+                                    className="h-full w-full"
+                                />
+                            </div>
+                        </KioskStep>
+                    )}
+
+                    {step === "rockChipQuote" && (
+                        <KioskStep>
+                            <div className="flex flex-col items-center h-[92vh] mb-10 pt-8 pr-4 pb-4 overflow-hidden rounded-[1.4rem] border border-[#d7e1e3] bg-white shadow-sm">
+                                <h3 className="text-3xl font-bold leading-snug text-[#16262f]">
+                                    Rock Chip Repair
+                                </h3>
+                                <iframe
+                                    src={getOmegaQuoteUrl({
+                                        location,
+                                        type: "rockChip",
                                     })}
                                     className="h-full w-full"
                                 />
@@ -513,12 +559,16 @@ export function KioskFlow({ location }: { location: string }) {
                                     className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
                                     disabled={
                                         isSubmitting ||
+                                        pendingRockChipCheckIn ||
                                         data.customerName.trim().length < 2 ||
                                         !data.repairAuthorized
                                     }
-                                    onClick={() => submitCheckIn()}
+                                    onClick={() => {
+                                        setStep("rockChipQuote")
+                                        startRockChipDelayedCheckIn()
+                                    }}
                                 >
-                                    {isSubmitting ? "Submitting..." : "Submit"}
+                                    {isSubmitting || pendingRockChipCheckIn ? "Submitting..." : "Submit"}
                                 </Button>
                             </div>
                         </KioskStep>
@@ -550,10 +600,17 @@ export function KioskFlow({ location }: { location: string }) {
 
                                 <Button
                                     className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
-                                    disabled={isSubmitting || data.customerName.trim().length < 2}
-                                    onClick={() => submitCheckIn()}
+                                    disabled={
+                                        isSubmitting ||
+                                        pendingRockChipCheckIn ||
+                                        data.customerName.trim().length < 2
+                                    }
+                                    onClick={() => {
+                                        setStep("rockChipQuote")
+                                        startRockChipDelayedCheckIn()
+                                    }}
                                 >
-                                    {isSubmitting ? "Submitting..." : "Submit"}
+                                    {isSubmitting || pendingRockChipCheckIn ? "Submitting..." : "Submit"}
                                 </Button>
                             </div>
                         </KioskStep>
@@ -577,7 +634,39 @@ export function KioskFlow({ location }: { location: string }) {
                         </KioskStep>
                     )}
 
-                    {step !== "welcome" && step !== "appointment" && step !== "windshieldInsuranceQuote" && step !== "windshieldCashQuote" && step !== "success" && (
+                    {step === "quoteServiceType" && (
+                        <KioskStep title="What do you need a quote for?">
+                            <div className="grid gap-4">
+                                <ChoiceButton
+                                    icon={<ShieldCheck />}
+                                    label="Windshield"
+                                    description="Start a windshield quote."
+                                    onClick={() =>
+                                        goTo("windshieldQuotePayType", {
+                                            quoteSource: "header",
+                                            serviceType: "windshield",
+                                            paymentType: null,
+                                        })
+                                    }
+                                />
+
+                                <ChoiceButton
+                                    icon={<Wrench />}
+                                    label="Rock chip"
+                                    description="Start a rock chip repair quote."
+                                    onClick={() =>
+                                        goTo("rockChipQuote", {
+                                            quoteSource: "header",
+                                            serviceType: "rock_chip",
+                                            paymentType: null,
+                                        })
+                                    }
+                                />
+                            </div>
+                        </KioskStep>
+                    )}
+
+                    {step !== "welcome" && step !== "appointment" && step !== "windshieldInsuranceQuote" && step !== "windshieldCashQuote" && step !== "rockChipQuote" && step !== "success" && (
                         <div className="flex items-center justify-between px-5 mb-2">
                             <Button
                                 variant="ghost"
@@ -645,9 +734,9 @@ function KioskHeader({ clock, goTo }: { clock: string; goTo: (step: StepId, part
                 size="icon"
                 className="text-muted-foreground"
                 onClick={() =>
-                    goTo("windshieldQuotePayType", {
+                    goTo("quoteServiceType", {
                         quoteSource: "header",
-                        serviceType: "windshield",
+                        serviceType: null,
                         paymentType: null,
                     })
                 }
@@ -843,58 +932,83 @@ const OMEGA_CAMPAIGNS = {
     layton: {
         cash: "Lobby Layton",
         insurance: "Lobby Layton Ins",
+        rockChip: "Lobby Layton",
     },
     centerville: {
         cash: "Lobby Centerville",
         insurance: "Lobby Centerville Ins",
+        rockChip: "Lobby Centerville",
     },
     ogden: {
         cash: "Lobby Ogden",
         insurance: "Lobby Ogden Ins",
+        rockChip: "Lobby Ogden",
     },
     "south-jordan": {
         cash: "Lobby South Jordan",
         insurance: "Lobby South Jordan Ins",
+        rockChip: "Lobby South Jordan",
     },
     "cedar-city": {
         cash: "Lobby Cedar City",
         insurance: "Lobby Cedar City Ins",
+        rockChip: "Lobby Cedar City",
     },
     "st-george": {
         cash: "Lobby St George",
         insurance: "Lobby St George Ins",
+        rockChip: "Lobby St George",
     },
 } as const
+
+type OmegaQuoteType = "cash" | "insurance" | "rockChip"
 
 function getOmegaQuoteUrl({
     location,
     type,
 }: {
     location: string
-    type: "cash" | "insurance"
+    type: OmegaQuoteType
 }) {
-    const campaign =
-        OMEGA_CAMPAIGNS[location as keyof typeof OMEGA_CAMPAIGNS]?.[type]
+    const campaigns =
+        OMEGA_CAMPAIGNS[location as keyof typeof OMEGA_CAMPAIGNS]
 
-    if (!campaign) {
-        throw new Error(`Missing Omega campaign for ${location} / ${type}`)
+    if (!campaigns) {
+        throw new Error(`Missing Omega campaigns for ${location}`)
     }
 
-    const baseUrl =
-        type === "insurance"
-            ? "https://app.omegaedi.com/quoter15/"
-            : "https://app.omegaedi.com/quoter/"
+    switch (type) {
+        case "insurance": {
+            const params = new URLSearchParams({
+                folder: "pag",
+                campaign: campaigns.insurance,
+                smart: "true",
+                include_recal: "true",
+                template_id: "136",
+            })
 
-    const params = new URLSearchParams({
-        folder: "pag",
-        campaign,
-        smart: "true",
-        include_recal: "true",
-    })
+            return `https://app.omegaedi.com/quoter15/?${params.toString()}`
+        }
 
-    if (type === "insurance") {
-        params.set("template_id", "136")
+        case "cash": {
+            const params = new URLSearchParams({
+                folder: "pag",
+                campaign: campaigns.cash,
+                smart: "true",
+                include_recal: "true",
+            })
+
+            return `https://app.omegaedi.com/quoter/?${params.toString()}`
+        }
+
+        case "rockChip": {
+            const params = new URLSearchParams({
+                folder: "pag",
+                campaign: campaigns.rockChip,
+                smart: "true",
+            })
+
+            return `https://app.omegaedi.com/quoter14/?${params.toString()}`
+        }
     }
-
-    return `${baseUrl}?${params.toString()}`
 }

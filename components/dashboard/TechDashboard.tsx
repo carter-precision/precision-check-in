@@ -621,10 +621,10 @@ function formatClosedLabel(checkIn: CheckIn, now: Date | null) {
 function formatServiceLabel(checkIn: CheckIn) {
     if (checkIn.visit_type === "appointment") return "Appointment"
     if (checkIn.service_type === "windshield" && checkIn.windshield_intent === "quoted") return "Windshield – Quoted"
-    if (checkIn.service_type === "windshield" && checkIn.windshield_intent === "unquoted") return "Windshield – Unquoted"
+    if (checkIn.service_type === "windshield" && checkIn.windshield_intent === "inspection") return "Windshield Inspection"
     if (checkIn.service_type === "rock_chip" && checkIn.payment_type === "cash") return "Rock Chip – Cash"
     if (checkIn.service_type === "rock_chip" && checkIn.payment_type === "insurance") return "Rock Chip – Insurance"
     if (checkIn.service_type === "other") return "Other Service"
     if (checkIn.service_type === "bell") return <span className="flex items-center gap-2"><BellRing className="size-5 stroke-2 stroke-yellow-500" />Help Requested</span>
-    return "Walk-in"
+    return "Unknown Service"
 }
