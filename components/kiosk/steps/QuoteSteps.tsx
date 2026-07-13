@@ -1,7 +1,6 @@
-import { ShieldCheck, Wrench } from "lucide-react"
+import { Construction, ShieldCheck, Wrench } from "lucide-react"
 
 import { ChoiceButton, KioskStep } from "../KioskPrimitives"
-import { getOmegaQuoteUrl, type OmegaQuoteType } from "../omega"
 import type { KioskStepProps } from "../types"
 
 export function QuoteServiceTypeStep({ goTo }: KioskStepProps) {
@@ -37,24 +36,17 @@ export function QuoteServiceTypeStep({ goTo }: KioskStepProps) {
     )
 }
 
-export function OmegaQuoteStep({
-    location,
-    type,
-}: Pick<KioskStepProps, "location"> & { type: OmegaQuoteType }) {
-    const title = type === "cash" ? "Windshield Quote" : type === "rockChip" ? "Rock Chip Repair" : null
-    const compact = type === "insurance"
-
+export function RockChipQuotePlaceholderStep() {
     return (
-        <KioskStep>
-            <div
-                className={`overflow-hidden rounded-[1.4rem] border border-[#d7e1e3] bg-white shadow-sm ${
-                    compact
-                        ? "mb-10 h-[85vh] pb-4 pr-4 pt-4"
-                        : "mb-10 flex h-[92vh] flex-col items-center pb-4 pr-4 pt-8"
-                }`}
-            >
-                {title && <h3 className="text-3xl font-bold leading-snug text-[#16262f]">{title}</h3>}
-                <iframe src={getOmegaQuoteUrl({ location, type })} className="h-full w-full" />
+        <KioskStep title="Rock chip quote">
+            <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center py-12 text-center">
+                <div className="mb-6 flex size-20 items-center justify-center rounded-full bg-accent-tint text-accent">
+                    <Construction className="size-10" />
+                </div>
+                <h2 className="text-2xl font-bold text-[#16262f]">Rock chip form coming soon</h2>
+                <p className="mt-3 max-w-md text-lg font-medium leading-relaxed text-muted-foreground">
+                    Insert rock chip quote form here once the Omega API workflow is ready.
+                </p>
             </div>
         </KioskStep>
     )

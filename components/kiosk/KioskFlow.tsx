@@ -19,7 +19,7 @@ import {
     WelcomeStep,
 } from "./steps/EntrySteps"
 import { NameStep } from "./steps/NameStep"
-import { OmegaQuoteStep, QuoteServiceTypeStep } from "./steps/QuoteSteps"
+import { QuoteServiceTypeStep, RockChipQuotePlaceholderStep } from "./steps/QuoteSteps"
 import {
     RockChipCashAuthorizationStep,
     RockChipInsuranceNameStep,
@@ -29,6 +29,16 @@ import {
     WindshieldIntentStep,
     WindshieldQuotePayTypeStep,
 } from "./steps/WindshieldSteps"
+import {
+    WindshieldInsuranceDetailsStep,
+    WindshieldVehicleStep,
+} from "./steps/WindshieldQuoteDetailsSteps"
+import {
+    WindshieldGlassStep,
+    WindshieldServiceLocationStep,
+} from "./steps/WindshieldQuoteServiceSteps"
+import { WindshieldQuoteContactStep } from "./steps/WindshieldQuoteContactStep"
+import { WindshieldQuoteResultStep } from "./steps/WindshieldQuoteResultStep"
 import type { KioskStepProps, StepId } from "./types"
 import { useKioskFlow } from "./useKioskFlow"
 
@@ -40,13 +50,17 @@ const stepComponents: Record<StepId, ComponentType<KioskStepProps>> = {
     name: NameStep,
     windshieldIntent: WindshieldIntentStep,
     windshieldQuotePayType: WindshieldQuotePayTypeStep,
-    windshieldInsuranceQuote: ({ location }) => <OmegaQuoteStep location={location} type="insurance" />,
-    windshieldCashQuote: ({ location }) => <OmegaQuoteStep location={location} type="cash" />,
+    windshieldInsuranceDetails: WindshieldInsuranceDetailsStep,
+    windshieldVehicle: WindshieldVehicleStep,
+    windshieldGlass: WindshieldGlassStep,
+    windshieldServiceLocation: WindshieldServiceLocationStep,
+    windshieldContact: WindshieldQuoteContactStep,
+    windshieldQuoteResult: WindshieldQuoteResultStep,
     rockChipCashAuthorization: RockChipCashAuthorizationStep,
     rockChipInsuranceName: RockChipInsuranceNameStep,
     success: SuccessStep,
     quoteServiceType: QuoteServiceTypeStep,
-    rockChipQuote: ({ location }) => <OmegaQuoteStep location={location} type="rockChip" />,
+    rockChipQuote: RockChipQuotePlaceholderStep,
 }
 
 const showFlowControls: Record<StepId, boolean> = {
@@ -57,13 +71,17 @@ const showFlowControls: Record<StepId, boolean> = {
     name: true,
     windshieldIntent: true,
     windshieldQuotePayType: true,
-    windshieldInsuranceQuote: false,
-    windshieldCashQuote: false,
+    windshieldInsuranceDetails: true,
+    windshieldVehicle: true,
+    windshieldGlass: true,
+    windshieldServiceLocation: true,
+    windshieldContact: true,
+    windshieldQuoteResult: false,
     rockChipCashAuthorization: true,
     rockChipInsuranceName: true,
     success: false,
     quoteServiceType: true,
-    rockChipQuote: false,
+    rockChipQuote: true,
 }
 
 export function KioskFlow({ location }: { location: string }) {
@@ -82,7 +100,7 @@ export function KioskFlow({ location }: { location: string }) {
             <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 sm:px-8 md:px-12">
                 <KioskHeader clock={clock} goTo={flow.goTo} />
 
-                <div className="flex flex-1 flex-col overflow-hidden px-8 pb-8 pt-6">
+                <div className="flex flex-1 flex-col overflow-x-hidden px-8 pb-8 pt-6">
                     <CurrentStep location={location} {...flow} />
 
                     {showFlowControls[flow.step] && (

@@ -17,6 +17,7 @@ export function KioskHeader({
             <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Start a quote"
                 className="text-muted-foreground"
                 onClick={() =>
                     goTo("quoteServiceType", {
@@ -35,23 +36,16 @@ export function KioskHeader({
 }
 
 export function KioskStep({
-    kicker,
     title,
     children,
 }: {
-    kicker?: string
     title?: string
     children: ReactNode
 }) {
     return (
         <section className="flex flex-1 animate-in fade-in slide-in-from-bottom-3 duration-300 flex-col">
-            {(kicker || title) && (
+            {title && (
                 <div className="mb-7 pt-16 text-center">
-                    {kicker && (
-                        <p className="mb-2 text-sm font-bold uppercase tracking-[0.24em] text-[#6f8c92]">
-                            {kicker}
-                        </p>
-                    )}
                     {title && (
                         <h1 className="text-4xl font-semibold leading-tight tracking-[-0.04em] text-[#16262f]">
                             {title}

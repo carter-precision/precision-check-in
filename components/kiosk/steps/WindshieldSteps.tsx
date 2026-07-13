@@ -43,13 +43,23 @@ export function WindshieldQuotePayTypeStep({ goTo }: KioskStepProps) {
                     icon={<ShieldCheck />}
                     label="With insurance"
                     description="Use insurance information for the quote."
-                    onClick={() => goTo("windshieldInsuranceQuote", { quotePayType: "insurance" })}
+                    onClick={() =>
+                        goTo("windshieldInsuranceDetails", {
+                            quotePayType: "insurance",
+                            paymentType: "insurance",
+                        })
+                    }
                 />
                 <ChoiceButton
                     icon={<CreditCard />}
                     label="Cash or self-pay"
                     description="Get a quote without using your insurance."
-                    onClick={() => goTo("windshieldCashQuote", { quotePayType: "cash" })}
+                    onClick={() =>
+                        goTo("windshieldVehicle", {
+                            quotePayType: "cash",
+                            paymentType: "cash",
+                        })
+                    }
                 />
             </div>
         </KioskStep>
