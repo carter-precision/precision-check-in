@@ -628,7 +628,7 @@ export function KioskFlow({ location }: { location: string }) {
                                 </h1>
 
                                 <p className="max-w-sm text-xl font-medium leading-snug text-muted-foreground">
-                                    A technician has been notified and will be with you shortly.
+                                    Please take a seat and a technician will be with you shortly.
                                 </p>
                             </div>
                         </KioskStep>
