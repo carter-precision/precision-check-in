@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import {
     CalendarCheck,
     CarFront,
@@ -35,7 +35,6 @@ type StepId =
     | "rockChipInsuranceName"
     | "success"
     | "quoteServiceType"
-    | "rockChipQuote"
 
 type VisitType = "appointment" | "walk_in" | null
 type ServiceType = "windshield" | "rock_chip" | "other" | "bell" | null
@@ -67,7 +66,6 @@ const initialData: KioskData = {
 
 const INACTIVITY_WARNING_MS = 52_000
 const INACTIVITY_RESET_MS = 8_000
-const ROCK_CHIP_CHECK_IN_DELAY_MS = 20_000
 
 export function KioskFlow({ location }: { location: string }) {
     const [step, setStep] = useState<StepId>("welcome")
@@ -76,8 +74,6 @@ export function KioskFlow({ location }: { location: string }) {
     const [lastActivityAt, setLastActivityAt] = useState(Date.now())
     const [showInactiveWarning, setShowInactiveWarning] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [pendingRockChipCheckIn, setPendingRockChipCheckIn] = useState(false)
-    const rockChipCheckInTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const now = useNow()
 
     const clock = now
@@ -94,12 +90,6 @@ export function KioskFlow({ location }: { location: string }) {
 
         return () => clearTimeout(timeout)
     }, [step])
-
-    useEffect(() => {
-        return () => {
-            clearRockChipCheckInTimeout()
-        }
-    }, [])
 
     useEffect(() => {
         function handleActivity() {
@@ -171,11 +161,9 @@ export function KioskFlow({ location }: { location: string }) {
     }
 
     function resetFlow() {
-        clearRockChipCheckInTimeout()
         setData(initialData)
         setHistory([])
         setShowInactiveWarning(false)
-        setPendingRockChipCheckIn(false)
         setLastActivityAt(Date.now())
         setStep("welcome")
     }
@@ -216,35 +204,6 @@ export function KioskFlow({ location }: { location: string }) {
         } finally {
             setIsSubmitting(false)
         }
-    }
-
-    function clearRockChipCheckInTimeout() {
-        if (!rockChipCheckInTimeoutRef.current) return
-
-        clearTimeout(rockChipCheckInTimeoutRef.current)
-        rockChipCheckInTimeoutRef.current = null
-    }
-
-    function startRockChipDelayedCheckIn() {
-        if (pendingRockChipCheckIn) return
-
-        clearRockChipCheckInTimeout()
-        setPendingRockChipCheckIn(true)
-
-        rockChipCheckInTimeoutRef.current = setTimeout(async () => {
-            rockChipCheckInTimeoutRef.current = null
-
-            await submitCheckIn(
-                {
-                    serviceType: "rock_chip",
-                },
-                {
-                    showSuccess: false,
-                },
-            )
-
-            setPendingRockChipCheckIn(false)
-        }, ROCK_CHIP_CHECK_IN_DELAY_MS)
     }
 
     return (
@@ -407,7 +366,7 @@ export function KioskFlow({ location }: { location: string }) {
                                     disabled={isSubmitting || data.customerName.trim().length < 2}
                                     onClick={() => submitCheckIn()}
                                 >
-                                    {isSubmitting || pendingRockChipCheckIn ? "Submitting..." : "Submit"}
+                                    {isSubmitting ? "Submitting..." : "Submit"}
                                 </Button>
 
                                 {/* <p className="text-center text-sm font-medium text-[#7c8b91]">
@@ -505,23 +464,6 @@ export function KioskFlow({ location }: { location: string }) {
                         </KioskStep>
                     )}
 
-                    {step === "rockChipQuote" && (
-                        <KioskStep>
-                            <div className="flex flex-col items-center h-[92vh] mb-10 pt-8 pr-4 pb-4 overflow-hidden rounded-[1.4rem] border border-[#d7e1e3] bg-white shadow-sm">
-                                <h3 className="text-3xl font-bold leading-snug text-[#16262f]">
-                                    Rock Chip Repair
-                                </h3>
-                                <iframe
-                                    src={getOmegaQuoteUrl({
-                                        location,
-                                        type: "rockChip",
-                                    })}
-                                    className="h-full w-full"
-                                />
-                            </div>
-                        </KioskStep>
-                    )}
-
                     {step === "rockChipCashAuthorization" && (
                         <KioskStep title="Repair Authorization">
                             <div className="mt-4 space-y-5">
@@ -559,16 +501,12 @@ export function KioskFlow({ location }: { location: string }) {
                                     className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
                                     disabled={
                                         isSubmitting ||
-                                        pendingRockChipCheckIn ||
                                         data.customerName.trim().length < 2 ||
                                         !data.repairAuthorized
                                     }
-                                    onClick={() => {
-                                        setStep("rockChipQuote")
-                                        startRockChipDelayedCheckIn()
-                                    }}
+                                    onClick={() => submitCheckIn()}
                                 >
-                                    {isSubmitting || pendingRockChipCheckIn ? "Submitting..." : "Submit"}
+                                    {isSubmitting ? "Submitting..." : "Submit"}
                                 </Button>
                             </div>
                         </KioskStep>
@@ -602,15 +540,11 @@ export function KioskFlow({ location }: { location: string }) {
                                     className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
                                     disabled={
                                         isSubmitting ||
-                                        pendingRockChipCheckIn ||
                                         data.customerName.trim().length < 2
                                     }
-                                    onClick={() => {
-                                        setStep("rockChipQuote")
-                                        startRockChipDelayedCheckIn()
-                                    }}
+                                    onClick={() => submitCheckIn()}
                                 >
-                                    {isSubmitting || pendingRockChipCheckIn ? "Submitting..." : "Submit"}
+                                    {isSubmitting ? "Submitting..." : "Submit"}
                                 </Button>
                             </div>
                         </KioskStep>
@@ -653,9 +587,9 @@ export function KioskFlow({ location }: { location: string }) {
                                 <ChoiceButton
                                     icon={<Wrench />}
                                     label="Rock chip"
-                                    description="Start a rock chip repair quote."
+                                    description="Check in for a rock chip repair."
                                     onClick={() =>
-                                        goTo("rockChipQuote", {
+                                        goTo("paymentType", {
                                             quoteSource: "header",
                                             serviceType: "rock_chip",
                                             paymentType: null,
@@ -666,7 +600,7 @@ export function KioskFlow({ location }: { location: string }) {
                         </KioskStep>
                     )}
 
-                    {step !== "welcome" && step !== "appointment" && step !== "windshieldInsuranceQuote" && step !== "windshieldCashQuote" && step !== "rockChipQuote" && step !== "success" && (
+                    {step !== "welcome" && step !== "appointment" && step !== "windshieldInsuranceQuote" && step !== "windshieldCashQuote" && step !== "success" && (
                         <div className="flex items-center justify-between px-5 mb-2">
                             <Button
                                 variant="ghost"
@@ -932,36 +866,30 @@ const OMEGA_CAMPAIGNS = {
     layton: {
         cash: "Lobby Layton",
         insurance: "Lobby Layton Ins",
-        rockChip: "Lobby Layton",
     },
     centerville: {
         cash: "Lobby Centerville",
         insurance: "Lobby Centerville Ins",
-        rockChip: "Lobby Centerville",
     },
     ogden: {
         cash: "Lobby Ogden",
         insurance: "Lobby Ogden Ins",
-        rockChip: "Lobby Ogden",
     },
     "south-jordan": {
         cash: "Lobby South Jordan",
         insurance: "Lobby South Jordan Ins",
-        rockChip: "Lobby South Jordan",
     },
     "cedar-city": {
         cash: "Lobby Cedar City",
         insurance: "Lobby Cedar City Ins",
-        rockChip: "Lobby Cedar City",
     },
     "st-george": {
         cash: "Lobby St George",
         insurance: "Lobby St George Ins",
-        rockChip: "Lobby St George",
     },
 } as const
 
-type OmegaQuoteType = "cash" | "insurance" | "rockChip"
+type OmegaQuoteType = "cash" | "insurance"
 
 function getOmegaQuoteUrl({
     location,
@@ -1001,14 +929,5 @@ function getOmegaQuoteUrl({
             return `https://app.omegaedi.com/quoter/?${params.toString()}`
         }
 
-        case "rockChip": {
-            const params = new URLSearchParams({
-                folder: "pag",
-                campaign: campaigns.rockChip,
-                smart: "true",
-            })
-
-            return `https://app.omegaedi.com/quoter14/?${params.toString()}`
-        }
     }
 }
