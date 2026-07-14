@@ -31,6 +31,7 @@ type StepId =
     | "windshieldQuotePayType"
     | "windshieldInsuranceQuote"
     | "windshieldCashQuote"
+    | "rockChipQuote"
     | "rockChipCashAuthorization"
     | "rockChipInsuranceName"
     | "success"
@@ -464,6 +465,23 @@ export function KioskFlow({ location }: { location: string }) {
                         </KioskStep>
                     )}
 
+                    {step === "rockChipQuote" && (
+                        <KioskStep>
+                            <div className="flex flex-col items-center h-[92vh] mb-10 pt-8 pr-4 pb-4 overflow-hidden rounded-[1.4rem] border border-[#d7e1e3] bg-white shadow-sm">
+                                <h3 className="text-3xl font-bold leading-snug text-[#16262f]">
+                                    Rock Chip Quote
+                                </h3>
+                                <iframe
+                                    src={getOmegaQuoteUrl({
+                                        location,
+                                        type: "rock-chip",
+                                    })}
+                                    className="h-full w-full"
+                                />
+                            </div>
+                        </KioskStep>
+                    )}
+
                     {step === "rockChipCashAuthorization" && (
                         <KioskStep title="Repair Authorization">
                             <div className="mt-4 space-y-5">
@@ -587,9 +605,9 @@ export function KioskFlow({ location }: { location: string }) {
                                 <ChoiceButton
                                     icon={<Wrench />}
                                     label="Rock chip"
-                                    description="Check in for a rock chip repair."
+                                    description="Start a rock chip quote."
                                     onClick={() =>
-                                        goTo("paymentType", {
+                                        goTo("rockChipQuote", {
                                             quoteSource: "header",
                                             serviceType: "rock_chip",
                                             paymentType: null,
@@ -600,7 +618,7 @@ export function KioskFlow({ location }: { location: string }) {
                         </KioskStep>
                     )}
 
-                    {step !== "welcome" && step !== "appointment" && step !== "windshieldInsuranceQuote" && step !== "windshieldCashQuote" && step !== "success" && (
+                    {step !== "welcome" && step !== "appointment" /* && step !== "windshieldInsuranceQuote" && step !== "windshieldCashQuote" && step !== "rockChipQuote" */ && step !== "success" && (
                         <div className="flex items-center justify-between px-5 mb-2">
                             <Button
                                 variant="ghost"
@@ -889,7 +907,7 @@ const OMEGA_CAMPAIGNS = {
     },
 } as const
 
-type OmegaQuoteType = "cash" | "insurance"
+type OmegaQuoteType = "cash" | "insurance" | "rock-chip"
 
 function getOmegaQuoteUrl({
     location,
@@ -927,6 +945,16 @@ function getOmegaQuoteUrl({
             })
 
             return `https://app.omegaedi.com/quoter/?${params.toString()}`
+        }
+
+        case "rock-chip": {
+            const params = new URLSearchParams({
+                folder: "pag",
+                campaign: campaigns.cash,
+                smart: "true",
+            })
+
+            return `https://app.omegaedi.com/quoter14/?${params.toString()}`
         }
 
     }
