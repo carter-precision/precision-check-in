@@ -11,8 +11,8 @@ import {
     QuoteToggle,
 } from "../QuoteForm"
 import { VehicleGlassDiagram } from "../VehicleGlassDiagram"
-import { getGlassLabel, getLocationLabel, KIOSK_LOCATIONS } from "../quote-options"
-import type { KioskStepProps } from "../types"
+import { GLASS_OPTIONS, getLocationLabel, KIOSK_LOCATIONS } from "../quote-options"
+import type { GlassType, KioskStepProps } from "../types"
 
 export function WindshieldGlassStep({ data, updateData, goTo, location }: KioskStepProps) {
     return (
@@ -27,21 +27,34 @@ export function WindshieldGlassStep({ data, updateData, goTo, location }: KioskS
                 />
 
                 <div className="text-center">
-                    <p className="text-xl font-bold text-[#16262f]">
-                        {data.glassType ? getGlassLabel(data.glassType) : "No glass selected"}
-                    </p>
-                    <p className="mt-1 text-base font-medium text-muted-foreground">
-                        {data.glassType
-                            ? "Tap another panel to change your selection."
-                            : "Select a highlighted panel to continue."}
-                    </p>
-                </div>
-
-                <div className="text-center">
                     <QuoteHelperButton onClick={() => updateData({ glassType: "other" })}>
                         Not sure or multiple pieces
                     </QuoteHelperButton>
                 </div>
+
+                <QuoteField id="glass-type" label="Selected glass">
+                    <QuoteSelect
+                        id="glass-type"
+                        value={data.glassType ?? ""}
+                        onChange={(event) =>
+                            updateData({
+                                glassType: event.target.value
+                                    ? (event.target.value as GlassType)
+                                    : null,
+                            })
+                        }
+                    >
+                        <option value="">Choose the damaged glass</option>
+                        {GLASS_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </QuoteSelect>
+                    <p className="text-center text-base font-medium text-muted-foreground">
+                        Choose from the list or tap a glass panel on the vehicle.
+                    </p>
+                </QuoteField>
 
                 <QuoteContinueButton
                     disabled={!data.glassType}
