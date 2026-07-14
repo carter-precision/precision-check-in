@@ -180,16 +180,18 @@ export function KioskFlow({ location }: { location: string }) {
         const showSuccess = options.showSuccess ?? true
 
         try {
-            await createCheckInAction({
-                locationSlug: location,
-                customerName: finalData.customerName.trim(),
-                visitType: finalData.visitType ?? "walk_in",
-                serviceType: finalData.serviceType,
-                paymentType: finalData.paymentType,
-                source: "kiosk",
-                repairAuthorized: finalData.repairAuthorized,
-                windshieldIntent: finalData.windshieldIntent,
-            })
+            if (finalData.quoteSource !== "header") {
+                await createCheckInAction({
+                    locationSlug: location,
+                    customerName: finalData.customerName.trim(),
+                    visitType: finalData.visitType ?? "walk_in",
+                    serviceType: finalData.serviceType,
+                    paymentType: finalData.paymentType,
+                    source: "kiosk",
+                    repairAuthorized: finalData.repairAuthorized,
+                    windshieldIntent: finalData.windshieldIntent,
+                })
+            }
 
             if (showSuccess) {
                 setHistory([])
@@ -287,6 +289,7 @@ export function KioskFlow({ location }: { location: string }) {
                                     description="Repair for small chips or cracks."
                                     onClick={() =>
                                         goTo("paymentType", {
+                                            quoteSource: "walk_in",
                                             serviceType: "rock_chip",
                                             paymentType: null,
                                         })
