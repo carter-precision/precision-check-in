@@ -9,7 +9,6 @@ export function NameStep({
     updateData,
     submitCheckIn,
     isSubmitting,
-    pendingRockChipCheckIn,
 }: KioskStepProps) {
     return (
         <KioskStep title="What’s your name?">
@@ -25,7 +24,7 @@ export function NameStep({
                     disabled={isSubmitting || data.customerName.trim().length < 2}
                     onClick={() => submitCheckIn()}
                 >
-                    {isSubmitting || pendingRockChipCheckIn ? "Submitting..." : "Submit"}
+                    {isSubmitting ? "Submitting..." : "Submit"}
                 </Button>
             </div>
         </KioskStep>

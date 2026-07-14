@@ -109,9 +109,7 @@ export type KioskStepProps = {
     goTo: (step: StepId, partial?: Partial<KioskData>) => void
     updateData: (partial: Partial<KioskData>) => void
     submitCheckIn: () => Promise<boolean>
-    startRockChipDelayedCheckIn: () => void
     resetFlow: () => void
     isSubmitting: boolean
-    pendingRockChipCheckIn: boolean
     location: string
 }

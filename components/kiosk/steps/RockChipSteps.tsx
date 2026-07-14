@@ -11,8 +11,6 @@ export function RockChipCashAuthorizationStep({
     updateData,
     goTo,
     isSubmitting,
-    pendingRockChipCheckIn,
-    startRockChipDelayedCheckIn,
 }: KioskStepProps) {
     return (
         <KioskStep title="Repair Authorization">
@@ -43,16 +41,12 @@ export function RockChipCashAuthorizationStep({
                     className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
                     disabled={
                         isSubmitting ||
-                        pendingRockChipCheckIn ||
                         data.customerName.trim().length < 2 ||
                         !data.repairAuthorized
                     }
-                    onClick={() => {
-                        goTo("rockChipQuote")
-                        startRockChipDelayedCheckIn()
-                    }}
+                    onClick={() => goTo("rockChipQuote")}
                 >
-                    {isSubmitting || pendingRockChipCheckIn ? "Submitting..." : "Submit"}
+                    {isSubmitting ? "Submitting..." : "Submit"}
                 </Button>
             </div>
         </KioskStep>
@@ -64,8 +58,6 @@ export function RockChipInsuranceNameStep({
     updateData,
     goTo,
     isSubmitting,
-    pendingRockChipCheckIn,
-    startRockChipDelayedCheckIn,
 }: KioskStepProps) {
     return (
         <KioskStep>
@@ -85,13 +77,10 @@ export function RockChipInsuranceNameStep({
                 />
                 <Button
                     className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
-                    disabled={isSubmitting || pendingRockChipCheckIn || data.customerName.trim().length < 2}
-                    onClick={() => {
-                        goTo("rockChipQuote")
-                        startRockChipDelayedCheckIn()
-                    }}
+                    disabled={isSubmitting || data.customerName.trim().length < 2}
+                    onClick={() => goTo("rockChipQuote")}
                 >
-                    {isSubmitting || pendingRockChipCheckIn ? "Submitting..." : "Submit"}
+                    {isSubmitting ? "Submitting..." : "Submit"}
                 </Button>
             </div>
         </KioskStep>

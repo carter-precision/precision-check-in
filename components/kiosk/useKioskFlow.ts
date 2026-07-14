@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 import { createCheckInAction } from "@/app/actions/check-ins"
 
@@ -6,7 +6,6 @@ import { initialKioskData, type KioskData, type StepId } from "./types"
 
 const INACTIVITY_WARNING_MS = 52_000
 export const INACTIVITY_RESET_MS = 8_000
-const ROCK_CHIP_CHECK_IN_DELAY_MS = 20_000
 
 export function useKioskFlow(location: string) {
     const [step, setStep] = useState<StepId>("welcome")
@@ -15,8 +14,6 @@ export function useKioskFlow(location: string) {
     const [lastActivityAt, setLastActivityAt] = useState(() => Date.now())
     const [showInactiveWarning, setShowInactiveWarning] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [pendingRockChipCheckIn, setPendingRockChipCheckIn] = useState(false)
-    const rockChipCheckInTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     const updateData = useCallback((partial: Partial<KioskData>) => {
         setData((current) => ({ ...current, ...partial }))
@@ -38,22 +35,13 @@ export function useKioskFlow(location: string) {
         })
     }, [])
 
-    const clearRockChipCheckInTimeout = useCallback(() => {
-        if (!rockChipCheckInTimeoutRef.current) return
-
-        clearTimeout(rockChipCheckInTimeoutRef.current)
-        rockChipCheckInTimeoutRef.current = null
-    }, [])
-
     const resetFlow = useCallback(() => {
-        clearRockChipCheckInTimeout()
         setData(initialKioskData)
         setHistory([])
         setShowInactiveWarning(false)
-        setPendingRockChipCheckIn(false)
         setLastActivityAt(Date.now())
         setStep("welcome")
-    }, [clearRockChipCheckInTimeout])
+    }, [])
 
     const submitCheckIn = useCallback(async (
         overrides?: Partial<KioskData>,
@@ -91,19 +79,6 @@ export function useKioskFlow(location: string) {
         }
     }, [data, isSubmitting, location])
 
-    const startRockChipDelayedCheckIn = useCallback(() => {
-        if (pendingRockChipCheckIn) return
-
-        clearRockChipCheckInTimeout()
-        setPendingRockChipCheckIn(true)
-
-        rockChipCheckInTimeoutRef.current = setTimeout(async () => {
-            rockChipCheckInTimeoutRef.current = null
-            await submitCheckIn({ serviceType: "rock_chip" }, { showSuccess: false })
-            setPendingRockChipCheckIn(false)
-        }, ROCK_CHIP_CHECK_IN_DELAY_MS)
-    }, [clearRockChipCheckInTimeout, pendingRockChipCheckIn, submitCheckIn])
-
     useEffect(() => {
         if (step !== "success") return
 
@@ -111,10 +86,6 @@ export function useKioskFlow(location: string) {
 
         return () => clearTimeout(timeout)
     }, [resetFlow, step])
-
-    useEffect(() => {
-        return () => clearRockChipCheckInTimeout()
-    }, [clearRockChipCheckInTimeout])
 
     useEffect(() => {
         function handleActivity() {
@@ -151,14 +122,12 @@ export function useKioskFlow(location: string) {
         step,
         data,
         isSubmitting,
-        pendingRockChipCheckIn,
         showInactiveWarning,
         goTo,
         goBack,
         resetFlow,
         updateData,
         submitCheckIn,
-        startRockChipDelayedCheckIn,
         continueAfterInactivity: () => {
             setShowInactiveWarning(false)
             setLastActivityAt(Date.now())
