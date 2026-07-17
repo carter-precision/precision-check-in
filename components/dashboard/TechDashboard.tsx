@@ -10,6 +10,7 @@ import { CheckInList } from "./CheckInList"
 import { DashboardColumn } from "./DashboardColumn"
 import { DashboardHeader } from "./DashboardHeader"
 import { EnableSoundOverlay, SoundSettingsDialog } from "./DashboardSound"
+import { ShopFlowGuide } from "./ShopFlowGuide"
 import type { CheckIn } from "./types"
 import { useDashboardCheckIns } from "./useDashboardCheckIns"
 
@@ -24,6 +25,7 @@ export function TechDashboard({
 }) {
     const now = useNow()
     const [showSoundSettings, setShowSoundSettings] = useState(false)
+    const [showShopFlowGuide, setShowShopFlowGuide] = useState(false)
     const { queues, waitingCount, closeCheckIn } = useDashboardCheckIns({
         location,
         locationId,
@@ -45,6 +47,7 @@ export function TechDashboard({
                 <DashboardHeader
                     clock={clock}
                     location={location}
+                    onOpenShopFlowGuide={() => setShowShopFlowGuide(true)}
                     onOpenSoundSettings={() => setShowSoundSettings(true)}
                 />
 
@@ -88,6 +91,11 @@ export function TechDashboard({
                     onClose={() => setShowSoundSettings(false)}
                 />
             )}
+
+            <ShopFlowGuide
+                open={showShopFlowGuide}
+                onOpenChange={setShowShopFlowGuide}
+            />
         </main>
     )
 }
