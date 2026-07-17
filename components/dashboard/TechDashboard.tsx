@@ -8,6 +8,7 @@ import {
     CalendarCheck,
     CheckCircle2,
     Clock,
+    BookOpen,
     UserRound,
     Volume2,
 } from "lucide-react"
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button"
 import type { Database } from "@/lib/supabase/types"
 import { closeCheckInAction } from "@/app/actions/check-ins"
 import { useNow } from "@/hooks/useNow"
+import { ShopFlowGuide } from "@/components/dashboard/ShopFlowGuide"
 
 type CheckIn = Database["public"]["Tables"]["check_ins"]["Row"]
 
@@ -44,6 +46,7 @@ export function TechDashboard({
     const now = useNow()
     const [checkIns, setCheckIns] = useState(initialCheckIns)
     const [showSoundSettings, setShowSoundSettings] = useState(false)
+    const [showShopFlowGuide, setShowShopFlowGuide] = useState(false)
 
     useEffect(() => {
         if (!now) return
@@ -211,8 +214,8 @@ export function TechDashboard({
                     location={location}
                     // isChimeEnabled={isChimeEnabled}
                     // isAudioUnlocked={isAudioUnlocked}
-                    enableChime={enableChime}
                     // disableChime={disableChime}
+                    setShowShopFlowGuide={setShowShopFlowGuide}
                     setShowSoundSettings={setShowSoundSettings}
                 />
 
@@ -258,6 +261,10 @@ export function TechDashboard({
                     onClose={() => setShowSoundSettings(false)}
                 />
             )}
+            <ShopFlowGuide
+                open={showShopFlowGuide}
+                onOpenChange={setShowShopFlowGuide}
+            />
         </main>
     )
 }
@@ -317,16 +324,16 @@ function DashboardHeader({
     location,
     // isChimeEnabled,
     // isAudioUnlocked,
-    enableChime,
     // disableChime,
+    setShowShopFlowGuide,
     setShowSoundSettings,
 }: {
     clock: string
     location: string
     // isChimeEnabled: boolean
     // isAudioUnlocked: boolean
-    enableChime: () => void
     // disableChime: () => void
+    setShowShopFlowGuide: (show: boolean) => void
     setShowSoundSettings: (show: boolean) => void
 }) {
     return (
@@ -357,9 +364,25 @@ function DashboardHeader({
                 </Button> */}
 
                 <Button
+                    type="button"
                     variant="ghost"
-                    className="text-[#6f7f86] hover:bg-transparent"
+                    size="icon-lg"
+                    className="rounded-xl text-[#6f7f86] hover:bg-[#e7f1f2] hover:text-[#2f6975]"
+                    onClick={() => setShowShopFlowGuide(true)}
+                    aria-label="Open shop flow guide"
+                    title="Shop flow guide"
+                >
+                    <BookOpen className="size-6 stroke-[2.3]" />
+                </Button>
+
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-lg"
+                    className="rounded-xl text-[#6f7f86] hover:bg-[#e7f1f2] hover:text-[#2f6975]"
                     onClick={() => setShowSoundSettings(true)}
+                    aria-label="Choose chime sound"
+                    title="Chime sound"
                 >
                     <Volume2 className="size-6 stroke-[2.3]" />
                 </Button>
