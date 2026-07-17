@@ -367,7 +367,7 @@ function DashboardHeader({
                     type="button"
                     variant="ghost"
                     size="icon-lg"
-                    className="rounded-xl bg-[#e5f4ed] text-[#3b8d65] hover:bg-[#e7f1f2] hover:text-[#2f6975] mr-2 p-6"
+                    className="rounded-xl bg-[#e7f1f2] text-[#2f6975] hover:bg-[#e5f4ed] hover:text-[#3b8d65] mr-2 p-6"
                     onClick={() => setShowShopFlowGuide(true)}
                     aria-label="Open shop flow guide"
                     title="Shop flow guide"
