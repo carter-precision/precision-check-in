@@ -26,6 +26,10 @@ type CheckIn = Database["public"]["Tables"]["check_ins"]["Row"]
 const ATTENTION_THRESHOLD_SECONDS = 8
 const RECENTLY_CLOSED_MS = 30 * 60 * 1000
 
+function belongsInAppointmentsColumn(visitType: string) {
+    return visitType === "appointment" || visitType === "vehicle_pickup"
+}
+
 const CHIME_SOUNDS = [
     { label: "Chime 1", path: "/sound-1.mp3" },
     { label: "Chime 2", path: "/sound-2.mp3" },
@@ -138,7 +142,7 @@ export function TechDashboard({
         () =>
             checkIns.filter(
                 (checkIn) =>
-                    checkIn.visit_type === "appointment" &&
+                    belongsInAppointmentsColumn(checkIn.visit_type) &&
                     checkIn.status === "waiting",
             ),
         [checkIns],
@@ -148,7 +152,7 @@ export function TechDashboard({
         () =>
             checkIns.filter(
                 (checkIn) =>
-                    checkIn.visit_type === "appointment" &&
+                    belongsInAppointmentsColumn(checkIn.visit_type) &&
                     checkIn.status === "closed",
             ),
         [checkIns],
@@ -642,6 +646,7 @@ function formatClosedLabel(checkIn: CheckIn, now: Date | null) {
 }
 
 function formatServiceLabel(checkIn: CheckIn) {
+    if (checkIn.visit_type === "vehicle_pickup") return "Vehicle Pickup"
     if (checkIn.visit_type === "appointment") return "Appointment"
     if (checkIn.service_type === "windshield" && checkIn.windshield_intent === "quoted") return "Windshield – Quoted"
     if (checkIn.service_type === "windshield" && checkIn.windshield_intent === "inspection") return "Windshield Inspection"

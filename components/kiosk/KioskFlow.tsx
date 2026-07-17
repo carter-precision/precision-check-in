@@ -9,6 +9,7 @@ import {
     CircleHelp,
     CreditCard,
     FileText,
+    KeyRound,
     ShieldCheck,
     Undo2,
     Wrench,
@@ -37,7 +38,7 @@ type StepId =
     | "success"
     | "quoteServiceType"
 
-type VisitType = "appointment" | "walk_in" | null
+type VisitType = "appointment" | "vehicle_pickup" | "walk_in" | null
 type ServiceType = "windshield" | "rock_chip" | "other" | "bell" | null
 type PaymentType = "cash" | "insurance" | null
 
@@ -257,6 +258,19 @@ export function KioskFlow({ location }: { location: string }) {
                                     onClick={() =>
                                         goTo("serviceType", {
                                             visitType: "walk_in",
+                                            serviceType: null,
+                                            paymentType: null,
+                                        })
+                                    }
+                                />
+
+                                <ChoiceButton
+                                    icon={<KeyRound />}
+                                    label="I’m picking up my vehicle"
+                                    description="We’ll be right out with your keys."
+                                    onClick={() =>
+                                        goTo("name", {
+                                            visitType: "vehicle_pickup",
                                             serviceType: null,
                                             paymentType: null,
                                         })

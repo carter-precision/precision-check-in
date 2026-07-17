@@ -8,7 +8,7 @@ export type CreateCheckInInput = {
     locationSlug: string
     customerName: string
     phone?: string
-    visitType: "appointment" | "walk_in"
+    visitType: "appointment" | "vehicle_pickup" | "walk_in"
     serviceType?: "windshield" | "rock_chip" | "other" | "bell" | null
     paymentType?: "cash" | "insurance" | null
     source: "kiosk" | "phone"
