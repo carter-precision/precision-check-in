@@ -135,6 +135,10 @@ function isVisibleCheckIn(checkIn: CheckIn, now: Date | null) {
     return now.getTime() - new Date(checkIn.closed_at).getTime() < RECENTLY_CLOSED_MS
 }
 
+function belongsInAppointmentsQueue(visitType: string) {
+    return visitType === "appointment" || visitType === "vehicle_pickup"
+}
+
 function groupCheckIns(checkIns: CheckIn[]): DashboardQueues {
     const queues: DashboardQueues = {
         appointments: { waiting: [], recent: [] },
@@ -143,7 +147,7 @@ function groupCheckIns(checkIns: CheckIn[]): DashboardQueues {
 
     for (const checkIn of checkIns) {
         const queue =
-            checkIn.visit_type === "appointment"
+            belongsInAppointmentsQueue(checkIn.visit_type)
                 ? queues.appointments
                 : checkIn.visit_type === "walk_in"
                   ? queues.walkIns

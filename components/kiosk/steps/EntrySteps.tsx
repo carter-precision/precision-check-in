@@ -1,4 +1,4 @@
-import { CalendarCheck, CarFront, CircleHelp, CreditCard, ShieldCheck, Wrench } from "lucide-react"
+import { CalendarCheck, CarFront, CircleHelp, CreditCard, KeyRound, ShieldCheck, Wrench } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
@@ -40,6 +40,7 @@ export function AppointmentStep({ goTo }: KioskStepProps) {
                         })
                     }
                 />
+
                 <ChoiceButton
                     icon={<CarFront />}
                     label="No, I’m a walk-in"
@@ -47,6 +48,19 @@ export function AppointmentStep({ goTo }: KioskStepProps) {
                     onClick={() =>
                         goTo("serviceType", {
                             visitType: "walk_in",
+                            serviceType: null,
+                            paymentType: null,
+                        })
+                    }
+                />
+
+                <ChoiceButton
+                    icon={<KeyRound />}
+                    label="I’m picking up my vehicle"
+                    description="We’ll be right out with your keys."
+                    onClick={() =>
+                        goTo("name", {
+                            visitType: "vehicle_pickup",
                             serviceType: null,
                             paymentType: null,
                         })

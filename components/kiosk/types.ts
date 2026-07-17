@@ -18,7 +18,7 @@ export type StepId =
     | "quoteServiceType"
     | "rockChipQuote"
 
-export type VisitType = "appointment" | "walk_in" | null
+export type VisitType = "appointment" | "vehicle_pickup" | "walk_in" | null
 export type ServiceType = "windshield" | "rock_chip" | "other" | "bell" | null
 export type PaymentType = "cash" | "insurance" | null
 export type VehicleFeature =
