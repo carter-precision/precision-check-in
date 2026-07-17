@@ -367,12 +367,12 @@ function DashboardHeader({
                     type="button"
                     variant="ghost"
                     size="icon-lg"
-                    className="rounded-xl text-[#6f7f86] hover:bg-[#e7f1f2] hover:text-[#2f6975]"
+                    className="rounded-xl bg-[#e5f4ed] text-[#3b8d65] hover:bg-[#e7f1f2] hover:text-[#2f6975] mr-2 p-6"
                     onClick={() => setShowShopFlowGuide(true)}
                     aria-label="Open shop flow guide"
                     title="Shop flow guide"
                 >
-                    <BookOpen className="size-6 stroke-[2.3]" />
+                    <BookOpen className="size-[2.1rem] stroke-[1.8]" />
                 </Button>
 
                 <Button
