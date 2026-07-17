@@ -105,7 +105,7 @@ export function WindshieldServiceLocationStep({ data, updateData, goTo, location
                     >
                         <span className="flex items-center justify-center gap-2">
                             <Store className="size-5" />
-                            I’ll come in
+                            I'll come in
                         </span>
                     </QuoteToggle>
                 </div>

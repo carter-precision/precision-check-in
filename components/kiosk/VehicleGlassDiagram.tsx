@@ -61,7 +61,7 @@ export function VehicleGlassDiagram({
 
                 <path
                     d="M118 51 C145 35 176 30 210 30 C244 30 275 35 302 51 C320 72 326 96 326 127 L326 570 C326 624 287 657 210 662 C133 657 94 624 94 570 L94 127 C94 96 100 72 118 51 Z"
-                    className="fill-none stroke-white/80 stroke-[7]"
+                    className="fill-none stroke-white/80 stroke-7"
                 />
 
                 <path

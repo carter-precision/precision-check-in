@@ -11,7 +11,7 @@ export function WelcomeStep({ goTo }: KioskStepProps) {
             <div className="-mt-30 flex flex-1 flex-col items-center justify-center text-center">
                 <h1 className="mb-4 text-5xl font-semibold tracking-[-0.04em]">Happy to see you!</h1>
                 <p className="mb-10 max-w-sm text-xl font-medium leading-snug text-muted-foreground">
-                    Let&apos;s get things rolling.
+                    Let's get things rolling.
                 </p>
                 <Button
                     className="h-20 w-70 rounded-full bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
@@ -31,7 +31,7 @@ export function AppointmentStep({ goTo }: KioskStepProps) {
                 <ChoiceButton
                     icon={<CalendarCheck />}
                     label="Yes, I have an appointment"
-                    description="We’ll let the shop know you’re here."
+                    description="We'll let the shop know you're here."
                     onClick={() =>
                         goTo("name", {
                             visitType: "appointment",
@@ -43,7 +43,7 @@ export function AppointmentStep({ goTo }: KioskStepProps) {
 
                 <ChoiceButton
                     icon={<CarFront />}
-                    label="No, I’m a walk-in"
+                    label="No, I'm a walk-in"
                     description="A technician will come assist you."
                     onClick={() =>
                         goTo("serviceType", {
@@ -56,8 +56,8 @@ export function AppointmentStep({ goTo }: KioskStepProps) {
 
                 <ChoiceButton
                     icon={<KeyRound />}
-                    label="I’m picking up my vehicle"
-                    description="We’ll be right out with your keys."
+                    label="I'm picking up my vehicle"
+                    description="We'll be right out with your keys."
                     onClick={() =>
                         goTo("name", {
                             visitType: "vehicle_pickup",
@@ -121,7 +121,7 @@ export function PaymentTypeStep({ goTo }: KioskStepProps) {
                 <ChoiceButton
                     icon={<CreditCard />}
                     label="Cash pay"
-                    description="You’ll pay directly for the repair."
+                    description="You'll pay directly for the repair."
                     trailing={<div className="-mt-1 text-3xl font-bold tracking-tight text-accent">$79.99</div>}
                     onClick={() =>
                         goTo("rockChipCashAuthorization", {

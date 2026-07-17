@@ -25,7 +25,7 @@ export function WindshieldQuoteResultStep({ data, resetFlow }: KioskStepProps) {
                     <p className="mx-auto mt-4 max-w-xl text-base font-medium leading-relaxed text-[#c8d4d8]">
                         {preview.type === "cash"
                             ? "Final pricing will be confirmed after we verify the exact glass specification."
-                            : `We’ll verify coverage with ${data.insuranceCarrier || "your carrier"} before scheduling.`}
+                            : `We'll verify coverage with ${data.insuranceCarrier || "your carrier"} before scheduling.`}
                     </p>
                 </div>
 

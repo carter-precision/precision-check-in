@@ -13,7 +13,7 @@ export function WindshieldInsuranceDetailsStep({ data, updateData, goTo }: Kiosk
         <KioskStep title="Tell us about your coverage">
             <QuoteForm>
                 <p className="text-center text-lg font-medium text-muted-foreground">
-                    We’ll confirm these details directly with your carrier.
+                    We'll confirm these details directly with your carrier.
                 </p>
 
                 <QuoteField id="insurance-carrier" label="Insurance carrier">
@@ -105,7 +105,7 @@ export function WindshieldInsuranceDetailsStep({ data, updateData, goTo }: Kiosk
 
                 {data.knowsDeductible === false && (
                     <p className="rounded-xl bg-accent-tint p-4 text-base font-medium text-[#40525a]">
-                        No problem. We’ll verify your coverage and deductible before any work is scheduled.
+                        No problem. We'll verify your coverage and deductible before any work is scheduled.
                     </p>
                 )}
 
@@ -172,7 +172,7 @@ function VehicleIdentityFields({
                     onChange={(event) => updateData({ vin: event.target.value.toUpperCase() })}
                 />
                 <QuoteHelperButton onClick={() => updateData({ vinUnknown: true, vin: "" })}>
-                    I don’t have my VIN
+                    I don't have my VIN
                 </QuoteHelperButton>
             </QuoteField>
         )

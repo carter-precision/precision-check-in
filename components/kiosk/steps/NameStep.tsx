@@ -11,7 +11,7 @@ export function NameStep({
     isSubmitting,
 }: KioskStepProps) {
     return (
-        <KioskStep title="What’s your name?">
+        <KioskStep title="What's your name?">
             <div className="mt-8 space-y-5">
                 <Input
                     value={data.customerName}
