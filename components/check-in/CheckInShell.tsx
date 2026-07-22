@@ -2,9 +2,9 @@ import { CalendarClock, CircleAlert } from "lucide-react"
 
 export function CheckInShell({ children }: { children: React.ReactNode }) {
     return (
-        <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#f2fdea_0,transparent_38%)] px-5 py-10">
+        <main className="flex min-h-screen items-center justify-center px-5 py-10">
             <div className="w-full max-w-lg">
-                <section className="rounded-[2rem] border border-[#d7e1e3] bg-white p-6 shadow-xl shadow-[#23343d]/8 sm:p-8">
+                <section>
                     {children}
                 </section>
             </div>
