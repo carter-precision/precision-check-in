@@ -16,6 +16,19 @@ export type CreateCheckInInput = {
     repairAuthorized?: boolean
 }
 
+export type CustomerArrivalMode = "lobby" | "vehicle"
+
+export type CreateVerifiedCustomerCheckInInput = {
+    locationSlug: string
+    customerName: string
+    phone: string | null
+    arrivalMode: CustomerArrivalMode
+    vehicleDescription: string | null
+    omegaAppointmentId: string
+    omegaInvoiceId: string
+    omegaAppointmentGuidHash: string
+}
+
 export async function createCheckIn(input: CreateCheckInInput) {
     const supabase = createAdminClient()
 
@@ -132,4 +145,55 @@ export async function closeCheckIn(id: string) {
     }
 
     return data
+}
+
+export async function createVerifiedCustomerCheckIn(input: CreateVerifiedCustomerCheckInInput) {
+    const supabase = createAdminClient()
+
+    const { data: location, error: locationError } = await supabase
+        .from("locations")
+        .select("id")
+        .eq("slug", input.locationSlug)
+        .eq("active", true)
+        .single()
+
+    if (locationError || !location) {
+        throw new Error("Invalid location")
+    }
+
+    // These fields intentionally live outside the generated Supabase type until the
+    // matching database change is reviewed and applied.
+    const newCheckIn = {
+        location_id: location.id,
+        customer_name: input.customerName.trim(),
+        phone: input.phone?.trim() || null,
+        visit_type: "appointment",
+        service_type: null,
+        payment_type: null,
+        source: "phone",
+        status: "waiting",
+        repair_authorized: false,
+        windshield_intent: null,
+        arrival_mode: input.arrivalMode,
+        vehicle_description: input.vehicleDescription,
+        omega_appointment_id: input.omegaAppointmentId,
+        omega_invoice_id: input.omegaInvoiceId,
+        omega_appointment_guid_hash: input.omegaAppointmentGuidHash,
+    }
+
+    const { data, error } = await supabase
+        .from("check_ins")
+        .insert(newCheckIn as CheckInInsert)
+        .select()
+        .single()
+
+    if (error?.code === "23505") {
+        return { status: "already_checked_in" as const }
+    }
+
+    if (error) {
+        throw new Error(error.message)
+    }
+
+    return { status: "created" as const, data }
 }

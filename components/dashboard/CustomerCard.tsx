@@ -97,6 +97,14 @@ function formatClosedLabel(checkIn: CheckIn, now: Date | null) {
 
 function formatServiceLabel(checkIn: CheckIn): ReactNode {
     if (checkIn.visit_type === "vehicle_pickup") return "Vehicle Pickup"
+    if (checkIn.visit_type === "appointment" && checkIn.arrival_mode === "vehicle") {
+        return checkIn.vehicle_description
+            ? `Appointment – Waiting in ${checkIn.vehicle_description}`
+            : "Appointment – Waiting outside"
+    }
+    if (checkIn.visit_type === "appointment" && checkIn.arrival_mode === "lobby") {
+        return "Appointment – In lobby"
+    }
     if (checkIn.visit_type === "appointment") return "Appointment"
     if (checkIn.service_type === "windshield" && checkIn.windshield_intent === "quoted") {
         return "Windshield – Quoted"

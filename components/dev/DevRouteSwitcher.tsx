@@ -4,11 +4,11 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 export function DevRouteSwitcher() {
+    const pathname = usePathname()
+
     if (process.env.NODE_ENV !== "development") {
         return null
     }
-
-    const pathname = usePathname()
 
     const routes = [
         {
@@ -19,12 +19,16 @@ export function DevRouteSwitcher() {
             label: "Dashboard",
             href: "/dashboard/layton",
         },
+        {
+            label: "Check-in",
+            href: "/check-in?preview=1",
+        },
     ]
 
     return (
         <div className="fixed left-4 top-4 z-9999 flex overflow-hidden rounded-full border border-slate-300 bg-white shadow-lg">
             {routes.map((route) => {
-                const active = pathname === route.href
+                const active = pathname === route.href.split("?")[0]
 
                 return (
                     <Link

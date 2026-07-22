@@ -5,7 +5,7 @@ export async function getLocationBySlug(slug: string) {
 
     const { data, error } = await supabase
         .from("locations")
-        .select("id, slug")
+        .select("id, slug, name")
         .eq("slug", slug)
         .eq("active", true)
         .single()
