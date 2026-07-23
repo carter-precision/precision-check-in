@@ -20,10 +20,6 @@ export type CustomerCheckInActionState = {
     message?: string
 }
 
-export const initialCustomerCheckInActionState: CustomerCheckInActionState = {
-    status: "idle",
-}
-
 export async function createCheckInAction(input: CreateCheckInInput) {
     return createCheckIn(input)
 }

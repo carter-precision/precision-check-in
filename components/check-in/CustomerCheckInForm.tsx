@@ -5,9 +5,12 @@ import { Building2, CarFront, CheckCircle2, LoaderCircle } from "lucide-react"
 
 import {
     createCustomerCheckInAction,
-    initialCustomerCheckInActionState,
     type CustomerCheckInActionState,
 } from "@/app/actions/check-ins"
+
+const initialCustomerCheckInActionState: CustomerCheckInActionState = {
+    status: "idle",
+}
 
 export function CustomerCheckInForm({
     proof,
