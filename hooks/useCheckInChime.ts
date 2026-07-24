@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useEffectEvent, useRef, useState } from "react"
 
 const CHIME_ESCALATION_DELAY_MS = 8000
 const CHIME_REPEAT_INTERVAL_MS = 3000
@@ -21,7 +21,6 @@ export function useCheckInChime(
     const repeatIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
     const audioRef = useRef<HTMLAudioElement | null>(null)
-    const previewAudioRef = useRef<HTMLAudioElement | null>(null)
 
     const [isChimeEnabled, setIsChimeEnabled] = useState(true)
     const [isAudioUnlocked, setIsAudioUnlocked] = useState(false)
@@ -30,6 +29,8 @@ export function useCheckInChime(
         const stored = window.localStorage.getItem(CHIME_STORAGE_KEY)
 
         if (stored === "false") {
+            // Browser-only preferences are hydrated after mount to keep SSR output stable.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsChimeEnabled(false)
         }
     }, [])
@@ -38,6 +39,8 @@ export function useCheckInChime(
         const storedSound = window.localStorage.getItem(CHIME_SOUND_STORAGE_KEY)
 
         if (storedSound) {
+            // Browser-only preferences are hydrated after mount to keep SSR output stable.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSoundPath(storedSound)
         }
     }, [])
@@ -56,7 +59,7 @@ export function useCheckInChime(
         }
     }, [soundPath])
 
-    async function playChime() {
+    const playChime = useEffectEvent(async () => {
         if (!audioRef.current || !isChimeEnabled || !isAudioUnlocked) return
 
         try {
@@ -66,7 +69,7 @@ export function useCheckInChime(
             console.error("Unable to play chime:", error)
             setIsAudioUnlocked(false)
         }
-    }
+    })
 
     function stopChimeLoop() {
         if (escalationTimeoutRef.current) {
@@ -90,6 +93,8 @@ export function useCheckInChime(
 
         if (!shouldChime || !isChimeEnabled || !isAudioUnlocked) return
 
+        // Playback failures update unlock state asynchronously after audio.play() rejects.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         playChime()
 
         escalationTimeoutRef.current = setTimeout(() => {

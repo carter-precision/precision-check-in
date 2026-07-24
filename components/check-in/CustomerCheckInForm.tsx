@@ -34,7 +34,7 @@ export function CustomerCheckInForm({
                 <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-[#e9f5e3] text-accent">
                     <CheckCircle2 className="size-11" strokeWidth={2.5} />
                 </div>
-                <h1 className="text-3xl font-bold tracking-[-0.04em] text-[#16262f]">You&apos;re checked in</h1>
+                <h1 className="text-3xl font-bold tracking-[-0.04em] text-[#16262f]">You're checked in</h1>
                 <p className="mx-auto mt-3 max-w-sm text-lg font-medium leading-relaxed text-muted-foreground">
                     {state.message}
                 </p>
@@ -53,7 +53,7 @@ export function CustomerCheckInForm({
                 </p>
                 <h1 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-[#16262f]">Where are you waiting?</h1>
                 <p className="mt-3 text-base font-medium text-muted-foreground">
-                    Choose one option to let our team know you&apos;re here.
+                    Choose one option to let our team know you're here.
                 </p>
             </div>
 
