@@ -1,5 +1,5 @@
+import { generateDeviceToken, hashDeviceToken } from "@/lib/auth/device-tokens"
 import { createAdminClient } from "@/lib/supabase/server"
-import { generateDeviceToken, hashDeviceToken } from "@/lib/utils"
 
 export type RegisterDeviceInput = {
     locationSlug: string
