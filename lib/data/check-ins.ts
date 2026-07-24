@@ -127,7 +127,7 @@ export async function getWaitingCheckIns(locationSlug: string): Promise<CheckInR
     return data
 }
 
-export async function closeCheckIn(id: string) {
+export async function closeCheckIn(id: string, locationId: string) {
     const supabase = createAdminClient()
 
     const { data, error } = await supabase
@@ -137,6 +137,8 @@ export async function closeCheckIn(id: string) {
             closed_at: new Date().toISOString(),
         })
         .eq("id", id)
+        .eq("location_id", locationId)
+        .eq("status", "waiting")
         .select()
         .single()
 

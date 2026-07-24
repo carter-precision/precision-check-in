@@ -80,7 +80,7 @@ export function useDashboardCheckIns({
             )
 
             try {
-                await closeCheckInAction(id)
+                await closeCheckInAction(id, location)
             } catch (error) {
                 console.error("Failed to close check-in:", error)
 
@@ -93,7 +93,7 @@ export function useDashboardCheckIns({
                 alert("Could not acknowledge check-in. Please try again.")
             }
         },
-        [checkIns],
+        [checkIns, location],
     )
 
     return {
