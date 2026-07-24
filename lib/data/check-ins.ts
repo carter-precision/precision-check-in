@@ -161,9 +161,7 @@ export async function createVerifiedCustomerCheckIn(input: CreateVerifiedCustome
         throw new Error("Invalid location")
     }
 
-    // These fields intentionally live outside the generated Supabase type until the
-    // matching database change is reviewed and applied.
-    const newCheckIn = {
+    const newCheckIn: CheckInInsert = {
         location_id: location.id,
         customer_name: input.customerName.trim(),
         phone: input.phone?.trim() || null,
@@ -183,7 +181,7 @@ export async function createVerifiedCustomerCheckIn(input: CreateVerifiedCustome
 
     const { data, error } = await supabase
         .from("check_ins")
-        .insert(newCheckIn as CheckInInsert)
+        .insert(newCheckIn)
         .select()
         .single()
 

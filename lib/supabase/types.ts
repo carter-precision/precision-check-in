@@ -7,56 +7,91 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
       check_ins: {
         Row: {
+          arrival_mode: string | null
           closed_at: string | null
           created_at: string
           customer_name: string
           id: string
           location_id: string
+          omega_appointment_guid_hash: string | null
+          omega_appointment_id: string | null
+          omega_invoice_id: string | null
           payment_type: string | null
           phone: string | null
           repair_authorized: boolean
           service_type: string | null
           source: string
           status: string
+          vehicle_description: string | null
           visit_type: string
           windshield_intent: string | null
         }
         Insert: {
+          arrival_mode?: string | null
           closed_at?: string | null
           created_at?: string
           customer_name: string
           id?: string
           location_id: string
+          omega_appointment_guid_hash?: string | null
+          omega_appointment_id?: string | null
+          omega_invoice_id?: string | null
           payment_type?: string | null
           phone?: string | null
           repair_authorized?: boolean
           service_type?: string | null
           source: string
           status?: string
+          vehicle_description?: string | null
           visit_type: string
           windshield_intent?: string | null
         }
         Update: {
+          arrival_mode?: string | null
           closed_at?: string | null
           created_at?: string
           customer_name?: string
           id?: string
           location_id?: string
+          omega_appointment_guid_hash?: string | null
+          omega_appointment_id?: string | null
+          omega_invoice_id?: string | null
           payment_type?: string | null
           phone?: string | null
           repair_authorized?: boolean
           service_type?: string | null
           source?: string
           status?: string
+          vehicle_description?: string | null
           visit_type?: string
           windshield_intent?: string | null
         }
@@ -269,7 +304,11 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
 } as const
+
