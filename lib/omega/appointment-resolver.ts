@@ -7,7 +7,7 @@ import { getOmegaInvoice, listOmegaAppointments, OmegaApiError } from "./client"
 import type { AppointmentResolution } from "./types"
 
 const lookupSchema = z.object({
-    appointmentGuid: z.string().uuid(),
+    appointmentGuid: z.uuid(),
     invoiceId: z.string().regex(/^\d+$/),
 })
 
