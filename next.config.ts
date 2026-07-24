@@ -1,18 +1,18 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/check-in/:path*",
+        source: '/check-in/:path*',
         headers: [
-          { key: "Cache-Control", value: "private, no-store, max-age=0" },
-          { key: "Referrer-Policy", value: "no-referrer" },
-          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: 'Cache-Control', value: 'private, no-store, max-age=0' },
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
         ],
       },
     ]
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig

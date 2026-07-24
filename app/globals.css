@@ -1,6 +1,6 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -65,14 +65,13 @@
 /* GPT Accent #2f6975 */
 /* bg-[#2f6975] text-xl font-bold shadow-lg shadow-[#2f6975]/20 hover:bg-[#285a64] */
 
-
 :root {
   --background: oklch(98.06% 0.002 197.12);
-  --foreground: oklch(27.60% 0.023 248.68);
+  --foreground: oklch(27.6% 0.023 248.68);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(54.21% 0.030 239.50);
+  --popover-foreground: oklch(54.21% 0.03 239.5);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
