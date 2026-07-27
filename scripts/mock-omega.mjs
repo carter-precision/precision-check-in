@@ -7,7 +7,7 @@ const SCENARIO =
 
 const INVOICE_ID = '12345'
 const APPOINTMENT_ID = '98765'
-const APPOINTMENT_GUID = '00000000-0000-4000-8000-000000000001'
+const APPOINTMENT_GUID = '00000000-0000-4000'
 const LOCATION_ID = '1'
 
 const supportedScenarios = new Set([
@@ -76,7 +76,7 @@ server.listen(PORT, HOST, () => {
   console.log(`Omega mock listening at http://${HOST}:${PORT}/api/2.0`)
   console.log(`Scenario: ${SCENARIO}`)
   console.log(
-    `Check-in URL: http://localhost:3000/check-in?appointment_guid=${APPOINTMENT_GUID}&invoice_id=${INVOICE_ID}`,
+    `Check-in URL: http://localhost:3000/check-in?appointment=${APPOINTMENT_GUID}&id=${INVOICE_ID}`,
   )
   console.log('')
   console.log('Press Ctrl+C to stop the mock server.')
