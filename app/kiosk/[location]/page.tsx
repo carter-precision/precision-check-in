@@ -1,35 +1,36 @@
-import { redirect } from "next/navigation"
-import { KioskFlow } from "@/components/kiosk/KioskFlow"
-import { getDeviceCookie } from "@/lib/auth/device-session"
-import { getDeviceByToken } from "@/lib/data/devices"
-import { isDevAuthBypassEnabled } from "@/lib/auth/dev-auth"
+import { redirect } from 'next/navigation'
 
-export default async function KioskPage({
-    params,
+import { isDevAuthBypassEnabled } from '@/lib/auth/dev-auth'
+import { getDeviceCookie } from '@/lib/auth/device-session'
+import { getDeviceByToken } from '@/lib/data/devices'
+
+import { LegacyKioskFlow } from './LegacyKioskFlow'
+
+export default async function LegacyKioskPage({
+  params,
 }: {
-    params: Promise<{ location: string }>
+  params: Promise<{ location: string }>
 }) {
-    const { location } = await params
+  const { location } = await params
 
-    if (isDevAuthBypassEnabled()) {
-        return <KioskFlow location={location} />
-    }
+  if (isDevAuthBypassEnabled()) {
+    return <LegacyKioskFlow location={location} />
+  }
 
-    const token = await getDeviceCookie()
+  const token = await getDeviceCookie()
 
-    if (!token) {
-        redirect("/register")
-    }
+  if (!token) {
+    redirect('/register')
+  }
 
-    const device = await getDeviceByToken(token, "kiosk")
+  const device = await getDeviceByToken(token, 'kiosk')
+  const deviceLocationSlug = Array.isArray(device.locations)
+    ? device.locations[0]?.slug
+    : device.locations?.slug
 
-    const deviceLocationSlug = Array.isArray(device.locations)
-        ? device.locations[0]?.slug
-        : device.locations?.slug
+  if (deviceLocationSlug !== location) {
+    redirect('/register')
+  }
 
-    if (deviceLocationSlug !== location) {
-        redirect("/register")
-    }
-
-    return <KioskFlow location={location} />
+  return <LegacyKioskFlow location={location} />
 }

@@ -1,4 +1,4 @@
-insert into locations (name, slug)
+insert into public.locations (name, slug)
 values
     ('Layton', 'layton'),
     ('Centerville', 'centerville'),

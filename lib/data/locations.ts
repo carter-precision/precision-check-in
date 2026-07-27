@@ -1,18 +1,18 @@
-import { createAdminClient } from "@/lib/supabase/server"
+import { createAdminClient } from '@/lib/supabase/server'
 
 export async function getLocationBySlug(slug: string) {
-    const supabase = createAdminClient()
+  const supabase = createAdminClient()
 
-    const { data, error } = await supabase
-        .from("locations")
-        .select("id, slug")
-        .eq("slug", slug)
-        .eq("active", true)
-        .single()
+  const { data, error } = await supabase
+    .from('locations')
+    .select('id, slug, name')
+    .eq('slug', slug)
+    .eq('active', true)
+    .single()
 
-    if (error || !data) {
-        throw new Error("Invalid location")
-    }
+  if (error || !data) {
+    throw new Error('Invalid location')
+  }
 
-    return data
+  return data
 }
