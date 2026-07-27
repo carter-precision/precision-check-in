@@ -128,7 +128,7 @@ function formatServiceLabel(checkIn: CheckIn): ReactNode {
   if (checkIn.visit_type === 'appointment') return 'Appointment – Lobby'
   if (
     checkIn.service_type === 'windshield' &&
-    checkIn.windshield_intent === 'quoted'
+    checkIn.windshield_intent === 'quote'
   ) {
     return 'Windshield – Quoted'
   }
