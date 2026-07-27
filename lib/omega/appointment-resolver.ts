@@ -3,7 +3,7 @@ import 'server-only'
 import crypto from 'node:crypto'
 import { z } from 'zod'
 
-import { getOmegaInvoice, listOmegaAppointments, OmegaApiError } from './client'
+import { getOmegaInvoice, OmegaApiError } from './client'
 import type { AppointmentResolution } from './types'
 
 const lookupSchema = z.object({
@@ -11,9 +11,6 @@ const lookupSchema = z.object({
   invoiceId: z.string().regex(/^\d+$/),
 })
 
-const DAY_MS = 24 * 60 * 60 * 1_000
-const LOOKBACK_DAYS = 2
-const LOOKAHEAD_DAYS = 30
 const CHECK_IN_EARLY_MS = 90 * 60 * 1_000
 const CHECK_IN_LATE_MS = 2 * 60 * 60 * 1_000
 
@@ -31,11 +28,7 @@ export async function resolveOmegaAppointment(input: {
   try {
     const invoice = await getOmegaInvoice(parsed.data.invoiceId)
     const now = Date.now()
-    const appointments = await listOmegaAppointments({
-      dateFrom: now - LOOKBACK_DAYS * DAY_MS,
-      dateTo: now + LOOKAHEAD_DAYS * DAY_MS,
-    })
-    const appointment = appointments.find(
+    const appointment = invoice.appointments.find(
       (candidate) =>
         candidate.guid.trim().toLowerCase() === parsed.data.appointmentGuid &&
         candidate.invoiceId === parsed.data.invoiceId,

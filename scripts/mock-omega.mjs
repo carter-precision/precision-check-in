@@ -65,33 +65,6 @@ const server = http.createServer((request, response) => {
     return
   }
 
-  if (url.pathname === '/api/2.0/Appointments') {
-    const range = readAppointmentRange(url.searchParams)
-
-    if (!range) {
-      sendJson(response, 400, {
-        error_code: 400,
-        message:
-          'date1 and date2 must be Unix timestamps in seconds or milliseconds.',
-      })
-      return
-    }
-
-    if (SCENARIO === 'appointment-missing') {
-      sendJson(response, 200, [])
-      return
-    }
-
-    const appointment = createAppointment()
-    const appointmentStartsAt = normalizeUnixTimestamp(appointment.start_time)
-    const isInRequestedRange =
-      appointmentStartsAt >= range.dateFrom &&
-      appointmentStartsAt <= range.dateTo
-
-    sendJson(response, 200, isInRequestedRange ? [appointment] : [])
-    return
-  }
-
   sendJson(response, 404, {
     error_code: 404,
     message: 'Mock endpoint not found.',
@@ -131,17 +104,20 @@ function createInvoice() {
           vehicle_description: null,
         }
       : {
-          vehicle_year: '2024',
-          vehicle_make: 'Toyota',
-          vehicle_model: 'Camry',
-          vehicle_description: 'White',
+          vehicle_year: '2022',
+          vehicle_make: 'Honda',
+          vehicle_model: 'CR-V',
+          vehicle_description: 'Blue',
         }
 
   return {
-    customer_fname: 'Michael',
-    customer_surname: 'Example',
-    customer_phone: '555-555-1234',
+    id: INVOICE_ID,
+    customer_fname: 'Maya',
+    customer_surname: 'Reynolds',
+    customer_phone: '801-555-0147',
     ...vehicle,
+    Appointments:
+      SCENARIO === 'appointment-missing' ? [] : [createAppointment()],
   }
 }
 
@@ -164,31 +140,6 @@ function createAppointment() {
     status: SCENARIO === 'closed' ? 'CLOSED' : 'OPEN',
     type: SCENARIO === 'mobile' ? 'mobile' : 'inshop',
   }
-}
-
-function readAppointmentRange(searchParams) {
-  const dateFrom = normalizeUnixTimestamp(searchParams.get('date1'))
-  const dateTo = normalizeUnixTimestamp(searchParams.get('date2'))
-
-  if (
-    !Number.isFinite(dateFrom) ||
-    !Number.isFinite(dateTo) ||
-    dateFrom > dateTo
-  ) {
-    return null
-  }
-
-  return { dateFrom, dateTo }
-}
-
-function normalizeUnixTimestamp(value) {
-  const timestamp = Number(value)
-
-  if (!Number.isFinite(timestamp)) return Number.NaN
-
-  return timestamp >= 1_000_000_000_000
-    ? Math.floor(timestamp / 1000)
-    : timestamp
 }
 
 function sendJson(response, statusCode, body) {

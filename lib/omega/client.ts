@@ -23,13 +23,6 @@ const appointmentSchema = z.object({
   type: z.string(),
 })
 
-const appointmentListSchema = z.union([
-  z.array(appointmentSchema),
-  z
-    .object({ appointments: z.array(appointmentSchema) })
-    .transform((value) => value.appointments),
-])
-
 const invoiceSchema = z.object({
   customer_fname: nullableStringSchema,
   customer_surname: nullableStringSchema,
@@ -38,6 +31,7 @@ const invoiceSchema = z.object({
   vehicle_make: nullableStringSchema,
   vehicle_model: nullableStringSchema,
   vehicle_description: nullableStringSchema,
+  Appointments: z.array(appointmentSchema).default([]),
 })
 
 export class OmegaApiError extends Error {
@@ -88,28 +82,14 @@ export async function getOmegaInvoice(
     customerName,
     phone: normalizeNullableString(parsed.data.customer_phone),
     vehicleDescription: vehicleDescription || null,
+    appointments: parsed.data.Appointments.map(normalizeAppointment),
   }
 }
 
-export async function listOmegaAppointments(input: {
-  dateFrom: number
-  dateTo: number
-}): Promise<OmegaAppointment[]> {
-  const query = new URLSearchParams({
-    date1: String(input.dateFrom),
-    date2: String(input.dateTo),
-  })
-  const payload = await omegaRequest(`/Appointments?${query.toString()}`)
-  const parsed = appointmentListSchema.safeParse(payload)
-
-  if (!parsed.success) {
-    throw new OmegaApiError(
-      'Omega returned an invalid appointment list',
-      'invalid_response',
-    )
-  }
-
-  return parsed.data.map((appointment) => ({
+function normalizeAppointment(
+  appointment: z.infer<typeof appointmentSchema>,
+): OmegaAppointment {
+  return {
     id: appointment.id,
     guid: appointment.guid,
     invoiceId: appointment.invoice_id,
@@ -118,7 +98,7 @@ export async function listOmegaAppointments(input: {
     endTime: parseOmegaTimestamp(appointment.end_time),
     status: appointment.status.trim().toUpperCase(),
     type: appointment.type.trim().toLowerCase(),
-  }))
+  }
 }
 
 async function omegaRequest(path: string) {

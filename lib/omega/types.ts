@@ -13,6 +13,7 @@ export type OmegaInvoice = {
   customerName: string
   phone: string | null
   vehicleDescription: string | null
+  appointments: OmegaAppointment[]
 }
 
 export type VerifiedAppointment = {
