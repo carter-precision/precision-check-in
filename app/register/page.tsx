@@ -1,6 +1,17 @@
+import type { Metadata } from 'next'
+
 import { registerDeviceAction } from '@/app/actions/devices'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+
+export const metadata: Metadata = {
+  title: 'Device Registration',
+  description: 'Register a Precision Auto Glass kiosk or dashboard device.',
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
 
 export default function RegisterDevicePage() {
   return (

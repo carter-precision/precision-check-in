@@ -19,15 +19,34 @@ CHECK_IN_PROOF_SECRET=<at least 32 random characters>
 
 `OMEGA_API_URL` is optional and defaults to the production Omega 2.0 API.
 
-## Development preview
+## UI preview
 
-When the app is running in development, open this URL to exercise the customer UI without calling Omega or Supabase:
+Open this URL in any environment to exercise the customer UI without calling
+Omega or Supabase:
 
 ```text
 /check-in?preview=1
 ```
 
-The preview uses fake customer and vehicle data. Either arrival button displays the success state without creating a check-in. The preview flag is ignored in production.
+The preview uses fake customer and vehicle data and is available in production.
+Use the state toggle to switch among the distinct customer-facing screens:
+
+- `resolved`
+- `too-early`
+- `missing-vehicle`
+- `appointment-not-found`
+
+The Appointment Not Found option consolidates the `closed`, `mobile`, `expired`,
+`appointment-missing`, and `mismatched-invoice` scenarios because they display
+the same UI and message. Those individual state values are also accepted as URL
+aliases. For example:
+
+```text
+/check-in?preview=1&state=expired
+```
+
+Either arrival button in the resolved preview displays the success state without
+creating a check-in.
 
 Only `OPEN` appointments with type `inshop` are eligible. Check-in opens 90 minutes before the appointment and closes two hours after its end time. A failed, mismatched, mobile, closed, or expired lookup never displays customer information and does not offer a manual form.
 

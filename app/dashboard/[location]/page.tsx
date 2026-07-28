@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { TechDashboard } from '@/components/dashboard/TechDashboard'
 import { getLocationBySlug } from '@/lib/data/locations'
@@ -5,6 +6,24 @@ import { getDeviceCookie } from '@/lib/auth/device-session'
 import { getActiveDashboardCheckIns } from '@/lib/data/check-ins'
 import { getDeviceByToken } from '@/lib/data/devices'
 import { isDevAuthBypassEnabled } from '@/lib/auth/dev-auth'
+import { formatLocationName } from '@/lib/utils'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ location: string }>
+}): Promise<Metadata> {
+  const { location } = await params
+
+  return {
+    title: `${formatLocationName(location)} Dashboard`,
+    description: 'Live customer activity for the Precision Auto Glass team.',
+    robots: {
+      index: false,
+      follow: false,
+    },
+  }
+}
 
 export default async function DashboardPage({
   params,

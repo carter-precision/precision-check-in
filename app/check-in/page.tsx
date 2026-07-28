@@ -5,6 +5,10 @@ import {
   CheckInTooEarly,
   CheckInUnavailable,
 } from '@/components/check-in/CheckInShell'
+import {
+  CheckInPreview,
+  getCheckInPreviewState,
+} from '@/components/dev/CheckInPreview'
 import { CustomerCheckInForm } from '@/components/check-in/CustomerCheckInForm'
 import { createCustomerCheckInProof } from '@/lib/auth/customer-check-in-proof'
 import { getLocationBySlug } from '@/lib/data/locations'
@@ -13,7 +17,7 @@ import { resolveOmegaAppointment } from '@/lib/omega/appointment-resolver'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Appointment Check-in | Precision Auto Glass',
+  title: 'Appointment Check-in',
   description: 'Let the Precision Auto Glass team know you have arrived.',
   referrer: 'no-referrer',
   robots: {
@@ -31,27 +35,12 @@ export default async function CheckInPage({
   const appointmentGuid = firstQueryValue(query.appointment)
   const invoiceId = firstQueryValue(query.id)
 
-  if (
-    process.env.NODE_ENV === 'development' &&
-    firstQueryValue(query.preview) === '1'
-  ) {
+  if (firstQueryValue(query.preview) === '1') {
     return (
-      <CheckInShell>
-        <CustomerCheckInForm
-          proof="development-preview"
-          customerName="Jordan Example"
-          vehicleDescription="2024 Toyota Camry White"
-          preview
-        />
-      </CheckInShell>
+      <CheckInPreview
+        state={getCheckInPreviewState(firstQueryValue(query.state))}
+      />
     )
-  }
-
-  if (
-    process.env.NODE_ENV === 'development' &&
-    firstQueryValue(query.preview) === '2'
-  ) {
-    return <CheckInTooEarly />
   }
 
   if (!appointmentGuid || !invoiceId) {
