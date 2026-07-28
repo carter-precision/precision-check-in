@@ -146,6 +146,6 @@ function firstName(customerName: string) {
 async function completePreviewCheckIn(): Promise<CustomerCheckInActionState> {
   return {
     status: 'success',
-    message: 'Preview complete. No check-in was created.',
+    message: "You're checked in. We'll be with you soon.",
   }
 }
