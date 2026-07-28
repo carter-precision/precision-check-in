@@ -3,7 +3,7 @@
 The customer check-in page accepts an Omega appointment GUID and invoice ID:
 
 ```text
-https://<app-host>/check-in?appointment_guid={{appointment_guid}}&invoice_id={{id}}
+https://<app-host>/check-in?appointment={{appointment_guid}}&id={{id}}
 ```
 
 The location is determined from the matched Omega appointment. The appointment's numeric `location_id` is converted to the corresponding local location slug through `OMEGA_LOCATION_MAP`. The invoice location is not used because an invoice and its appointment may legitimately have different locations.

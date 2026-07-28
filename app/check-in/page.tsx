@@ -28,8 +28,8 @@ export default async function CheckInPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const query = await searchParams
-  const appointmentGuid = firstQueryValue(query.appointment_guid)
-  const invoiceId = firstQueryValue(query.invoice_id)
+  const appointmentGuid = firstQueryValue(query.appointment)
+  const invoiceId = firstQueryValue(query.id)
 
   if (
     process.env.NODE_ENV === 'development' &&
