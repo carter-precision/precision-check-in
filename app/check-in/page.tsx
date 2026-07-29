@@ -53,7 +53,7 @@ export default async function CheckInPage({
   })
 
   if (resolution.status === 'too_early') {
-    return <CheckInTooEarly />
+    return <CheckInTooEarly appointmentStart={resolution.appointmentStart} />
   }
 
   if (resolution.status !== 'resolved') {

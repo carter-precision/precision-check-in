@@ -68,7 +68,6 @@ export async function getOmegaInvoice(
     parsed.data.vehicle_year,
     parsed.data.vehicle_make,
     parsed.data.vehicle_model,
-    parsed.data.vehicle_description,
   )
 
   if (!customerName) {

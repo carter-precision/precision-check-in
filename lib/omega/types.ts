@@ -36,6 +36,7 @@ export type AppointmentResolution =
   | {
       status: 'too_early'
       checkInOpensAt: number
+      appointmentStart: number
     }
   | {
       status: 'unavailable'
