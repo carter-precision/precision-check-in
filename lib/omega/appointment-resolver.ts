@@ -11,8 +11,7 @@ const lookupSchema = z.object({
   invoiceId: z.string().regex(/^\d+$/),
 })
 
-const CHECK_IN_EARLY_MS = 90 * 60 * 1_000
-const CHECK_IN_LATE_MS = 2 * 60 * 60 * 1_000
+const CHECK_IN_EARLY_MS = 15 * 60 * 1_000
 
 export async function resolveOmegaAppointment(input: {
   appointmentGuid: string
@@ -43,10 +42,14 @@ export async function resolveOmegaAppointment(input: {
     const checkInOpensAt = appointment.startTime - CHECK_IN_EARLY_MS
 
     if (now < checkInOpensAt) {
-      return { status: 'too_early', checkInOpensAt }
+      return {
+        status: 'too_early',
+        checkInOpensAt,
+        appointmentStart: appointment.startTime,
+      }
     }
 
-    if (now > appointment.endTime + CHECK_IN_LATE_MS) {
+    if (now > appointment.endTime) {
       return { status: 'unavailable' }
     }
 

@@ -45,10 +45,14 @@ aliases. For example:
 /check-in?preview=1&state=expired
 ```
 
-Either arrival button in the resolved preview displays the success state without
-creating a check-in.
+Either arrival option in the resolved preview displays the success state without
+creating a check-in. The missing-vehicle preview exercises the manual vehicle
+information flow.
 
-Only `OPEN` appointments with type `inshop` are eligible. Check-in opens 90 minutes before the appointment and closes two hours after its end time. A failed, mismatched, mobile, closed, or expired lookup never displays customer information and does not offer a manual form.
+Only `OPEN` appointments with type `inshop` are eligible. Check-in opens 15
+minutes before the appointment and closes at the appointment end time. A failed,
+mismatched, mobile, closed, or expired lookup never displays customer
+information and does not offer a manual form.
 
 ## Pending database review
 

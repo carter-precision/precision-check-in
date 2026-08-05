@@ -9,6 +9,8 @@ import {
 } from '@/components/check-in/CheckInShell'
 import { CustomerCheckInForm } from '@/components/check-in/CustomerCheckInForm'
 
+const PREVIEW_APPOINTMENT_START = 1_894_728_600_000
+
 export function CheckInPreview({ state }: { state: CheckInPreviewState }) {
   return (
     <CheckInShell>
@@ -18,7 +20,7 @@ export function CheckInPreview({ state }: { state: CheckInPreviewState }) {
         <CustomerCheckInForm
           proof="preview"
           customerName="Jordan Example"
-          vehicleDescription="2024 Toyota Camry White"
+          vehicleDescription="2024 Toyota Camry"
           preview
         />
       )}
@@ -32,7 +34,9 @@ export function CheckInPreview({ state }: { state: CheckInPreviewState }) {
         />
       )}
 
-      {state === 'too-early' && <CheckInTooEarlyContent />}
+      {state === 'too-early' && (
+        <CheckInTooEarlyContent appointmentStart={PREVIEW_APPOINTMENT_START} />
+      )}
 
       {state === 'appointment-not-found' && <CheckInUnavailableContent />}
     </CheckInShell>

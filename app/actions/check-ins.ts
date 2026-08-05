@@ -47,10 +47,20 @@ const customerCheckInFormSchema = z.object({
   arrivalMode: z.enum(['lobby', 'vehicle']),
 })
 
-export type CustomerCheckInActionState = {
-  status: 'idle' | 'success' | 'error'
-  message?: string
-}
+const manualVehicleInfoSchema = z
+  .string()
+  .max(28)
+  .transform(sanitizeVehicleInfo)
+  .pipe(z.string().min(1).max(28))
+
+export type CustomerCheckInActionState =
+  | { status: 'idle' }
+  | {
+      status: 'success'
+      message: string
+      arrivalMode: 'lobby' | 'vehicle'
+    }
+  | { status: 'error'; message: string }
 
 export async function createCheckInAction(input: CreateCheckInInput) {
   const parsed = kioskCheckInSchema.parse(input)
@@ -97,15 +107,29 @@ export async function createCustomerCheckInAction(
     }
   }
 
-  if (
-    parsed.data.arrivalMode === 'vehicle' &&
-    !appointment.vehicleDescription
-  ) {
+  if (Date.now() > appointment.appointmentEnd) {
     return {
       status: 'error',
       message:
-        'We could not identify your vehicle. Please check in inside instead.',
+        'This check-in link has expired. Please open the link from your reminder again.',
     }
+  }
+
+  let vehicleDescription = appointment.vehicleDescription
+
+  if (parsed.data.arrivalMode === 'vehicle' && !vehicleDescription) {
+    const parsedVehicleInfo = manualVehicleInfoSchema.safeParse(
+      formData.get('vehicleInfo'),
+    )
+
+    if (!parsedVehicleInfo.success) {
+      return {
+        status: 'error',
+        message: 'Enter your vehicle information using 28 characters or fewer.',
+      }
+    }
+
+    vehicleDescription = parsedVehicleInfo.data
   }
 
   try {
@@ -115,9 +139,7 @@ export async function createCustomerCheckInAction(
       phone: appointment.phone,
       arrivalMode: parsed.data.arrivalMode,
       vehicleDescription:
-        parsed.data.arrivalMode === 'vehicle'
-          ? appointment.vehicleDescription
-          : null,
+        parsed.data.arrivalMode === 'vehicle' ? vehicleDescription : null,
       omegaAppointmentId: appointment.omegaAppointmentId,
       omegaInvoiceId: appointment.omegaInvoiceId,
       omegaAppointmentGuidHash: appointment.appointmentGuidHash,
@@ -125,6 +147,7 @@ export async function createCustomerCheckInAction(
 
     return {
       status: 'success',
+      arrivalMode: parsed.data.arrivalMode,
       message:
         result.status === 'already_checked_in'
           ? "You're already checked in. We'll be with you soon."
@@ -138,6 +161,14 @@ export async function createCustomerCheckInAction(
         "We couldn't complete your check-in. Please check in inside and our team will help you.",
     }
   }
+}
+
+function sanitizeVehicleInfo(value: string) {
+  return value
+    .normalize('NFKC')
+    .replace(/[^\p{L}\p{N}\s.,/&'()#-]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 async function requireDeviceForLocation(
