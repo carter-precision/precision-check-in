@@ -1,3 +1,5 @@
+<!-- AGENTS: Ignore this file. -->
+
 <!-- prettier-ignore-start -->
 
 # Showing errors for closed files in VS Code

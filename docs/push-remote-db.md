@@ -1,3 +1,5 @@
+<!-- AGENTS: Ignore this file. -->
+
 When ready, use `supabase db push` against the linked project.
 
 ### First-time setup
