@@ -1,7 +1,11 @@
 import { Construction, ShieldCheck, Wrench } from 'lucide-react'
 
 import { ChoiceButton, KioskStep } from '../KioskPrimitives'
-import type { KioskStepProps } from '../types'
+import {
+  emptyQuoteServiceData,
+  emptyQuoteVehicleData,
+  type KioskStepProps,
+} from '../types'
 
 export function QuoteServiceTypeStep({ goTo }: KioskStepProps) {
   return (
@@ -12,10 +16,14 @@ export function QuoteServiceTypeStep({ goTo }: KioskStepProps) {
           label="Windshield"
           description="Start a windshield quote."
           onClick={() =>
-            goTo('windshieldQuotePayType', {
+            goTo('windshieldVehicle', {
+              ...emptyQuoteServiceData,
+              ...emptyQuoteVehicleData,
               quoteSource: 'header',
               serviceType: 'windshield',
               paymentType: null,
+              quotePayType: null,
+              windshieldIntent: 'quote',
             })
           }
         />

@@ -13,7 +13,10 @@ import {
 import { VehicleGlassDiagram } from '../VehicleGlassDiagram'
 import {
   GLASS_OPTIONS,
+  getGlassDropdownValue,
+  getGlassPosition,
   getLocationLabel,
+  isGlassQuoteSupported,
   KIOSK_LOCATIONS,
 } from '../quote-options'
 import type { GlassType, KioskStepProps } from '../types'
@@ -24,19 +27,28 @@ export function WindshieldGlassStep({
   goTo,
   location,
 }: KioskStepProps) {
+  const glassPosition = getGlassPosition(data.glassType)
+  const canContinue =
+    isGlassQuoteSupported(data.glassType) &&
+    data.glassPosition === glassPosition
+
+  function selectGlass(glassType: GlassType) {
+    updateData({
+      glassType,
+      glassPosition: getGlassPosition(glassType),
+    })
+  }
+
   return (
     <KioskStep title="What needs replacing?">
       <QuoteForm>
         <p className="text-center text-lg font-medium text-muted-foreground">
           Tap the damaged glass on the vehicle.
         </p>
-        <VehicleGlassDiagram
-          selected={data.glassType}
-          onSelect={(glassType) => updateData({ glassType })}
-        />
+        <VehicleGlassDiagram selected={data.glassType} onSelect={selectGlass} />
 
         <div className="text-center">
-          <QuoteHelperButton onClick={() => updateData({ glassType: 'other' })}>
+          <QuoteHelperButton onClick={() => selectGlass('other')}>
             Not sure or multiple pieces
           </QuoteHelperButton>
         </div>
@@ -44,13 +56,11 @@ export function WindshieldGlassStep({
         <QuoteField id="glass-type" label="Selected glass">
           <QuoteSelect
             id="glass-type"
-            value={data.glassType ?? ''}
+            value={getGlassDropdownValue(data.glassType) ?? ''}
             onChange={(event) =>
-              updateData({
-                glassType: event.target.value
-                  ? (event.target.value as GlassType)
-                  : null,
-              })
+              event.target.value
+                ? selectGlass(event.target.value as GlassType)
+                : updateData({ glassType: null, glassPosition: null })
             }
           >
             <option value="">Choose the damaged glass</option>
@@ -63,15 +73,22 @@ export function WindshieldGlassStep({
           <p className="text-center text-base font-medium text-muted-foreground">
             Choose from the list or tap a glass panel on the vehicle.
           </p>
+          {data.glassType && !canContinue && (
+            <p className="rounded-xl bg-accent-tint p-4 text-center text-sm font-semibold text-[#40525a]">
+              Online pricing is not currently available for this selection. A
+              team member can help with next steps.
+            </p>
+          )}
         </QuoteField>
 
         <QuoteContinueButton
-          disabled={!data.glassType}
-          onClick={() =>
+          disabled={!canContinue}
+          onClick={() => {
+            if (!canContinue) return
             goTo('windshieldServiceLocation', {
               shopLocation: data.shopLocation || location,
             })
-          }
+          }}
         />
       </QuoteForm>
     </KioskStep>

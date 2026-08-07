@@ -10,11 +10,16 @@ export function VehicleGlassDiagram({
   onSelect: (glass: GlassType) => void
 }) {
   function interactionProps(glass: GlassType, label: string) {
+    const isSelected =
+      selected === glass ||
+      (selected === 'quarter' &&
+        (glass === 'driver_quarter' || glass === 'passenger_quarter'))
+
     return {
       role: 'button',
       tabIndex: 0,
       'aria-label': label,
-      className: glassClasses(selected === glass),
+      className: glassClasses(isSelected),
       onClick: () => onSelect(glass),
       onKeyDown: (event: KeyboardEvent<SVGElement>) => {
         if (event.key === 'Enter' || event.key === ' ') onSelect(glass)

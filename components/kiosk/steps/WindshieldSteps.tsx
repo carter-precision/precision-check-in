@@ -1,7 +1,11 @@
 import { CircleHelp, CreditCard, FileText, ShieldCheck } from 'lucide-react'
 
 import { ChoiceButton, KioskStep } from '../KioskPrimitives'
-import type { KioskStepProps } from '../types'
+import {
+  emptyQuoteServiceData,
+  emptyQuoteVehicleData,
+  type KioskStepProps,
+} from '../types'
 
 export function WindshieldIntentStep({ goTo }: KioskStepProps) {
   return (
@@ -12,9 +16,13 @@ export function WindshieldIntentStep({ goTo }: KioskStepProps) {
           label="Get a quote and schedule"
           description="I know I need windshield service and want to start the quote."
           onClick={() =>
-            goTo('windshieldQuotePayType', {
+            goTo('windshieldVehicle', {
+              ...emptyQuoteServiceData,
+              ...emptyQuoteVehicleData,
               windshieldIntent: 'quote',
               quoteSource: 'walk_in',
+              paymentType: null,
+              quotePayType: null,
             })
           }
         />
