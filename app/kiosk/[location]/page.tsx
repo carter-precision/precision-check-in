@@ -1,12 +1,10 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-
-import { isDevAuthBypassEnabled } from '@/lib/auth/dev-auth'
+import { KioskFlow } from '@/components/kiosk/KioskFlow'
 import { getDeviceCookie } from '@/lib/auth/device-session'
 import { getDeviceByToken } from '@/lib/data/devices'
+import { isDevAuthBypassEnabled } from '@/lib/auth/dev-auth'
 import { formatLocationName } from '@/lib/utils'
-
-import { LegacyKioskFlow } from './LegacyKioskFlow'
 
 export async function generateMetadata({
   params,
@@ -25,7 +23,7 @@ export async function generateMetadata({
   }
 }
 
-export default async function LegacyKioskPage({
+export default async function KioskPage({
   params,
 }: {
   params: Promise<{ location: string }>
@@ -33,7 +31,7 @@ export default async function LegacyKioskPage({
   const { location } = await params
 
   if (isDevAuthBypassEnabled()) {
-    return <LegacyKioskFlow location={location} />
+    return <KioskFlow location={location} />
   }
 
   const token = await getDeviceCookie()
@@ -43,6 +41,7 @@ export default async function LegacyKioskPage({
   }
 
   const device = await getDeviceByToken(token, 'kiosk')
+
   const deviceLocationSlug = Array.isArray(device.locations)
     ? device.locations[0]?.slug
     : device.locations?.slug
@@ -51,5 +50,5 @@ export default async function LegacyKioskPage({
     redirect('/register')
   }
 
-  return <LegacyKioskFlow location={location} />
+  return <KioskFlow location={location} />
 }

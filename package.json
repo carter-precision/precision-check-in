@@ -14,7 +14,7 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset --local",
     "db:types": "supabase gen types --lang typescript --local > lib/supabase/types.ts",
-    "app": "pnpm db:start && next dev"
+    "app": "npm run db:start && next dev"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
