@@ -21,6 +21,32 @@ export async function quoteOmegaJsonRequest(
   path: string,
   query?: URLSearchParams,
 ): Promise<unknown> {
+  const response = await quoteOmegaRequest(path, query, 'application/json')
+
+  try {
+    return await response.json()
+  } catch {
+    throw new QuoteOmegaApiError(
+      'Omega returned invalid JSON',
+      'invalid_response',
+      response.status,
+    )
+  }
+}
+
+export async function quoteOmegaHtmlRequest(
+  path: string,
+  query: URLSearchParams,
+): Promise<string> {
+  const response = await quoteOmegaRequest(path, query, 'text/html')
+  return response.text()
+}
+
+async function quoteOmegaRequest(
+  path: string,
+  query: URLSearchParams | undefined,
+  accept: string,
+) {
   const apiKey = process.env.OMEGA_API_KEY?.trim()
 
   if (!apiKey) {
@@ -55,7 +81,7 @@ export async function quoteOmegaJsonRequest(
   try {
     response = await fetch(url, {
       headers: {
-        Accept: 'application/json',
+        Accept: accept,
         api_key: apiKey,
       },
       cache: 'no-store',
@@ -81,13 +107,5 @@ export async function quoteOmegaJsonRequest(
     )
   }
 
-  try {
-    return await response.json()
-  } catch {
-    throw new QuoteOmegaApiError(
-      'Omega returned invalid JSON',
-      'invalid_response',
-      response.status,
-    )
-  }
+  return response
 }
