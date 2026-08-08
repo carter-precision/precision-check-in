@@ -1,11 +1,51 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { createCheckInAction } from '@/app/actions/check-ins'
 
-import { initialKioskData, type KioskData, type StepId } from './types'
+import {
+  KioskQuoteSubmissionError,
+  submitKioskOmegaQuote,
+} from './omega-quote-submit'
+import {
+  emptyQuoteOutcomeData,
+  initialKioskData,
+  type KioskData,
+  type QuoteSubmission,
+  type StepId,
+} from './types'
 
 const INACTIVITY_WARNING_MS = 52_000
 export const INACTIVITY_RESET_MS = 8_000
+
+const quoteInputKeys = new Set<keyof KioskData>([
+  'customerName',
+  'phone',
+  'email',
+  'serviceZip',
+  'smsConsent',
+  'paymentType',
+  'quotePayType',
+  'insuranceCompanyId',
+  'insuranceCompanyLabel',
+  'policyNumber',
+  'deductibleAmount',
+  'vin',
+  'vinUnknown',
+  'vehicleYear',
+  'vehicleMakeId',
+  'vehicleMake',
+  'vehicleModelId',
+  'vehicleModel',
+  'vehicleModifierId',
+  'vehicleModifierLabel',
+  'quoteVehicle',
+  'glassType',
+  'glassPosition',
+  'quoteServiceMode',
+  'serviceAddress',
+  'shopLocation',
+  'preferredDate',
+])
 
 export function useKioskFlow(location: string) {
   const [step, setStep] = useState<StepId>('welcome')
@@ -14,13 +54,23 @@ export function useKioskFlow(location: string) {
   const [lastActivityAt, setLastActivityAt] = useState(() => Date.now())
   const [showInactiveWarning, setShowInactiveWarning] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const quoteRequestInFlight = useRef(false)
 
   const updateData = useCallback((partial: Partial<KioskData>) => {
-    setData((current) => ({ ...current, ...partial }))
+    const changesQuoteInput = Object.keys(partial).some((key) =>
+      quoteInputKeys.has(key as keyof KioskData),
+    )
+
+    setData((current) => ({
+      ...current,
+      ...(changesQuoteInput ? emptyQuoteOutcomeData : {}),
+      ...partial,
+    }))
   }, [])
 
   const goTo = useCallback(
     (nextStep: StepId, partial?: Partial<KioskData>) => {
+      if (quoteRequestInFlight.current) return
       if (partial) updateData(partial)
 
       setHistory((current) => [...current, step])
@@ -30,6 +80,8 @@ export function useKioskFlow(location: string) {
   )
 
   const goBack = useCallback(() => {
+    if (quoteRequestInFlight.current) return
+
     setHistory((current) => {
       const previousStep = current.at(-1)
 
@@ -39,12 +91,84 @@ export function useKioskFlow(location: string) {
   }, [])
 
   const resetFlow = useCallback(() => {
+    if (quoteRequestInFlight.current) return
+
     setData(initialKioskData)
     setHistory([])
     setShowInactiveWarning(false)
     setLastActivityAt(Date.now())
     setStep('welcome')
   }, [])
+
+  const submitQuote = useCallback(
+    async (submission: QuoteSubmission) => {
+      if (quoteRequestInFlight.current) return false
+
+      if (data.quoteInvoiceId && !data.quoteRecoveryToken) {
+        setData((current) => ({
+          ...current,
+          quoteSubmissionStatus: 'failed',
+          quoteSubmissionError:
+            'This quote needs help from our team before it can be retried.',
+        }))
+        return false
+      }
+
+      quoteRequestInFlight.current = true
+      setShowInactiveWarning(false)
+      setData((current) => ({
+        ...current,
+        quoteSubmission: submission,
+        quoteSubmissionStatus: 'submitting',
+        quoteSubmissionError: null,
+        quoteResult: null,
+      }))
+
+      const request =
+        data.quoteInvoiceId && data.quoteRecoveryToken
+          ? {
+              locationSlug: location,
+              invoiceId: data.quoteInvoiceId,
+              recoveryToken: data.quoteRecoveryToken,
+            }
+          : submission
+
+      try {
+        const result = await submitKioskOmegaQuote(request)
+
+        setData((current) => ({
+          ...current,
+          quoteSubmissionStatus: 'succeeded',
+          quoteSubmissionError: null,
+          quoteInvoiceId: result.invoiceId,
+          quoteRecoveryToken: null,
+          quoteResult: result,
+        }))
+        setHistory((current) => [...current, step])
+        setStep('windshieldQuoteResult')
+        return true
+      } catch (error) {
+        const knownError =
+          error instanceof KioskQuoteSubmissionError ? error : null
+
+        setData((current) => ({
+          ...current,
+          quoteSubmissionStatus: 'failed',
+          quoteSubmissionError:
+            knownError?.message ??
+            "We couldn't complete your quote. Please try again.",
+          quoteInvoiceId: knownError?.invoiceId ?? current.quoteInvoiceId,
+          quoteRecoveryToken:
+            knownError?.recoveryToken ?? current.quoteRecoveryToken,
+          quoteResult: null,
+        }))
+        return false
+      } finally {
+        quoteRequestInFlight.current = false
+      }
+    },
+    [data.quoteInvoiceId, data.quoteRecoveryToken, location, step],
+  )
 
   const submitCheckIn = useCallback(
     async (
@@ -108,7 +232,14 @@ export function useKioskFlow(location: string) {
   }, [showInactiveWarning])
 
   useEffect(() => {
-    if (step === 'welcome' || step === 'success' || showInactiveWarning) return
+    if (
+      step === 'welcome' ||
+      step === 'success' ||
+      showInactiveWarning ||
+      data.quoteSubmissionStatus === 'submitting'
+    ) {
+      return
+    }
 
     const remaining = Math.max(
       0,
@@ -120,7 +251,7 @@ export function useKioskFlow(location: string) {
     )
 
     return () => clearTimeout(warningTimeout)
-  }, [step, lastActivityAt, showInactiveWarning])
+  }, [data.quoteSubmissionStatus, step, lastActivityAt, showInactiveWarning])
 
   useEffect(() => {
     if (!showInactiveWarning) return
@@ -140,6 +271,7 @@ export function useKioskFlow(location: string) {
     resetFlow,
     updateData,
     submitCheckIn,
+    submitQuote,
     continueAfterInactivity: () => {
       setShowInactiveWarning(false)
       setLastActivityAt(Date.now())

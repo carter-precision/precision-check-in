@@ -154,7 +154,24 @@ export const quoteSubmissionSchema = z
   })
   .strict()
 
+export const quoteRecoveryRequestSchema = z
+  .object({
+    locationSlug: locationSlugSchema,
+    invoiceId: entityIdSchema,
+    recoveryToken: z
+      .string()
+      .trim()
+      .regex(/^\d+\.[A-Za-z0-9_-]+$/),
+  })
+  .strict()
+
+export const quoteRouteRequestSchema = z.union([
+  quoteSubmissionSchema,
+  quoteRecoveryRequestSchema,
+])
+
 export type ValidatedQuoteSubmission = z.infer<typeof quoteSubmissionSchema>
+export type QuoteRecoveryRequest = z.infer<typeof quoteRecoveryRequestSchema>
 export type SupportedGlassType = keyof typeof glassPositionByType
 export type SupportedGlassPosition =
   (typeof glassPositionByType)[SupportedGlassType]

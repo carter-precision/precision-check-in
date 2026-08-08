@@ -8,9 +8,11 @@ import type { KioskData, StepId } from './types'
 export function KioskHeader({
   clock,
   goTo,
+  disabled = false,
 }: {
   clock: string
   goTo: (step: StepId, partial?: Partial<KioskData>) => void
+  disabled?: boolean
 }) {
   return (
     <div className="flex items-center justify-between p-4">
@@ -18,6 +20,7 @@ export function KioskHeader({
         variant="ghost"
         size="icon"
         aria-label="Start a quote"
+        disabled={disabled}
         className="text-muted-foreground"
         onClick={() =>
           goTo('quoteServiceType', {

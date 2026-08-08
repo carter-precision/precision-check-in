@@ -74,6 +74,12 @@ export async function generateOmegaQuote(
   }
 
   onInvoiceId(invoiceId)
+  return recoverOmegaQuote(invoiceId)
+}
+
+export async function recoverOmegaQuote(
+  invoiceId: string,
+): Promise<QuoteResult> {
   const invoicePayload = await fetchQuoteInvoiceWithRetry(invoiceId)
 
   try {

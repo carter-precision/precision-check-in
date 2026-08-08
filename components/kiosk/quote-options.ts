@@ -1,4 +1,4 @@
-import type { GlassType, OmegaGlassPosition, VehicleFeature } from './types'
+import type { GlassType, OmegaGlassPosition } from './types'
 
 export const KIOSK_LOCATIONS = [
   { slug: 'layton', label: 'Layton' },
@@ -8,17 +8,6 @@ export const KIOSK_LOCATIONS = [
   { slug: 'cedar-city', label: 'Cedar City' },
   { slug: 'st-george', label: 'St. George' },
 ] as const
-
-export const VEHICLE_FEATURES: Array<{ value: VehicleFeature; label: string }> =
-  [
-    { value: 'rain', label: 'Rain-sensing wipers' },
-    { value: 'hud', label: 'Heads-up display' },
-    { value: 'heated', label: 'Heated wiper park' },
-    { value: 'adas', label: 'Camera / lane assist' },
-    { value: 'acoustic', label: 'Acoustic glass' },
-    { value: 'humidity', label: 'Humidity sensor' },
-    { value: 'none', label: 'None of these' },
-  ]
 
 export const GLASS_OPTIONS: Array<{ value: GlassType; label: string }> = [
   { value: 'windshield', label: 'Windshield' },

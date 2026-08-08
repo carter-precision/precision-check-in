@@ -1,3 +1,5 @@
+import type { QuoteResult } from '@/lib/omega/quote-types'
+
 export type StepId =
   | 'welcome'
   | 'appointment'
@@ -21,8 +23,6 @@ export type StepId =
 export type VisitType = 'appointment' | 'vehicle_pickup' | 'walk_in' | null
 export type ServiceType = 'windshield' | 'rock_chip' | 'other' | 'bell' | null
 export type PaymentType = 'cash' | 'insurance' | null
-export type VehicleFeature =
-  'rain' | 'hud' | 'heated' | 'adas' | 'acoustic' | 'humidity' | 'none'
 export type GlassType =
   | 'windshield'
   | 'back'
@@ -47,6 +47,8 @@ export type OmegaGlassPosition =
   | 'B'
 export type QuoteServiceMode = 'mobile' | 'shop' | null
 export type QuotePaymentMode = 'insurance' | 'cash'
+export type QuoteSubmissionStatus =
+  'idle' | 'submitting' | 'succeeded' | 'failed'
 
 export type QuoteVehicle = {
   year: string
@@ -118,7 +120,6 @@ export type KioskData = {
   vehicleModifierId: string | null
   vehicleModifierLabel: string | null
   quoteVehicle: QuoteVehicle | null
-  vehicleFeatures: VehicleFeature[]
   glassType: GlassType | null
   glassPosition: OmegaGlassPosition | null
   quoteServiceMode: QuoteServiceMode
@@ -127,6 +128,11 @@ export type KioskData = {
   preferredDate: string
   email: string
   quoteSubmission: QuoteSubmission | null
+  quoteSubmissionStatus: QuoteSubmissionStatus
+  quoteSubmissionError: string | null
+  quoteInvoiceId: string | null
+  quoteRecoveryToken: string | null
+  quoteResult: QuoteResult | null
 }
 
 export const emptyQuoteVehicleData = {
@@ -140,7 +146,6 @@ export const emptyQuoteVehicleData = {
   vehicleModifierId: null,
   vehicleModifierLabel: null,
   quoteVehicle: null,
-  vehicleFeatures: [],
 } satisfies Partial<KioskData>
 
 export const emptyQuoteServiceData = {
@@ -150,6 +155,15 @@ export const emptyQuoteServiceData = {
   serviceAddress: '',
   shopLocation: '',
   preferredDate: '',
+} satisfies Partial<KioskData>
+
+export const emptyQuoteOutcomeData = {
+  quoteSubmission: null,
+  quoteSubmissionStatus: 'idle',
+  quoteSubmissionError: null,
+  quoteInvoiceId: null,
+  quoteRecoveryToken: null,
+  quoteResult: null,
 } satisfies Partial<KioskData>
 
 export const emptyQuoteContactData = {
@@ -164,7 +178,7 @@ export const emptyQuoteContactData = {
   insuranceCompanyLabel: '',
   policyNumber: '',
   deductibleAmount: '',
-  quoteSubmission: null,
+  ...emptyQuoteOutcomeData,
 } satisfies Partial<KioskData>
 
 export const initialKioskData: KioskData = {
@@ -186,7 +200,7 @@ export const initialKioskData: KioskData = {
   ...emptyQuoteVehicleData,
   ...emptyQuoteServiceData,
   email: '',
-  quoteSubmission: null,
+  ...emptyQuoteOutcomeData,
 }
 
 export type KioskStepProps = {
@@ -194,6 +208,7 @@ export type KioskStepProps = {
   goTo: (step: StepId, partial?: Partial<KioskData>) => void
   updateData: (partial: Partial<KioskData>) => void
   submitCheckIn: () => Promise<boolean>
+  submitQuote: (submission: QuoteSubmission) => Promise<boolean>
   resetFlow: () => void
   isSubmitting: boolean
   location: string

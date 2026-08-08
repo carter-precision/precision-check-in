@@ -81,6 +81,7 @@ export function KioskFlow({ location }: { location: string }) {
   const now = useNow()
   const flow = useKioskFlow(location)
   const CurrentStep = stepComponents[flow.step] ?? WelcomeStep
+  const quoteIsSubmitting = flow.data.quoteSubmissionStatus === 'submitting'
   const clock = now
     ? new Intl.DateTimeFormat('en-US', {
         hour: 'numeric',
@@ -91,7 +92,11 @@ export function KioskFlow({ location }: { location: string }) {
   return (
     <main className="min-h-screen">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 sm:px-8 md:px-12">
-        <KioskHeader clock={clock} goTo={flow.goTo} />
+        <KioskHeader
+          clock={clock}
+          goTo={flow.goTo}
+          disabled={quoteIsSubmitting}
+        />
 
         <div className="flex flex-1 flex-col overflow-x-hidden px-8 pb-8 pt-6">
           <CurrentStep location={location} {...flow} />
@@ -101,6 +106,7 @@ export function KioskFlow({ location }: { location: string }) {
               <Button
                 variant="ghost"
                 className="rounded-full border-4 px-4 text-md text-muted-foreground"
+                disabled={quoteIsSubmitting}
                 onClick={flow.goBack}
               >
                 <ArrowLeft className="size-5" />
@@ -109,6 +115,7 @@ export function KioskFlow({ location }: { location: string }) {
               <Button
                 variant="ghost"
                 className="rounded-full border-4 px-4 text-md text-muted-foreground"
+                disabled={quoteIsSubmitting}
                 onClick={flow.resetFlow}
               >
                 <Undo2 className="size-5" />

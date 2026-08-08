@@ -24,7 +24,7 @@ type CompanyStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error'
 export function WindshieldQuoteContactStep({
   data,
   updateData,
-  goTo,
+  submitQuote,
   location,
 }: KioskStepProps) {
   const [companies, setCompanies] = useState<InsuranceCompanyOption[]>([])
@@ -36,6 +36,7 @@ export function WindshieldQuoteContactStep({
   const phoneIsValid = isValidQuotePhone(data.phone)
   const emailIsValid = isValidQuoteEmail(data.email)
   const zipIsValid = /^\d{5}$/.test(data.serviceZip)
+  const isSubmitting = data.quoteSubmissionStatus === 'submitting'
 
   useEffect(() => {
     if (data.quotePayType !== 'insurance') return
@@ -56,7 +57,15 @@ export function WindshieldQuoteContactStep({
   }, [companyRetry, data.quotePayType, location])
 
   function updateQuoteData(partial: Parameters<typeof updateData>[0]) {
-    updateData({ ...partial, quoteSubmission: null })
+    updateData({
+      ...partial,
+      quoteSubmission: null,
+      quoteSubmissionStatus: 'idle',
+      quoteSubmissionError: null,
+      quoteInvoiceId: null,
+      quoteRecoveryToken: null,
+      quoteResult: null,
+    })
   }
 
   function selectCash() {
@@ -263,15 +272,34 @@ export function WindshieldQuoteContactStep({
           </div>
         )}
 
+        {data.quoteSubmissionStatus === 'failed' &&
+          data.quoteSubmissionError && (
+            <div role="alert" className="rounded-xl bg-accent-tint p-4">
+              <p className="font-bold text-[#16262f]">
+                We couldn't finish your quote
+              </p>
+              <p className="mt-1 font-medium text-[#40525a]">
+                {data.quoteSubmissionError}
+              </p>
+            </div>
+          )}
+
         <QuoteContinueButton
-          disabled={!submission}
+          disabled={!submission || isSubmitting}
+          loading={isSubmitting}
           onClick={() => {
             if (submission) {
-              goTo('windshieldQuoteResult', { quoteSubmission: submission })
+              void submitQuote(submission)
             }
           }}
         >
-          Get my quote
+          {isSubmitting
+            ? 'Getting your quote…'
+            : data.quoteSubmissionStatus === 'failed'
+              ? data.quoteInvoiceId
+                ? 'Retry pricing details'
+                : 'Try again'
+              : 'Get my quote'}
         </QuoteContinueButton>
       </QuoteForm>
     </KioskStep>

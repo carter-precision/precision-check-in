@@ -1,5 +1,5 @@
 import type { ReactNode, SelectHTMLAttributes } from 'react'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, LoaderCircle } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -98,20 +98,26 @@ export function QuoteToggle({
 export function QuoteContinueButton({
   children = 'Continue',
   disabled,
+  loading = false,
   onClick,
 }: {
   children?: ReactNode
   disabled?: boolean
+  loading?: boolean
   onClick: () => void
 }) {
   return (
     <Button
       className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
-      disabled={disabled}
+      disabled={disabled || loading}
       onClick={onClick}
     >
       {children}
-      <ArrowRight className="size-5" />
+      {loading ? (
+        <LoaderCircle className="size-5 animate-spin" />
+      ) : (
+        <ArrowRight className="size-5" />
+      )}
     </Button>
   )
 }
