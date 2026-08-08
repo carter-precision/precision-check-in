@@ -1,4 +1,5 @@
 import type {
+  InsuranceCompanyOption,
   VehicleMakeOption,
   VehicleModelOption,
   VehicleVariantOption,
@@ -26,6 +27,14 @@ export class KioskOmegaLookupError extends Error {
 export function loadVehicleYears(location: string, signal?: AbortSignal) {
   return fetchLookup<VehicleYearOption[]>(
     '/api/kiosk/omega/vehicles/years',
+    { location },
+    signal,
+  )
+}
+
+export function loadInsuranceCompanies(location: string, signal?: AbortSignal) {
+  return fetchLookup<InsuranceCompanyOption[]>(
+    '/api/kiosk/omega/insurance-companies',
     { location },
     signal,
   )
@@ -107,14 +116,14 @@ async function fetchLookup<TResult>(
   if (!response.ok) {
     throw new KioskOmegaLookupError(
       payload?.error?.code ?? 'lookup_failed',
-      payload?.error?.message ?? 'The vehicle lookup could not be completed.',
+      payload?.error?.message ?? 'The Omega lookup could not be completed.',
     )
   }
 
   if (!payload || payload.data === undefined) {
     throw new KioskOmegaLookupError(
       'invalid_response',
-      'The vehicle lookup returned an invalid response.',
+      'The Omega lookup returned an invalid response.',
     )
   }
 

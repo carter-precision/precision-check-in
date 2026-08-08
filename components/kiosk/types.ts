@@ -46,6 +46,7 @@ export type OmegaGlassPosition =
   | 'V'
   | 'B'
 export type QuoteServiceMode = 'mobile' | 'shop' | null
+export type QuotePaymentMode = 'insurance' | 'cash'
 
 export type QuoteVehicle = {
   year: string
@@ -60,6 +61,37 @@ export type QuoteVehicle = {
   vin: string | null
 }
 
+export type QuoteSubmission = {
+  locationSlug: string
+  customer: {
+    firstName: string
+    phone: string
+    email: string | null
+    zip: string
+    smsConsent: boolean
+  }
+  vehicle: QuoteVehicle
+  glass: {
+    type: GlassType
+    position: OmegaGlassPosition
+  }
+  service: {
+    mode: Exclude<QuoteServiceMode, null>
+    address: string | null
+    shopLocation: string | null
+    preferredDate: string | null
+  }
+  payment:
+    | { mode: 'cash' }
+    | {
+        mode: 'insurance'
+        companyId: string
+        companyLabel: string
+        policyNumber: string
+        deductible: number
+      }
+}
+
 export type KioskData = {
   visitType: VisitType
   serviceType: ServiceType
@@ -68,15 +100,14 @@ export type KioskData = {
   phone: string
   windshieldIntent: 'quote' | 'inspection' | null
   repairAuthorized: boolean
-  quotePayType: 'insurance' | 'cash' | null
+  quotePayType: QuotePaymentMode | null
   quoteSource: 'walk_in' | 'header' | null
-  insuranceCarrier: string
-  policyHolderName: string
-  policyHolderPhone: string
+  insuranceCompanyId: string
+  insuranceCompanyLabel: string
   policyNumber: string
   serviceZip: string
-  knowsDeductible: boolean | null
   deductibleAmount: string
+  smsConsent: boolean
   vin: string
   vinUnknown: boolean
   vehicleYear: string
@@ -95,6 +126,7 @@ export type KioskData = {
   shopLocation: string
   preferredDate: string
   email: string
+  quoteSubmission: QuoteSubmission | null
 }
 
 export const emptyQuoteVehicleData = {
@@ -120,6 +152,21 @@ export const emptyQuoteServiceData = {
   preferredDate: '',
 } satisfies Partial<KioskData>
 
+export const emptyQuoteContactData = {
+  customerName: '',
+  phone: '',
+  email: '',
+  serviceZip: '',
+  smsConsent: false,
+  paymentType: null,
+  quotePayType: null,
+  insuranceCompanyId: '',
+  insuranceCompanyLabel: '',
+  policyNumber: '',
+  deductibleAmount: '',
+  quoteSubmission: null,
+} satisfies Partial<KioskData>
+
 export const initialKioskData: KioskData = {
   visitType: null,
   serviceType: null,
@@ -130,16 +177,16 @@ export const initialKioskData: KioskData = {
   repairAuthorized: false,
   quotePayType: null,
   quoteSource: null,
-  insuranceCarrier: '',
-  policyHolderName: '',
-  policyHolderPhone: '',
+  insuranceCompanyId: '',
+  insuranceCompanyLabel: '',
   policyNumber: '',
   serviceZip: '',
-  knowsDeductible: null,
   deductibleAmount: '',
+  smsConsent: false,
   ...emptyQuoteVehicleData,
   ...emptyQuoteServiceData,
   email: '',
+  quoteSubmission: null,
 }
 
 export type KioskStepProps = {

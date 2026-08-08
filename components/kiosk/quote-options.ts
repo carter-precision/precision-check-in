@@ -9,17 +9,6 @@ export const KIOSK_LOCATIONS = [
   { slug: 'st-george', label: 'St. George' },
 ] as const
 
-export const INSURANCE_CARRIERS = [
-  'State Farm',
-  'Progressive',
-  'Geico',
-  'Allstate',
-  'Farmers',
-  'USAA',
-  'Liberty Mutual',
-  'Nationwide',
-]
-
 export const VEHICLE_FEATURES: Array<{ value: VehicleFeature; label: string }> =
   [
     { value: 'rain', label: 'Rain-sensing wipers' },
@@ -73,11 +62,6 @@ const GLASS_LABELS: Record<GlassType, string> = {
   sunroof: 'Sunroof/moonroof',
   other: 'Not sure / multiple pieces',
 }
-
-const newestModelYear = new Date().getFullYear() + 1
-export const VEHICLE_YEARS = Array.from({ length: 30 }, (_, index) =>
-  String(newestModelYear - index),
-)
 
 export function getLocationLabel(slug: string) {
   return (

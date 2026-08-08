@@ -25,13 +25,13 @@ export function WindshieldQuoteResultStep({ data, resetFlow }: KioskStepProps) {
           <p className="mx-auto mt-4 max-w-xl text-base font-medium leading-relaxed text-[#c8d4d8]">
             {preview.type === 'cash'
               ? 'Final pricing will be confirmed after we verify the exact glass specification.'
-              : `We'll verify coverage with ${data.insuranceCarrier || 'your carrier'} before scheduling.`}
+              : `We'll verify coverage with ${data.insuranceCompanyLabel || 'your carrier'} before scheduling.`}
           </p>
         </div>
 
         <div className="divide-y divide-[#d7e1e3] rounded-[1.4rem] border border-[#d7e1e3] bg-white px-6 shadow-sm">
           {preview.type === 'insurance' && (
-            <SummaryRow label="Carrier" value={data.insuranceCarrier} />
+            <SummaryRow label="Carrier" value={data.insuranceCompanyLabel} />
           )}
           <SummaryRow label="Vehicle" value={formatVehicle(data)} />
           <SummaryRow label="Glass" value={getGlassLabel(data.glassType)} />

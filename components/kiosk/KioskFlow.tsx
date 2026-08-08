@@ -28,14 +28,8 @@ import {
   RockChipInsuranceNameStep,
 } from './steps/RockChipSteps'
 import { SuccessStep } from './steps/SuccessStep'
-import {
-  WindshieldIntentStep,
-  WindshieldQuotePayTypeStep,
-} from './steps/WindshieldSteps'
-import {
-  WindshieldInsuranceDetailsStep,
-  WindshieldVehicleStep,
-} from './steps/WindshieldQuoteDetailsSteps'
+import { WindshieldIntentStep } from './steps/WindshieldSteps'
+import { WindshieldVehicleStep } from './steps/WindshieldQuoteDetailsSteps'
 import {
   WindshieldGlassStep,
   WindshieldServiceLocationStep,
@@ -45,15 +39,13 @@ import { WindshieldQuoteResultStep } from './steps/WindshieldQuoteResultStep'
 import type { KioskStepProps, StepId } from './types'
 import { useKioskFlow } from './useKioskFlow'
 
-const stepComponents: Record<StepId, ComponentType<KioskStepProps>> = {
+const stepComponents: Partial<Record<StepId, ComponentType<KioskStepProps>>> = {
   welcome: WelcomeStep,
   appointment: AppointmentStep,
   serviceType: ServiceTypeStep,
   paymentType: PaymentTypeStep,
   name: NameStep,
   windshieldIntent: WindshieldIntentStep,
-  windshieldQuotePayType: WindshieldQuotePayTypeStep,
-  windshieldInsuranceDetails: WindshieldInsuranceDetailsStep,
   windshieldVehicle: WindshieldVehicleStep,
   windshieldGlass: WindshieldGlassStep,
   windshieldServiceLocation: WindshieldServiceLocationStep,
@@ -66,15 +58,13 @@ const stepComponents: Record<StepId, ComponentType<KioskStepProps>> = {
   rockChipQuote: RockChipQuotePlaceholderStep,
 }
 
-const showFlowControls: Record<StepId, boolean> = {
+const showFlowControls: Partial<Record<StepId, boolean>> = {
   welcome: false,
   appointment: false,
   serviceType: true,
   paymentType: true,
   name: true,
   windshieldIntent: true,
-  windshieldQuotePayType: true,
-  windshieldInsuranceDetails: true,
   windshieldVehicle: true,
   windshieldGlass: true,
   windshieldServiceLocation: true,
@@ -90,7 +80,7 @@ const showFlowControls: Record<StepId, boolean> = {
 export function KioskFlow({ location }: { location: string }) {
   const now = useNow()
   const flow = useKioskFlow(location)
-  const CurrentStep = stepComponents[flow.step]
+  const CurrentStep = stepComponents[flow.step] ?? WelcomeStep
   const clock = now
     ? new Intl.DateTimeFormat('en-US', {
         hour: 'numeric',
@@ -106,7 +96,7 @@ export function KioskFlow({ location }: { location: string }) {
         <div className="flex flex-1 flex-col overflow-x-hidden px-8 pb-8 pt-6">
           <CurrentStep location={location} {...flow} />
 
-          {showFlowControls[flow.step] && (
+          {showFlowControls[flow.step] === true && (
             <div className="mb-2 flex items-center justify-between px-5">
               <Button
                 variant="ghost"

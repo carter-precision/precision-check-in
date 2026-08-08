@@ -9,10 +9,9 @@ export function getQuotePreview(data: KioskData): QuotePreview {
   if (data.quotePayType === 'insurance') {
     return {
       type: 'insurance',
-      deductible:
-        data.knowsDeductible && data.deductibleAmount
-          ? `$${data.deductibleAmount.replace(/^\$/, '')}`
-          : 'Pending verification',
+      deductible: data.deductibleAmount
+        ? `$${data.deductibleAmount.replace(/^\$/, '')}`
+        : 'Pending verification',
     }
   }
 

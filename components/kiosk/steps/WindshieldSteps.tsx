@@ -2,6 +2,7 @@ import { CircleHelp, CreditCard, FileText, ShieldCheck } from 'lucide-react'
 
 import { ChoiceButton, KioskStep } from '../KioskPrimitives'
 import {
+  emptyQuoteContactData,
   emptyQuoteServiceData,
   emptyQuoteVehicleData,
   type KioskStepProps,
@@ -19,10 +20,9 @@ export function WindshieldIntentStep({ goTo }: KioskStepProps) {
             goTo('windshieldVehicle', {
               ...emptyQuoteServiceData,
               ...emptyQuoteVehicleData,
+              ...emptyQuoteContactData,
               windshieldIntent: 'quote',
               quoteSource: 'walk_in',
-              paymentType: null,
-              quotePayType: null,
             })
           }
         />
@@ -43,6 +43,8 @@ export function WindshieldIntentStep({ goTo }: KioskStepProps) {
   )
 }
 
+// Kept for the isolated legacy kiosk-X flow. The active kiosk flow does not map
+// this step; its payment choice is collected on the final details screen.
 export function WindshieldQuotePayTypeStep({ goTo }: KioskStepProps) {
   return (
     <KioskStep title="How will you be using the quote?">
