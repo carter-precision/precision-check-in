@@ -9,6 +9,7 @@
     "lint": "eslint",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
+    "test:omega-quote": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/omega-quote-phase-7.test.mjs",
     "omega:mock": "node scripts/mock-omega.mjs",
     "db:start": "docker desktop start && supabase start",
     "db:stop": "supabase stop",
