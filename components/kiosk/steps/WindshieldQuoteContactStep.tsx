@@ -62,8 +62,6 @@ export function WindshieldQuoteContactStep({
       quoteSubmission: null,
       quoteSubmissionStatus: 'idle',
       quoteSubmissionError: null,
-      quoteInvoiceId: null,
-      quoteRecoveryToken: null,
       quoteResult: null,
     })
   }
@@ -297,9 +295,7 @@ export function WindshieldQuoteContactStep({
           {isSubmitting
             ? 'Getting your quote…'
             : data.quoteSubmissionStatus === 'failed'
-              ? data.quoteInvoiceId
-                ? 'Retry pricing details'
-                : 'Try again'
+              ? 'Try again'
               : 'Get my quote'}
         </QuoteContinueButton>
       </QuoteForm>

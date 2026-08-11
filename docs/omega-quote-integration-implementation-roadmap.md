@@ -12,7 +12,7 @@ This roadmap turns the functional design in `docs/omega-quote-integration-design
 
 - The current kiosk UI under `app/kiosk/[location]` and `components/kiosk`.
 - New Route Handlers used only by the kiosk quote flow.
-- New server-only Omega modules dedicated to vehicle lookup, insurance-company lookup, quote generation, quote HTML parsing, and quote-invoice normalization.
+- New server-only Omega modules dedicated to vehicle lookup, insurance-company lookup, quote generation, and quote HTML parsing.
 - Existing shared kiosk types and components when changes are required by the quote flow.
 
 ### Explicitly out of scope
@@ -67,7 +67,7 @@ Do not modify out-of-scope files merely to reuse code. New quote-specific files 
 12. Cash quotes use `campaign=WEB QUOTE`.
 13. Insurance quotes use `campaign=Ins Web Quote`.
 14. Keep `folder=pag`, `smart=true`, and cash `medium=web_quote`. Omit legacy, blank, or unused parameters unless live validation establishes that one is required.
-15. The Omega invoice fetched after quote creation is the source of truth for totals and line items.
+15. For cash quotes, the final Omega Quotes HTML is the source of truth for the quote number and displayed total.
 
 ## Post-implementation product adjustment — 2026-08-10
 
@@ -82,8 +82,46 @@ later in this roadmap:
   not require an invoice ID or fetch the invoice for the insurance path.
 - Show a dedicated insurance acknowledgement explaining that the team will
   handle the claim and the customer is responsible for their deductible.
-- Cash quotes still require invoice-ID extraction, Invoice GET normalization,
-  and an invoice-derived result.
+- Cash quotes require quote-number and total extraction from the final Quotes HTML.
+
+## Cash two-stage Quotes adjustment — 2026-08-11
+
+The following observed Omega behavior supersedes conflicting cash-specific
+requirements later in this roadmap:
+
+- Do not call `POST /Invoices` for kiosk cash quotes. Omega's Quotes workflow
+  creates the invoice itself.
+- The initial cash Quotes request is a bootstrap request. Send the validated
+  vehicle/customer fields with `campaign=WEB QUOTE`, `lead_type=web_lead`, and
+  `smart=true`; do not send VIN, opening, or medium on this first call.
+- Accept either a final quote response or exactly one HTML meta-refresh to
+  `/quoter/vin.php` on `https://app.omegaedi.com` containing one valid
+  Omega-generated GUID. Reject external, malformed, or ambiguous refreshes.
+- Do not request or render the intermediate VIN page. Rebuild a second Quotes
+  request from validated application input and the extracted GUID.
+- The completion request includes `opening`, `medium=web_quote`, the supplied
+  VIN or an explicit blank VIN, blank plate fields, the GUID, and a trailing
+  blank `smart` value while preserving the initial `smart=true` value. This
+  mirrors Omega's observed form request.
+- Parse the final Quotes HTML for both the invoice ID and the total displayed in
+  Omega's `price` element. Reject the response when either value is absent or
+  invalid.
+- Preserve direct-final-response support in case Omega skips the bootstrap page.
+- Keep the insurance acknowledgement behavior from the 2026-08-10 adjustment
+  unchanged.
+
+## Cash result simplification — 2026-08-11
+
+The following product decision supersedes conflicting result, Invoice GET, and
+recovery requirements later in this roadmap:
+
+- Do not fetch the created invoice after a successful cash Quotes response.
+- Return only `{ invoiceId, total }` to the browser. Do not return tax,
+  subtotal, line items, location, pricing-profile, raw HTML, or raw invoice data.
+- Display `QUOTE #{invoiceId}`, the total, a brief standard-parts estimate
+  explanation, and concise fine print above Finish.
+- Do not implement an Invoice GET recovery request. A final Quotes response
+  without both a valid quote number and positive total fails closed.
 
 ## Target Server Boundary
 
@@ -103,15 +141,14 @@ Each request must also provide or otherwise resolve the current kiosk location s
 
 Server modules should isolate these responsibilities:
 
-- Authenticated Omega JSON requests for NAGS, Companies, and Invoices.
+- Authenticated Omega JSON requests for NAGS and Companies.
 - The server-to-server Quotes HTML request.
 - Zod validation of application input and relevant Omega responses.
 - Omega position and query-parameter mapping.
-- Invoice-ID extraction from Quotes HTML.
-- Quote-invoice normalization.
+- Quote-number and total extraction from Quotes HTML.
 - Sanitized error classification and logging.
 
-Never expose `OMEGA_API_KEY`, raw Omega URLs containing customer data, raw Quotes HTML, or full invoice JSON to the browser or logs.
+Never expose `OMEGA_API_KEY`, raw Omega URLs containing customer data, or raw Quotes HTML to the browser or logs.
 
 ---
 
@@ -299,7 +336,7 @@ Align the glass selection with confirmed Omega positions while preserving the ex
 
 6. Treat these service-preference fields as application/UI data unless a tested Omega Quotes field is deliberately added later. Do not invent query parameters for them.
 
-7. Make the selected shop/location context available to final quote submission and result display. Omega's fetched invoice `location_id` remains authoritative; record and surface mismatches in sanitized diagnostics rather than silently changing the customer's displayed selection.
+7. Make the selected shop/location context available to final quote submission. Treat it as application/UI data unless a tested Omega Quotes field is deliberately added later.
 
 ## Phase 3 review gate
 
@@ -366,11 +403,11 @@ Do not continue until the reviewer can confirm:
 
 ---
 
-# Phase 5 — Omega Quote Generation and Invoice Normalization
+# Phase 5 — Omega Quote Generation and HTML Result Parsing
 
 ## Goal
 
-Submit the normalized kiosk data to Omega, recover the created invoice, and return an application-owned quote result.
+Submit the normalized kiosk data to Omega and return a minimal application-owned quote result parsed from the final Quotes HTML.
 
 ## Work
 
@@ -421,31 +458,22 @@ Submit the normalized kiosk data to Omega, recover the created invoice, and retu
 
 7. Omit legacy campaigns, `include_recal`, `template_id`, license-plate fields, and unused blank parameters.
 
-8. Require a successful Quotes response and treat it as HTML. Extract the invoice ID from the most stable available marker, with the documented quote-number text pattern as a fallback.
+8. Require a successful Quotes response and treat it as HTML. Extract the invoice ID from the most stable available marker, with the documented quote-number text pattern as a fallback. Extract the displayed total only from an element whose class includes `price`, so unrelated values such as installment amounts are not mistaken for the quote total.
 
-9. As soon as an invoice ID is extracted, preserve it in the server operation's state/logging context. If the follow-up Invoice request fails, retry only the safe Invoice GET; do not automatically repeat the state-changing Quotes request.
+9. Require both a valid invoice ID and a positive finite total. Preserve the invoice ID in sanitized server logging context once it is known.
 
-10. Fetch `/Invoices/{invoice_id}` with `api_key` and normalize the relevant response into an application DTO such as:
+10. Return a minimal application DTO:
 
     ```ts
     type QuoteResult = {
       invoiceId: string
-      subtotal: number | null
-      tax: number
       total: number
-      locationId: string | null
-      pricingProfileId: string | null
-      items: Array<{
-        sku: string | null
-        description: string
-        price: number
-      }>
     }
     ```
 
-11. Accept Omega numeric values represented as either numbers or numeric strings. Reject missing, non-finite, negative, or otherwise unusable quote totals according to the functional design.
+11. Accept a currency-formatted total with an optional thousands separator. Reject missing, non-finite, zero, negative, or otherwise unusable quote totals.
 
-12. Return only the normalized DTO. Never return raw HTML, raw invoice JSON, the Omega URL, or credentials.
+12. Return only the normalized DTO. Never return raw HTML, the Omega URL, or credentials.
 
 13. Classify failures by stage and log only sanitized metadata: internal request ID, trusted kiosk location, vehicle ID, position, cash/insurance mode, Omega status, and invoice ID when known.
 
@@ -457,9 +485,9 @@ Do not continue until the reviewer can confirm with controlled live tests:
 - Insurance uses `campaign=Ins Web Quote` and the selected company ID.
 - No surname, legacy campaign, `include_recal`, or `template_id` is sent.
 - Quotes HTML is never returned to the browser.
-- The invoice ID is extracted and the documented Invoice API is fetched.
-- Totals and line items come from the invoice rather than local calculations.
-- A failed Invoice GET does not automatically create another quote.
+- The invoice ID and total are extracted from the final Quotes HTML.
+- The total comes from Omega's `price` element rather than local calculations.
+- No Invoice API request or recovery request is made.
 - Sensitive query data is absent from normal logs.
 
 ---
@@ -493,29 +521,28 @@ Connect quote generation to the existing result experience and remove every prod
 
    - Store the normalized `QuoteResult`, including `invoiceId`, in kiosk quote state.
    - Navigate to the result step.
-   - Display the authoritative Omega total and appropriate tax/subtotal details supported by the existing design.
-   - Display useful normalized line items without exposing raw Omega data.
-   - For insurance, show the Omega quote total and the submitted deductible as distinct labeled values; do not substitute the deductible for the quote total.
-   - Keep the selected vehicle, glass, service preference, and contact summary.
+   - Display `QUOTE #{invoiceId}` and the authoritative Omega total.
+   - Do not display tax, subtotal, line items, or the invoice ID in supporting copy.
+   - Show a short customer-friendly standard-parts estimate message near the total and concise fine print immediately above Finish.
+   - For insurance, show the dedicated acknowledgement instead of a price result.
 
 5. On failure:
 
    - Stay in or return to a recoverable form state.
    - Show a customer-safe error consistent with the kiosk UI.
-   - Permit a deliberate retry, while ensuring a known invoice ID causes the server to retry Invoice GET rather than recreate the quote.
+   - Permit a deliberate retry.
 
 6. Remove `getQuotePreview`, sample ranges, “sample data” messaging, and all local price adjustments once no active kiosk code uses them.
 
-7. Reset quote result, invoice ID, lookup selections, insurance data, SMS consent, and submission state when the kiosk flow resets or times out.
+7. Reset quote result, lookup selections, insurance data, SMS consent, and submission state when the kiosk flow resets or times out.
 
 ## Phase 6 review gate
 
 Do not continue until the reviewer can confirm:
 
 - The result screen never displays locally generated pricing.
-- Cash and insurance results both show Omega's authoritative quote total.
-- Insurance deductible and quote total are clearly distinguished.
-- The invoice ID remains available until the flow is reset.
+- Cash results show only Omega's authoritative quote total and quote number.
+- Insurance results show the dedicated acknowledgement and deductible responsibility message.
 - Double-clicking or repeated rendering cannot submit duplicate Quotes requests.
 - Failure and retry behavior is understandable at the kiosk.
 - Restart and inactivity reset remove all prior customer and quote data.
@@ -542,11 +569,11 @@ Test at minimum:
 8. Quarter-glass quote.
 9. Vent-glass quote when a compatible vehicle is available.
 10. Sunroof and “not sure” selections remain blocked.
-11. Multiple ZIP codes, comparing invoice `location_id`, tax, and total.
+11. Multiple ZIP codes, comparing the total displayed in final Quotes HTML.
 12. Omega lookup outage.
 13. Quotes non-200 response.
 14. Successful Quotes response with no recoverable invoice ID.
-15. Successful invoice creation followed by a temporary Invoice GET failure.
+15. Successful final Quotes response with a missing or malformed `price` total.
 16. Unauthorized/non-kiosk request to every new Route Handler.
 17. Inactivity reset during lookup and before submission.
 18. Attempted double submission.
@@ -562,4 +589,4 @@ Test at minimum:
 
 ## Phase 7 review gate / definition of done
 
-The kiosk quote integration is ready for acceptance when every supported path resolves an Omega vehicle, creates exactly one Omega quote, fetches its invoice, and displays the invoice-derived result without exposing Omega internals or affecting unrelated check-in functionality.
+The kiosk quote integration is ready for acceptance when every supported path resolves an Omega vehicle, creates exactly one Omega quote, and displays the HTML-derived result without exposing Omega internals or affecting unrelated check-in functionality.

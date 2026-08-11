@@ -10,6 +10,11 @@ const entityIdSchema = z
   .trim()
   .regex(/^[1-9]\d*$/)
 const nullableLabelSchema = z.string().trim().min(1).max(160).nullable()
+const omegaQuoteGuidSchema = z
+  .string()
+  .trim()
+  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+  .transform((value) => value.toUpperCase())
 const vinSchema = z
   .string()
   .trim()
@@ -154,24 +159,7 @@ export const quoteSubmissionSchema = z
   })
   .strict()
 
-export const quoteRecoveryRequestSchema = z
-  .object({
-    locationSlug: locationSlugSchema,
-    invoiceId: entityIdSchema,
-    recoveryToken: z
-      .string()
-      .trim()
-      .regex(/^\d+\.[A-Za-z0-9_-]+$/),
-  })
-  .strict()
-
-export const quoteRouteRequestSchema = z.union([
-  quoteSubmissionSchema,
-  quoteRecoveryRequestSchema,
-])
-
 export type ValidatedQuoteSubmission = z.infer<typeof quoteSubmissionSchema>
-export type QuoteRecoveryRequest = z.infer<typeof quoteRecoveryRequestSchema>
 export type SupportedGlassType = keyof typeof glassPositionByType
 export type SupportedGlassPosition =
   (typeof glassPositionByType)[SupportedGlassType]
@@ -180,7 +168,7 @@ export function getServerGlassPosition(type: SupportedGlassType) {
   return glassPositionByType[type]
 }
 
-export function requiresInvoiceQuoteResult(
+export function requiresCashQuoteResult(
   paymentMode: ValidatedQuoteSubmission['payment']['mode'],
 ) {
   return paymentMode === 'cash'
@@ -206,15 +194,14 @@ export function buildOmegaQuoteRequest(input: ValidatedQuoteSubmission) {
     query.set('customer_email', input.customer.email)
   }
 
-  if (input.vehicle.vin) {
-    query.set('vehicle_vin', input.vehicle.vin)
-  }
-
   if (input.payment.mode === 'cash') {
-    query.set('opening', position)
-    query.set('medium', 'web_quote')
     query.set('campaign', 'WEB QUOTE')
+    query.set('lead_type', 'web_lead')
   } else {
+    if (input.vehicle.vin) {
+      query.set('vehicle_vin', input.vehicle.vin)
+    }
+
     query.set('campaign', 'Ins Web Quote')
     query.set('account_company_id', input.payment.companyId)
     query.set('account_policy_no', input.payment.policyNumber)
@@ -229,4 +216,26 @@ export function buildOmegaQuoteRequest(input: ValidatedQuoteSubmission) {
     position,
     query,
   }
+}
+
+export function buildOmegaQuoteCompletionRequest(
+  input: ValidatedQuoteSubmission,
+  guid: string,
+) {
+  if (input.payment.mode !== 'cash') {
+    throw new Error('Only cash quotes use the completion request')
+  }
+
+  const request = buildOmegaQuoteRequest(input)
+  const normalizedGuid = omegaQuoteGuidSchema.parse(guid)
+
+  request.query.set('vehicle_plate_no', '')
+  request.query.set('vehicle_plate_state', '')
+  request.query.set('opening', request.position)
+  request.query.set('medium', 'web_quote')
+  request.query.set('guid', normalizedGuid)
+  request.query.set('vehicle_vin', input.vehicle.vin ?? '')
+  request.query.append('smart', '')
+
+  return request
 }

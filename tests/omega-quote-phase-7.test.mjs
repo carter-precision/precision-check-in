@@ -10,17 +10,17 @@ import {
   normalizeVinVehicle,
 } from '../lib/omega/quote-contracts.ts'
 import {
+  classifyOmegaQuoteHtml,
+  extractOmegaQuoteBootstrapGuid,
   extractQuoteInvoiceId,
-  normalizeQuoteInvoice,
-  OmegaQuoteInvoiceContractError,
+  extractQuoteTotal,
 } from '../lib/omega/quote-invoice.ts'
-import { retryQuoteInvoiceGet } from '../lib/omega/quote-invoice-retry.ts'
 import {
+  buildOmegaQuoteCompletionRequest,
   buildOmegaQuoteRequest,
   getServerGlassPosition,
-  quoteRecoveryRequestSchema,
   quoteSubmissionSchema,
-  requiresInvoiceQuoteResult,
+  requiresCashQuoteResult,
 } from '../lib/omega/quote-request.ts'
 import {
   insuranceQuoteAcknowledgementSchema,
@@ -216,10 +216,8 @@ test('builds the exact approved cash request without legacy fields', () => {
     folder: 'pag',
     smart: 'true',
     customer_email: 'validation@example.com',
-    vehicle_vin: validVin,
-    opening: 'W',
-    medium: 'web_quote',
     campaign: 'WEB QUOTE',
+    lead_type: 'web_lead',
   })
 
   for (const forbidden of [
@@ -228,10 +226,40 @@ test('builds the exact approved cash request without legacy fields', () => {
     'template_id',
     'vehicle_plate_no',
     'vehicle_plate_state',
-    'lead_type',
+    'vehicle_vin',
+    'opening',
+    'medium',
   ]) {
     assert.equal(request.query.has(forbidden), false)
   }
+})
+
+test('builds the observed cash completion request with the Omega GUID', () => {
+  const guid = '9D618EDE-9E9B-49F3-AD6B-3D62DF64D263'
+  const request = buildOmegaQuoteCompletionRequest(cashSubmission, guid)
+
+  assert.equal(request.path, '/Quotes/66687/W')
+  assert.deepEqual(request.query.getAll('smart'), ['true', ''])
+  assert.equal(request.query.get('guid'), guid)
+  assert.equal(request.query.get('vehicle_vin'), validVin)
+  assert.equal(request.query.get('vehicle_plate_no'), '')
+  assert.equal(request.query.get('vehicle_plate_state'), '')
+  assert.equal(request.query.get('opening'), 'W')
+  assert.equal(request.query.get('medium'), 'web_quote')
+  assert.equal(request.query.get('lead_type'), 'web_lead')
+  assert.equal(
+    buildOmegaQuoteCompletionRequest(
+      {
+        ...cashSubmission,
+        vehicle: { ...cashSubmission.vehicle, vin: null },
+      },
+      guid,
+    ).query.get('vehicle_vin'),
+    '',
+  )
+  assert.throws(() =>
+    buildOmegaQuoteCompletionRequest(cashSubmission, 'not-a-guid'),
+  )
 })
 
 test('builds the exact approved insurance request from an Omega company ID', () => {
@@ -283,8 +311,8 @@ test('requires an insurance policy number and permits an omitted deductible', ()
     }).success,
     false,
   )
-  assert.equal(requiresInvoiceQuoteResult('insurance'), false)
-  assert.equal(requiresInvoiceQuoteResult('cash'), true)
+  assert.equal(requiresCashQuoteResult('insurance'), false)
+  assert.equal(requiresCashQuoteResult('cash'), true)
 })
 
 test('rejects client glass-position tampering and unsupported glass types', () => {
@@ -330,95 +358,102 @@ test('extracts stable and fallback invoice IDs without exposing HTML', () => {
     ),
     null,
   )
-})
-
-test('normalizes numeric invoice strings and rejects unusable invoices', () => {
-  const result = normalizeQuoteInvoice(
-    {
-      data: {
-        invoice_id: 120241,
-        invoice_subtotal: '379.27',
-        invoice_tax: '27.50',
-        invoice_total: '406.77',
-        location_id: 3,
-        pricing_profile_id: '9',
-        Items: [
-          {
-            sku: 'DW01949GTYN',
-            description: 'Windshield',
-            price: '264.27',
-          },
-        ],
-      },
-    },
-    '120241',
-  )
-
-  assert.deepEqual(result, {
-    invoiceId: '120241',
-    subtotal: 379.27,
-    tax: 27.5,
-    total: 406.77,
-    locationId: '3',
-    pricingProfileId: '9',
-    items: [{ sku: 'DW01949GTYN', description: 'Windshield', price: 264.27 }],
-  })
-
-  assert.throws(
-    () =>
-      normalizeQuoteInvoice(
-        {
-          invoice_tax: 0,
-          invoice_total: 0,
-          Items: [],
-        },
-        '120241',
-      ),
-    OmegaQuoteInvoiceContractError,
-  )
-})
-
-test('retries only the supplied invoice GET operation', async () => {
-  let attempts = 0
-  const result = await retryQuoteInvoiceGet(
-    async () => {
-      attempts += 1
-      if (attempts < 3) throw new Error('temporary invoice failure')
-      return { invoiceId: '120241' }
-    },
-    () => true,
-    async () => {},
-  )
-
-  assert.deepEqual(result, { invoiceId: '120241' })
-  assert.equal(attempts, 3)
-})
-
-test('requires signed-recovery request fields and strict result DTOs', () => {
   assert.equal(
-    quoteRecoveryRequestSchema.safeParse({
-      locationSlug: 'layton',
+    extractQuoteInvoiceId(
+      '<script>const invoicePath = "/Invoice/999999"</script>',
+    ),
+    null,
+  )
+})
+
+test('classifies Omega bootstrap meta refreshes and final quote HTML', () => {
+  const guid = '9D618EDE-9E9B-49F3-AD6B-3D62DF64D263'
+  const bootstrapHtml = `<meta content="0; url=/quoter/vin.php?year=2017&amp;guid=${guid}" http-equiv="refresh">`
+
+  assert.equal(extractOmegaQuoteBootstrapGuid(bootstrapHtml), guid)
+  assert.equal(
+    extractOmegaQuoteBootstrapGuid(
+      `<meta http-equiv='REFRESH' content='0; URL=&quot;/quoter/vin.php?guid=${guid}&quot;'>`,
+    ),
+    guid,
+  )
+  assert.deepEqual(classifyOmegaQuoteHtml(bootstrapHtml), {
+    kind: 'bootstrap',
+    guid,
+  })
+  assert.deepEqual(
+    classifyOmegaQuoteHtml(
+      '<html><body><p>Precision Auto Glass Quote #120698</p><span class="price">$379.27<br /></span></body></html>',
+    ),
+    { kind: 'final', invoiceId: '120698', total: 379.27 },
+  )
+  assert.deepEqual(
+    classifyOmegaQuoteHtml(
+      '<p>Precision Auto Glass Quote #120698</p><span>No price</span>',
+    ),
+    { kind: 'invalid' },
+  )
+  assert.deepEqual(
+    classifyOmegaQuoteHtml('<span class="price">$379.27</span>'),
+    { kind: 'invalid' },
+  )
+})
+
+test('rejects untrusted or ambiguous Omega bootstrap refreshes', () => {
+  const guid = '9D618EDE-9E9B-49F3-AD6B-3D62DF64D263'
+
+  for (const html of [
+    `<meta http-equiv="refresh" content="0; url=https://example.com/quoter/vin.php?guid=${guid}">`,
+    `<meta http-equiv="refresh" content="0; url=/another/path?guid=${guid}">`,
+    '<meta http-equiv="refresh" content="0; url=/quoter/vin.php?guid=bad">',
+    `<meta http-equiv="refresh" content="0; url=/quoter/vin.php?guid=${guid}&guid=${guid}">`,
+    `<script><meta http-equiv="refresh" content="0; url=/quoter/vin.php?guid=${guid}"></script>`,
+    `<meta http-equiv="refresh" content="0; url=/quoter/vin.php?guid=${guid}"><meta http-equiv="refresh" content="0; url=/quoter/vin.php?guid=${guid}">`,
+  ]) {
+    assert.equal(extractOmegaQuoteBootstrapGuid(html), null)
+    assert.deepEqual(classifyOmegaQuoteHtml(html), { kind: 'invalid' })
+  }
+})
+
+test('extracts only the primary price element from final quote HTML', () => {
+  assert.equal(
+    extractQuoteTotal(
+      '<span class="price featured">$379.27<br /></span><strong>$94.82</strong>',
+    ),
+    379.27,
+  )
+  assert.equal(
+    extractQuoteTotal('<span class="price">$1,379.27</span>'),
+    1379.27,
+  )
+  assert.equal(
+    extractQuoteTotal('<script><span class="price">$999.99</span></script>'),
+    null,
+  )
+  assert.equal(extractQuoteTotal('<span class="price">$0.00</span>'), null)
+  assert.equal(extractQuoteTotal('<span>$379.27</span>'), null)
+})
+
+test('requires a strict total-only result DTO', () => {
+  assert.equal(
+    quoteResultSchema.safeParse({
       invoiceId: '120241',
-      recoveryToken: '1722999999.signature',
+      total: 379.27,
     }).success,
     true,
   )
   assert.equal(
-    quoteRecoveryRequestSchema.safeParse({
-      locationSlug: 'layton',
+    quoteResultSchema.safeParse({
       invoiceId: '120241',
+      total: 379.27,
+      tax: 27.5,
     }).success,
     false,
   )
   assert.equal(
     quoteResultSchema.safeParse({
       invoiceId: '120241',
-      subtotal: 379.27,
-      tax: 27.5,
       total: 406.77,
-      locationId: '3',
-      pricingProfileId: '9',
-      items: [{ sku: null, description: 'Labor', price: 90 }],
       rawHtml: '<p>must not pass</p>',
     }).success,
     false,
@@ -471,8 +506,6 @@ test('builds normalized client submissions and resets all quote data', () => {
   assert.equal(initialKioskData.quoteSubmission, null)
   assert.equal(initialKioskData.quoteSubmissionStatus, 'idle')
   assert.equal(initialKioskData.quoteSubmissionError, null)
-  assert.equal(initialKioskData.quoteInvoiceId, null)
-  assert.equal(initialKioskData.quoteRecoveryToken, null)
   assert.equal(initialKioskData.quoteResult, null)
   assert.equal(initialKioskData.insuranceCompanyId, '')
   assert.equal(initialKioskData.policyNumber, '')

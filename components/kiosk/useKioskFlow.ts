@@ -104,16 +104,6 @@ export function useKioskFlow(location: string) {
     async (submission: QuoteSubmission) => {
       if (quoteRequestInFlight.current) return false
 
-      if (data.quoteInvoiceId && !data.quoteRecoveryToken) {
-        setData((current) => ({
-          ...current,
-          quoteSubmissionStatus: 'failed',
-          quoteSubmissionError:
-            'This quote needs help from our team before it can be retried.',
-        }))
-        return false
-      }
-
       quoteRequestInFlight.current = true
       setShowInactiveWarning(false)
       setData((current) => ({
@@ -124,25 +114,14 @@ export function useKioskFlow(location: string) {
         quoteResult: null,
       }))
 
-      const request =
-        data.quoteInvoiceId && data.quoteRecoveryToken
-          ? {
-              locationSlug: location,
-              invoiceId: data.quoteInvoiceId,
-              recoveryToken: data.quoteRecoveryToken,
-            }
-          : submission
-
       try {
-        const result = await submitKioskOmegaQuote(request)
+        const result = await submitKioskOmegaQuote(submission)
 
         if ('kind' in result) {
           setData((current) => ({
             ...current,
             quoteSubmissionStatus: 'succeeded',
             quoteSubmissionError: null,
-            quoteInvoiceId: null,
-            quoteRecoveryToken: null,
             quoteResult: null,
           }))
           setHistory((current) => [...current, step])
@@ -154,8 +133,6 @@ export function useKioskFlow(location: string) {
           ...current,
           quoteSubmissionStatus: 'succeeded',
           quoteSubmissionError: null,
-          quoteInvoiceId: result.invoiceId,
-          quoteRecoveryToken: null,
           quoteResult: result,
         }))
         setHistory((current) => [...current, step])
@@ -171,9 +148,6 @@ export function useKioskFlow(location: string) {
           quoteSubmissionError:
             knownError?.message ??
             "We couldn't complete your quote. Please try again.",
-          quoteInvoiceId: knownError?.invoiceId ?? current.quoteInvoiceId,
-          quoteRecoveryToken:
-            knownError?.recoveryToken ?? current.quoteRecoveryToken,
           quoteResult: null,
         }))
         return false
@@ -181,7 +155,7 @@ export function useKioskFlow(location: string) {
         quoteRequestInFlight.current = false
       }
     },
-    [data.quoteInvoiceId, data.quoteRecoveryToken, location, step],
+    [step],
   )
 
   const submitCheckIn = useCallback(

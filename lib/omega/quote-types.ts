@@ -39,20 +39,9 @@ export type InsuranceCompanyOption = {
   label: string
 }
 
-export type QuoteResultItem = {
-  sku: string | null
-  description: string
-  price: number
-}
-
 export type QuoteResult = {
   invoiceId: string
-  subtotal: number | null
-  tax: number
   total: number
-  locationId: string | null
-  pricingProfileId: string | null
-  items: QuoteResultItem[]
 }
 
 export type InsuranceQuoteAcknowledgement = {

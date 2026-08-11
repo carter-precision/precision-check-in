@@ -44,70 +44,16 @@ export function WindshieldQuoteResultStep({
       <div className="mx-auto w-full max-w-3xl space-y-6 py-8">
         <div className="rounded-[1.4rem] bg-[#16262f] p-8 text-center text-white shadow-lg">
           <p className="mb-3 text-sm font-bold uppercase tracking-[0.2em] text-accent-tint">
-            Your quote total
+            QUOTE #{result.invoiceId}
           </p>
           <p className="text-5xl font-bold">{formatCurrency(result.total)}</p>
           <p className="mx-auto mt-4 max-w-xl text-base font-medium leading-relaxed text-[#c8d4d8]">
-            Quote #{result.invoiceId}. Pricing comes from the completed quote
-            for the vehicle and glass details you provided.
+            This estimate is based on standard parts. We’ll confirm your vehicle
+            details and let you know if anything changes before scheduling.
           </p>
         </div>
 
-        <section className="overflow-hidden rounded-[1.4rem] border border-[#d7e1e3] bg-white shadow-sm">
-          <h2 className="px-6 pb-2 pt-5 text-xl font-bold text-[#16262f]">
-            Price details
-          </h2>
-          <div className="divide-y divide-[#d7e1e3] px-6">
-            {result.subtotal !== null && (
-              <SummaryRow
-                label="Subtotal"
-                value={formatCurrency(result.subtotal)}
-              />
-            )}
-            <SummaryRow label="Tax" value={formatCurrency(result.tax)} />
-            <SummaryRow
-              label="Quote total"
-              value={formatCurrency(result.total)}
-            />
-            {data.quotePayType === 'insurance' && (
-              <SummaryRow
-                label="Your deductible"
-                value={formatCurrency(Number(data.deductibleAmount))}
-              />
-            )}
-          </div>
-        </section>
-
-        <section className="overflow-hidden rounded-[1.4rem] border border-[#d7e1e3] bg-white shadow-sm">
-          <h2 className="px-6 pb-2 pt-5 text-xl font-bold text-[#16262f]">
-            Included in this quote
-          </h2>
-          <div className="divide-y divide-[#d7e1e3] px-6">
-            {result.items.map((item, index) => (
-              <div
-                key={`${item.sku ?? 'item'}-${index}`}
-                className="flex items-start justify-between gap-6 py-4"
-              >
-                <div>
-                  <p className="font-bold text-[#16262f]">{item.description}</p>
-                  {item.sku && (
-                    <p className="mt-1 text-sm font-medium text-muted-foreground">
-                      {item.sku}
-                    </p>
-                  )}
-                </div>
-                <p className="shrink-0 font-bold text-[#16262f]">
-                  {formatCurrency(item.price)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-
         <div className="divide-y divide-[#d7e1e3] rounded-[1.4rem] border border-[#d7e1e3] bg-white px-6 shadow-sm">
-          {data.quotePayType === 'insurance' && (
-            <SummaryRow label="Carrier" value={data.insuranceCompanyLabel} />
-          )}
           <SummaryRow label="Vehicle" value={formatVehicle(data)} />
           <SummaryRow label="Glass" value={getGlassLabel(data.glassType)} />
           <SummaryRow label="Service" value={formatService(data)} />
@@ -117,6 +63,13 @@ export function WindshieldQuoteResultStep({
           />
           <SummaryRow label="Contact" value={data.customerName} />
         </div>
+
+        <p className="mx-auto max-w-2xl px-4 text-center text-xs font-medium italic leading-relaxed text-muted-foreground">
+          Web quotes may not include every vehicle-specific attachment or
+          feature. Our team will confirm the correct parts and final price with
+          you. Confirmed quotes are valid for 48 hours because prices can
+          change.
+        </p>
 
         <Button
           className="h-16 w-full rounded-2xl bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"

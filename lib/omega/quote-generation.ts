@@ -4,30 +4,21 @@ import {
   getQuoteInsuranceCompanies,
   getQuoteVehicleVariants,
 } from './quote-lookups'
+import { QuoteOmegaApiError, quoteOmegaHtmlRequest } from './quote-client'
+import { classifyOmegaQuoteHtml } from './quote-invoice'
 import {
-  QuoteOmegaApiError,
-  quoteOmegaHtmlRequest,
-  quoteOmegaJsonRequest,
-} from './quote-client'
-import {
-  extractQuoteInvoiceId,
-  normalizeQuoteInvoice,
-  OmegaQuoteInvoiceContractError,
-} from './quote-invoice'
-import { retryQuoteInvoiceGet } from './quote-invoice-retry'
-import {
+  buildOmegaQuoteCompletionRequest,
   buildOmegaQuoteRequest,
-  requiresInvoiceQuoteResult,
+  requiresCashQuoteResult,
   type ValidatedQuoteSubmission,
 } from './quote-request'
-import type { QuoteResult, QuoteSubmissionResult } from './quote-types'
+import type { QuoteSubmissionResult } from './quote-types'
 
 export type QuoteGenerationStage =
   | 'reference_validation'
   | 'quotes_request'
-  | 'invoice_id_extraction'
-  | 'invoice_fetch'
-  | 'invoice_normalization'
+  | 'quote_completion'
+  | 'quote_result_extraction'
 
 export class InvalidQuoteReferenceError extends Error {
   constructor() {
@@ -63,44 +54,44 @@ export async function generateOmegaQuote(
     throw wrapOmegaError('quotes_request', error, null)
   }
 
-  if (!requiresInvoiceQuoteResult(input.payment.mode)) {
+  if (!requiresCashQuoteResult(input.payment.mode)) {
     return { kind: 'insurance_acknowledgement' }
   }
 
-  const invoiceId = extractQuoteInvoiceId(html)
+  const initialResult = classifyOmegaQuoteHtml(html)
+  let result = initialResult.kind === 'final' ? initialResult : null
 
-  if (!invoiceId) {
+  if (initialResult.kind === 'bootstrap') {
+    const completionRequest = buildOmegaQuoteCompletionRequest(
+      input,
+      initialResult.guid,
+    )
+    let completedHtml: string
+
+    try {
+      completedHtml = await quoteOmegaHtmlRequest(
+        completionRequest.path,
+        completionRequest.query,
+      )
+    } catch (error) {
+      throw wrapOmegaError('quote_completion', error, null)
+    }
+
+    const completedResult = classifyOmegaQuoteHtml(completedHtml)
+    result = completedResult.kind === 'final' ? completedResult : null
+  }
+
+  if (!result) {
     throw new QuoteGenerationError(
-      'invoice_id_extraction',
+      'quote_result_extraction',
       'invalid_response',
       null,
       null,
     )
   }
 
-  onInvoiceId(invoiceId)
-  return recoverOmegaQuote(invoiceId)
-}
-
-export async function recoverOmegaQuote(
-  invoiceId: string,
-): Promise<QuoteResult> {
-  const invoicePayload = await fetchQuoteInvoiceWithRetry(invoiceId)
-
-  try {
-    return normalizeQuoteInvoice(invoicePayload, invoiceId)
-  } catch (error) {
-    if (error instanceof OmegaQuoteInvoiceContractError) {
-      throw new QuoteGenerationError(
-        'invoice_normalization',
-        'invalid_response',
-        null,
-        invoiceId,
-      )
-    }
-
-    throw error
-  }
+  onInvoiceId(result.invoiceId)
+  return { invoiceId: result.invoiceId, total: result.total }
 }
 
 async function verifyQuoteReferences(input: ValidatedQuoteSubmission) {
@@ -132,25 +123,6 @@ async function verifyQuoteReferences(input: ValidatedQuoteSubmission) {
   }
 }
 
-async function fetchQuoteInvoiceWithRetry(invoiceId: string) {
-  try {
-    return await retryQuoteInvoiceGet(
-      () => quoteOmegaJsonRequest(`/Invoices/${encodeURIComponent(invoiceId)}`),
-      isRetryableInvoiceError,
-      (failedAttempt) => wait(failedAttempt * 150),
-    )
-  } catch (error) {
-    throw wrapOmegaError('invoice_fetch', error, invoiceId)
-  }
-}
-
-function isRetryableInvoiceError(error: unknown) {
-  return (
-    error instanceof QuoteOmegaApiError &&
-    (error.kind === 'not_found' || error.kind === 'unavailable')
-  )
-}
-
 function wrapOmegaError(
   stage: QuoteGenerationStage,
   error: unknown,
@@ -166,8 +138,4 @@ function wrapOmegaError(
   }
 
   return new QuoteGenerationError(stage, 'invalid_response', null, invoiceId)
-}
-
-function wait(milliseconds: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, milliseconds))
 }

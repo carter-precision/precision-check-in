@@ -8,17 +8,12 @@ import {
   generateOmegaQuote,
   InvalidQuoteReferenceError,
   QuoteGenerationError,
-  recoverOmegaQuote,
   type QuoteGenerationStage,
 } from '@/lib/omega/quote-generation'
 import {
   getServerGlassPosition,
-  quoteRouteRequestSchema,
+  quoteSubmissionSchema,
 } from '@/lib/omega/quote-request'
-import {
-  createQuoteRecoveryToken,
-  verifyQuoteRecoveryToken,
-} from '@/lib/omega/quote-recovery'
 
 type QuoteOperationContext = {
   requestId: string
@@ -55,7 +50,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const parsed = quoteRouteRequestSchema.safeParse(payload)
+  const parsed = quoteSubmissionSchema.safeParse(payload)
 
   if (!parsed.success) {
     return quoteErrorResponse(
@@ -70,35 +65,12 @@ export async function POST(request: NextRequest) {
   try {
     const kiosk = await requireQuoteKiosk(parsed.data.locationSlug)
     context.location = kiosk.locationSlug
-    let result
-
-    if ('invoiceId' in parsed.data) {
-      context.stage = 'invoice_fetch'
-      context.invoiceId = parsed.data.invoiceId
-
-      if (
-        !verifyQuoteRecoveryToken(
-          parsed.data.recoveryToken,
-          kiosk.locationSlug,
-          parsed.data.invoiceId,
-        )
-      ) {
-        return quoteErrorResponse(
-          400,
-          'invalid_recovery',
-          'The quote recovery request is invalid or expired.',
-        )
-      }
-
-      result = await recoverOmegaQuote(parsed.data.invoiceId)
-    } else {
-      context.vehicleId = parsed.data.vehicle.vehicleId
-      context.position = getServerGlassPosition(parsed.data.glass.type)
-      context.paymentMode = parsed.data.payment.mode
-      result = await generateOmegaQuote(parsed.data, (invoiceId) => {
-        context.invoiceId = invoiceId
-      })
-    }
+    context.vehicleId = parsed.data.vehicle.vehicleId
+    context.position = getServerGlassPosition(parsed.data.glass.type)
+    context.paymentMode = parsed.data.payment.mode
+    const result = await generateOmegaQuote(parsed.data, (invoiceId) => {
+      context.invoiceId = invoiceId
+    })
 
     return NextResponse.json({ data: result })
   } catch (error) {
@@ -126,24 +98,8 @@ export async function POST(request: NextRequest) {
       context.invoiceId = error.invoiceId ?? context.invoiceId
       logQuoteFailure(context, error.kind)
 
-      if (error.stage === 'invoice_fetch') {
-        const recoveryToken =
-          context.location && context.invoiceId
-            ? createQuoteRecoveryToken(context.location, context.invoiceId)
-            : null
-
-        return quoteErrorResponse(
-          503,
-          'invoice_unavailable',
-          'The quote was created, but its pricing details are temporarily unavailable.',
-          context.invoiceId,
-          recoveryToken,
-        )
-      }
-
       if (
-        error.stage === 'invoice_id_extraction' ||
-        error.stage === 'invoice_normalization' ||
+        error.stage === 'quote_result_extraction' ||
         error.kind === 'invalid_response'
       ) {
         return quoteErrorResponse(
@@ -169,20 +125,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function quoteErrorResponse(
-  status: number,
-  code: string,
-  message: string,
-  invoiceId?: string | null,
-  recoveryToken?: string | null,
-) {
+function quoteErrorResponse(status: number, code: string, message: string) {
   return NextResponse.json(
     {
       error: {
         code,
         message,
-        ...(invoiceId ? { invoiceId } : {}),
-        ...(recoveryToken ? { recoveryToken } : {}),
       },
     },
     { status },

@@ -1,41 +1,66 @@
-import { z } from 'zod'
+export type OmegaQuoteHtmlResult =
+  | { kind: 'final'; invoiceId: string; total: number }
+  | { kind: 'bootstrap'; guid: string }
+  | { kind: 'invalid' }
 
-import type { QuoteResult } from './quote-types'
+const OMEGA_APP_ORIGIN = 'https://app.omegaedi.com'
+const OMEGA_QUOTE_GUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-const finiteMoneySchema = z
-  .union([z.number(), z.string().trim().min(1)])
-  .transform((value) => Number(value))
-  .pipe(z.number().finite())
-const nonnegativeMoneySchema = finiteMoneySchema.pipe(z.number().nonnegative())
-const positiveMoneySchema = nonnegativeMoneySchema.pipe(z.number().positive())
-const nullableIdSchema = z
-  .union([z.string(), z.number(), z.null()])
-  .optional()
-  .transform((value) => normalizeNullableString(value))
-const rawItemSchema = z.object({
-  sku: z.union([z.string(), z.number(), z.null()]).optional(),
-  description: z.string().trim().min(1),
-  price: finiteMoneySchema,
-})
-const rawInvoiceSchema = z.object({
-  id: z.union([z.string(), z.number()]).optional(),
-  invoice_id: z.union([z.string(), z.number()]).optional(),
-  invoice_subtotal: nonnegativeMoneySchema.nullable().optional(),
-  invoice_tax: nonnegativeMoneySchema,
-  invoice_total: positiveMoneySchema,
-  location_id: nullableIdSchema,
-  pricing_profile_id: nullableIdSchema,
-  Items: z.array(rawItemSchema).min(1),
-})
+export function classifyOmegaQuoteHtml(html: string): OmegaQuoteHtmlResult {
+  const invoiceId = extractQuoteInvoiceId(html)
+  const total = extractQuoteTotal(html)
 
-export class OmegaQuoteInvoiceContractError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'OmegaQuoteInvoiceContractError'
+  if (invoiceId && total !== null) {
+    return { kind: 'final', invoiceId, total }
   }
+
+  const guid = extractOmegaQuoteBootstrapGuid(html)
+  return guid ? { kind: 'bootstrap', guid } : { kind: 'invalid' }
+}
+
+export function extractOmegaQuoteBootstrapGuid(html: string) {
+  const visibleMarkup = stripNonVisibleHtml(html)
+  const refreshTargets: string[] = []
+
+  for (const metaTag of visibleMarkup.match(/<meta\b[^>]*>/gi) ?? []) {
+    const httpEquiv = readHtmlAttribute(metaTag, 'http-equiv')
+
+    if (httpEquiv?.trim().toLowerCase() !== 'refresh') continue
+
+    const content = readHtmlAttribute(metaTag, 'content')
+    const target = content?.match(
+      /^\s*\d+(?:\.\d+)?\s*;\s*url\s*=\s*(.+?)\s*$/i,
+    )
+
+    if (!target) return null
+    refreshTargets.push(stripOptionalQuotes(decodeHtmlAttribute(target[1])))
+  }
+
+  if (refreshTargets.length !== 1) return null
+
+  let refreshUrl: URL
+
+  try {
+    refreshUrl = new URL(refreshTargets[0], OMEGA_APP_ORIGIN)
+  } catch {
+    return null
+  }
+
+  if (
+    refreshUrl.origin !== OMEGA_APP_ORIGIN ||
+    refreshUrl.pathname !== '/quoter/vin.php'
+  ) {
+    return null
+  }
+
+  const guids = refreshUrl.searchParams.getAll('guid')
+  const guid = guids.length === 1 ? guids[0] : null
+  return guid && OMEGA_QUOTE_GUID_PATTERN.test(guid) ? guid.toUpperCase() : null
 }
 
 export function extractQuoteInvoiceId(html: string) {
+  const visibleMarkup = stripNonVisibleHtml(html)
   const stablePatterns = [
     /data-(?:invoice|quote)-(?:id|number|no)\s*=\s*["'](\d+)["']/i,
     /(?:name|id)\s*=\s*["'](?:invoice|quote)_(?:id|number|no)["'][^>]*value\s*=\s*["'](\d+)["']/i,
@@ -45,13 +70,11 @@ export function extractQuoteInvoiceId(html: string) {
   ]
 
   for (const pattern of stablePatterns) {
-    const match = html.match(pattern)
+    const match = visibleMarkup.match(pattern)
     if (match) return match[1]
   }
 
-  const visibleText = html
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+  const visibleText = visibleMarkup
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;|&#160;/gi, ' ')
     .replace(/&#(?:0*35|x0*23);|&(?:num|hash);/gi, '#')
@@ -73,58 +96,85 @@ export function extractQuoteInvoiceId(html: string) {
   return null
 }
 
-export function normalizeQuoteInvoice(
-  payload: unknown,
-  expectedInvoiceId: string,
-): QuoteResult {
-  const parsed = rawInvoiceSchema.safeParse(unwrapInvoice(payload))
+export function extractQuoteTotal(html: string) {
+  const visibleMarkup = stripNonVisibleHtml(html)
+  const openingTagPattern = /<([a-z][\w:-]*)\b[^>]*>/gi
 
-  if (!parsed.success) {
-    throw new OmegaQuoteInvoiceContractError(
-      'Omega returned an unusable quote invoice',
+  for (const match of visibleMarkup.matchAll(openingTagPattern)) {
+    const openingTag = match[0]
+    const className = readHtmlAttribute(openingTag, 'class')
+
+    if (!className?.split(/\s+/).includes('price')) continue
+
+    const contentStart = (match.index ?? 0) + openingTag.length
+    const remainingMarkup = visibleMarkup.slice(contentStart)
+    const closingTag = new RegExp(`<\\/${match[1]}\\s*>`, 'i').exec(
+      remainingMarkup,
     )
+
+    if (!closingTag) return null
+
+    const elementContent = remainingMarkup.slice(0, closingTag.index)
+    const text = decodeHtmlAttribute(elementContent.replace(/<[^>]+>/g, ' '))
+    const amount = text.match(
+      /\$\s*(\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d+(?:\.\d{2})?)/,
+    )
+
+    if (!amount) return null
+
+    const total = Number(amount[1].replaceAll(',', ''))
+    return Number.isFinite(total) && total > 0 ? total : null
   }
 
-  const returnedId = normalizeNullableString(
-    parsed.data.invoice_id ?? parsed.data.id,
+  return null
+}
+
+function stripNonVisibleHtml(html: string) {
+  return html
+    .replace(/<!--([\s\S]*?)-->/g, '')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+}
+
+function readHtmlAttribute(tag: string, name: string) {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = tag.match(
+    new RegExp(
+      `\\b${escapedName}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`,
+      'i',
+    ),
   )
 
-  if (returnedId && returnedId !== expectedInvoiceId) {
-    throw new OmegaQuoteInvoiceContractError(
-      'Omega returned a different quote invoice',
+  return match?.[1] ?? match?.[2] ?? match?.[3] ?? null
+}
+
+function decodeHtmlAttribute(value: string) {
+  return value
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0*39;|&apos;/gi, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (entity, code: string) =>
+      decodeHtmlCodePoint(entity, code, 16),
     )
-  }
-
-  return {
-    invoiceId: expectedInvoiceId,
-    subtotal: parsed.data.invoice_subtotal ?? null,
-    tax: parsed.data.invoice_tax,
-    total: parsed.data.invoice_total,
-    locationId: parsed.data.location_id,
-    pricingProfileId: parsed.data.pricing_profile_id,
-    items: parsed.data.Items.map((item) => ({
-      sku: normalizeNullableString(item.sku),
-      description: item.description,
-      price: item.price,
-    })),
-  }
+    .replace(/&#([0-9]+);/g, (entity, code: string) =>
+      decodeHtmlCodePoint(entity, code, 10),
+    )
 }
 
-function unwrapInvoice(payload: unknown) {
-  if (
-    payload &&
-    typeof payload === 'object' &&
-    !Array.isArray(payload) &&
-    'data' in payload
-  ) {
-    return (payload as { data: unknown }).data
-  }
-
-  return payload
+function decodeHtmlCodePoint(entity: string, code: string, radix: number) {
+  const value = Number.parseInt(code, radix)
+  return Number.isInteger(value) && value >= 0 && value <= 0x10ffff
+    ? String.fromCodePoint(value)
+    : entity
 }
 
-function normalizeNullableString(value: string | number | null | undefined) {
-  if (value === null || value === undefined) return null
-  const normalized = String(value).trim()
-  return normalized || null
+function stripOptionalQuotes(value: string) {
+  const normalized = value.trim()
+  const first = normalized[0]
+
+  if ((first === '"' || first === "'") && normalized.at(-1) === first) {
+    return normalized.slice(1, -1).trim()
+  }
+
+  return normalized
 }

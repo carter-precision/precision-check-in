@@ -131,8 +131,6 @@ export type KioskData = {
   quoteSubmission: QuoteSubmission | null
   quoteSubmissionStatus: QuoteSubmissionStatus
   quoteSubmissionError: string | null
-  quoteInvoiceId: string | null
-  quoteRecoveryToken: string | null
   quoteResult: QuoteResult | null
 }
 
@@ -162,8 +160,6 @@ export const emptyQuoteOutcomeData = {
   quoteSubmission: null,
   quoteSubmissionStatus: 'idle',
   quoteSubmissionError: null,
-  quoteInvoiceId: null,
-  quoteRecoveryToken: null,
   quoteResult: null,
 } satisfies Partial<KioskData>
 

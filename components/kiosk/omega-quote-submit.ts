@@ -5,12 +5,6 @@ import type { QuoteSubmissionResult } from '@/lib/omega/quote-types'
 
 import type { QuoteSubmission } from './types'
 
-export type KioskQuoteRecoveryRequest = {
-  locationSlug: string
-  invoiceId: string
-  recoveryToken: string
-}
-
 const quoteSuccessSchema = z
   .object({ data: quoteSubmissionResultSchema })
   .strict()
@@ -20,8 +14,6 @@ const quoteErrorSchema = z
       .object({
         code: z.string(),
         message: z.string(),
-        invoiceId: z.string().optional(),
-        recoveryToken: z.string().optional(),
       })
       .strict(),
   })
@@ -31,8 +23,6 @@ export class KioskQuoteSubmissionError extends Error {
   constructor(
     message: string,
     readonly code: string,
-    readonly invoiceId: string | null = null,
-    readonly recoveryToken: string | null = null,
   ) {
     super(message)
     this.name = 'KioskQuoteSubmissionError'
@@ -40,7 +30,7 @@ export class KioskQuoteSubmissionError extends Error {
 }
 
 export async function submitKioskOmegaQuote(
-  input: QuoteSubmission | KioskQuoteRecoveryRequest,
+  input: QuoteSubmission,
   signal?: AbortSignal,
 ): Promise<QuoteSubmissionResult> {
   let response: Response
@@ -69,8 +59,6 @@ export async function submitKioskOmegaQuote(
       throw new KioskQuoteSubmissionError(
         parsedError.data.error.message,
         parsedError.data.error.code,
-        parsedError.data.error.invoiceId ?? null,
-        parsedError.data.error.recoveryToken ?? null,
       )
     }
 
