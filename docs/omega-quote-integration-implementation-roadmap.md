@@ -69,6 +69,22 @@ Do not modify out-of-scope files merely to reuse code. New quote-specific files 
 14. Keep `folder=pag`, `smart=true`, and cash `medium=web_quote`. Omit legacy, blank, or unused parameters unless live validation establishes that one is required.
 15. The Omega invoice fetched after quote creation is the source of truth for totals and line items.
 
+## Post-implementation product adjustment — 2026-08-10
+
+The following decisions supersede conflicting insurance-specific requirements
+later in this roadmap:
+
+- Insurance policy number remains required and is submitted as
+  `account_policy_no`.
+- Insurance deductible is optional. Submit `account_deductible` only when the
+  customer provides a valid non-negative amount.
+- A successful insurance Quotes response completes the kiosk submission. Do
+  not require an invoice ID or fetch the invoice for the insurance path.
+- Show a dedicated insurance acknowledgement explaining that the team will
+  handle the claim and the customer is responsible for their deductible.
+- Cash quotes still require invoice-ID extraction, Invoice GET normalization,
+  and an invoice-derived result.
+
 ## Target Server Boundary
 
 Use application-owned endpoints equivalent to the following. Exact file names may follow App Router conventions, but keep these responsibilities separate and typed.

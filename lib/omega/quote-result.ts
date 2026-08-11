@@ -21,3 +21,12 @@ export const quoteResultSchema = z
       .min(1),
   })
   .strict()
+
+export const insuranceQuoteAcknowledgementSchema = z
+  .object({ kind: z.literal('insurance_acknowledgement') })
+  .strict()
+
+export const quoteSubmissionResultSchema = z.union([
+  quoteResultSchema,
+  insuranceQuoteAcknowledgementSchema,
+])

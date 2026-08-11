@@ -251,6 +251,7 @@ export function WindshieldQuoteContactStep({
               <QuoteField id="policy-number" label="Policy number">
                 <QuoteInput
                   id="policy-number"
+                  required
                   value={data.policyNumber}
                   placeholder="Found on your insurance card"
                   onChange={(event) =>
@@ -258,13 +259,13 @@ export function WindshieldQuoteContactStep({
                   }
                 />
               </QuoteField>
-              <QuoteField id="deductible" label="Deductible">
+              <QuoteField id="deductible" label="Deductible" optional>
                 <QuoteInput
                   id="deductible"
                   type="text"
                   inputMode="decimal"
                   value={data.deductibleAmount}
-                  placeholder="250"
+                  placeholder="If known"
                   onChange={(event) => updateDeductible(event.target.value)}
                 />
               </QuoteField>

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-import { quoteResultSchema } from '@/lib/omega/quote-result'
-import type { QuoteResult } from '@/lib/omega/quote-types'
+import { quoteSubmissionResultSchema } from '@/lib/omega/quote-result'
+import type { QuoteSubmissionResult } from '@/lib/omega/quote-types'
 
 import type { QuoteSubmission } from './types'
 
@@ -11,7 +11,9 @@ export type KioskQuoteRecoveryRequest = {
   recoveryToken: string
 }
 
-const quoteSuccessSchema = z.object({ data: quoteResultSchema }).strict()
+const quoteSuccessSchema = z
+  .object({ data: quoteSubmissionResultSchema })
+  .strict()
 const quoteErrorSchema = z
   .object({
     error: z
@@ -40,7 +42,7 @@ export class KioskQuoteSubmissionError extends Error {
 export async function submitKioskOmegaQuote(
   input: QuoteSubmission | KioskQuoteRecoveryRequest,
   signal?: AbortSignal,
-): Promise<QuoteResult> {
+): Promise<QuoteSubmissionResult> {
   let response: Response
 
   try {

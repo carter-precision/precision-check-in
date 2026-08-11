@@ -37,11 +37,11 @@ export class OmegaQuoteInvoiceContractError extends Error {
 
 export function extractQuoteInvoiceId(html: string) {
   const stablePatterns = [
-    /data-invoice-id\s*=\s*["'](\d+)["']/i,
-    /(?:name|id)\s*=\s*["']invoice_id["'][^>]*value\s*=\s*["'](\d+)["']/i,
-    /value\s*=\s*["'](\d+)["'][^>]*(?:name|id)\s*=\s*["']invoice_id["']/i,
-    /\/Invoices\/(\d+)(?:[/?#"']|$)/i,
-    /[?&]invoice_id=(\d+)(?:[&#"']|$)/i,
+    /data-(?:invoice|quote)-(?:id|number|no)\s*=\s*["'](\d+)["']/i,
+    /(?:name|id)\s*=\s*["'](?:invoice|quote)_(?:id|number|no)["'][^>]*value\s*=\s*["'](\d+)["']/i,
+    /value\s*=\s*["'](\d+)["'][^>]*(?:name|id)\s*=\s*["'](?:invoice|quote)_(?:id|number|no)["']/i,
+    /\/Invoices?\/(?:view\/)?(\d+)(?:[/?#"']|$)/i,
+    /[?&](?:invoice|quote)_(?:id|number|no)=(\d+)(?:[&#"']|$)/i,
   ]
 
   for (const pattern of stablePatterns) {
@@ -54,11 +54,23 @@ export function extractQuoteInvoiceId(html: string) {
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;|&#160;/gi, ' ')
-    .replace(/&#35;|&num;/gi, '#')
+    .replace(/&#(?:0*35|x0*23);|&(?:num|hash);/gi, '#')
     .replace(/\s+/g, ' ')
-  const fallback = visibleText.match(/Precision Auto Glass Quote\s*#\s*(\d+)/i)
 
-  return fallback?.[1] ?? null
+  const visiblePatterns = [
+    /Precision Auto Glass Quote\s*#\s*:?\s*(\d+)/i,
+    /\bQuote\s*#\s*:?\s*(\d+)/i,
+    /\bQuote\s*(?:Number|No\.?)\s*(?:#\s*)?:?\s*(\d+)/i,
+    /\bInvoice\s*#\s*:?\s*(\d+)/i,
+    /\bInvoice\s*(?:Number|No\.?)\s*(?:#\s*)?:?\s*(\d+)/i,
+  ]
+
+  for (const pattern of visiblePatterns) {
+    const match = visibleText.match(pattern)
+    if (match) return match[1]
+  }
+
+  return null
 }
 
 export function normalizeQuoteInvoice(

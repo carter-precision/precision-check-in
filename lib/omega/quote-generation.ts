@@ -17,9 +17,10 @@ import {
 import { retryQuoteInvoiceGet } from './quote-invoice-retry'
 import {
   buildOmegaQuoteRequest,
+  requiresInvoiceQuoteResult,
   type ValidatedQuoteSubmission,
 } from './quote-request'
-import type { QuoteResult } from './quote-types'
+import type { QuoteResult, QuoteSubmissionResult } from './quote-types'
 
 export type QuoteGenerationStage =
   | 'reference_validation'
@@ -50,7 +51,7 @@ export class QuoteGenerationError extends Error {
 export async function generateOmegaQuote(
   input: ValidatedQuoteSubmission,
   onInvoiceId: (invoiceId: string) => void,
-): Promise<QuoteResult> {
+): Promise<QuoteSubmissionResult> {
   await verifyQuoteReferences(input)
 
   const omegaRequest = buildOmegaQuoteRequest(input)
@@ -60,6 +61,10 @@ export async function generateOmegaQuote(
     html = await quoteOmegaHtmlRequest(omegaRequest.path, omegaRequest.query)
   } catch (error) {
     throw wrapOmegaError('quotes_request', error, null)
+  }
+
+  if (!requiresInvoiceQuoteResult(input.payment.mode)) {
+    return { kind: 'insurance_acknowledgement' }
   }
 
   const invoiceId = extractQuoteInvoiceId(html)

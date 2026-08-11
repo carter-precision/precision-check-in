@@ -35,6 +35,7 @@ import {
   WindshieldServiceLocationStep,
 } from './steps/WindshieldQuoteServiceSteps'
 import { WindshieldQuoteContactStep } from './steps/WindshieldQuoteContactStep'
+import { WindshieldInsuranceSuccessStep } from './steps/WindshieldInsuranceSuccessStep'
 import { WindshieldQuoteResultStep } from './steps/WindshieldQuoteResultStep'
 import type { KioskStepProps, StepId } from './types'
 import { useKioskFlow } from './useKioskFlow'
@@ -51,6 +52,7 @@ const stepComponents: Partial<Record<StepId, ComponentType<KioskStepProps>>> = {
   windshieldServiceLocation: WindshieldServiceLocationStep,
   windshieldContact: WindshieldQuoteContactStep,
   windshieldQuoteResult: WindshieldQuoteResultStep,
+  windshieldInsuranceSuccess: WindshieldInsuranceSuccessStep,
   rockChipCashAuthorization: RockChipCashAuthorizationStep,
   rockChipInsuranceName: RockChipInsuranceNameStep,
   success: SuccessStep,
@@ -70,6 +72,7 @@ const showFlowControls: Partial<Record<StepId, boolean>> = {
   windshieldServiceLocation: true,
   windshieldContact: true,
   windshieldQuoteResult: false,
+  windshieldInsuranceSuccess: false,
   rockChipCashAuthorization: true,
   rockChipInsuranceName: true,
   success: false,

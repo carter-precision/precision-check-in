@@ -136,6 +136,20 @@ export function useKioskFlow(location: string) {
       try {
         const result = await submitKioskOmegaQuote(request)
 
+        if ('kind' in result) {
+          setData((current) => ({
+            ...current,
+            quoteSubmissionStatus: 'succeeded',
+            quoteSubmissionError: null,
+            quoteInvoiceId: null,
+            quoteRecoveryToken: null,
+            quoteResult: null,
+          }))
+          setHistory((current) => [...current, step])
+          setStep('windshieldInsuranceSuccess')
+          return true
+        }
+
         setData((current) => ({
           ...current,
           quoteSubmissionStatus: 'succeeded',

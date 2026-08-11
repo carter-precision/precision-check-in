@@ -14,6 +14,7 @@ export type StepId =
   | 'windshieldServiceLocation'
   | 'windshieldContact'
   | 'windshieldQuoteResult'
+  | 'windshieldInsuranceSuccess'
   | 'rockChipCashAuthorization'
   | 'rockChipInsuranceName'
   | 'success'
@@ -90,7 +91,7 @@ export type QuoteSubmission = {
         companyId: string
         companyLabel: string
         policyNumber: string
-        deductible: number
+        deductible: number | null
       }
 }
 

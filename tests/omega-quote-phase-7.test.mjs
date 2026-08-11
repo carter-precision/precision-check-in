@@ -20,8 +20,12 @@ import {
   getServerGlassPosition,
   quoteRecoveryRequestSchema,
   quoteSubmissionSchema,
+  requiresInvoiceQuoteResult,
 } from '../lib/omega/quote-request.ts'
-import { quoteResultSchema } from '../lib/omega/quote-result.ts'
+import {
+  insuranceQuoteAcknowledgementSchema,
+  quoteResultSchema,
+} from '../lib/omega/quote-result.ts'
 import {
   getGlassPosition,
   isGlassQuoteSupported,
@@ -250,6 +254,39 @@ test('builds the exact approved insurance request from an Omega company ID', () 
   assert.equal(request.query.has('medium'), false)
 })
 
+test('requires an insurance policy number and permits an omitted deductible', () => {
+  const withoutDeductible = {
+    ...cashSubmission,
+    payment: {
+      mode: 'insurance',
+      companyId: '42',
+      companyLabel: 'Allstate',
+      policyNumber: 'POLICY-123',
+      deductible: null,
+    },
+  }
+  const parsed = quoteSubmissionSchema.safeParse(withoutDeductible)
+
+  assert.equal(parsed.success, true)
+  assert.equal(
+    buildOmegaQuoteRequest(parsed.data).query.has('account_deductible'),
+    false,
+  )
+  assert.equal(
+    buildOmegaQuoteRequest(parsed.data).query.get('account_policy_no'),
+    'POLICY-123',
+  )
+  assert.equal(
+    quoteSubmissionSchema.safeParse({
+      ...withoutDeductible,
+      payment: { ...withoutDeductible.payment, policyNumber: ' ' },
+    }).success,
+    false,
+  )
+  assert.equal(requiresInvoiceQuoteResult('insurance'), false)
+  assert.equal(requiresInvoiceQuoteResult('cash'), true)
+})
+
 test('rejects client glass-position tampering and unsupported glass types', () => {
   assert.equal(
     quoteSubmissionSchema.safeParse({
@@ -275,6 +312,17 @@ test('extracts stable and fallback invoice IDs without exposing HTML', () => {
   assert.equal(
     extractQuoteInvoiceId('<p>Precision Auto Glass Quote #120242</p>'),
     '120242',
+  )
+  assert.equal(extractQuoteInvoiceId('<h1>Quote #: 120243</h1>'), '120243')
+  assert.equal(extractQuoteInvoiceId('<p>Quote Number: 120244</p>'), '120244')
+  assert.equal(extractQuoteInvoiceId('<p>Invoice &#x23;120245</p>'), '120245')
+  assert.equal(
+    extractQuoteInvoiceId('<a href="/Invoice/120246">View</a>'),
+    '120246',
+  )
+  assert.equal(
+    extractQuoteInvoiceId('<a href="/Quotes/66687/W">Start quote</a>'),
+    null,
   )
   assert.equal(
     extractQuoteInvoiceId(
@@ -375,6 +423,12 @@ test('requires signed-recovery request fields and strict result DTOs', () => {
     }).success,
     false,
   )
+  assert.equal(
+    insuranceQuoteAcknowledgementSchema.safeParse({
+      kind: 'insurance_acknowledgement',
+    }).success,
+    true,
+  )
 })
 
 test('builds normalized client submissions and resets all quote data', () => {
@@ -422,4 +476,31 @@ test('builds normalized client submissions and resets all quote data', () => {
   assert.equal(initialKioskData.quoteResult, null)
   assert.equal(initialKioskData.insuranceCompanyId, '')
   assert.equal(initialKioskData.policyNumber, '')
+})
+
+test('builds an insurance submission without a deductible', () => {
+  const submission = buildQuoteSubmission(
+    {
+      ...initialKioskData,
+      customerName: 'Validation',
+      phone: '8015550100',
+      serviceZip: '84041',
+      quoteVehicle,
+      glassType: 'windshield',
+      glassPosition: 'W',
+      quoteServiceMode: 'shop',
+      shopLocation: 'layton',
+      quotePayType: 'insurance',
+      insuranceCompanyId: '42',
+      insuranceCompanyLabel: 'Allstate',
+      policyNumber: 'POLICY-123',
+      deductibleAmount: '',
+    },
+    'layton',
+  )
+
+  assert.ok(submission)
+  assert.equal(submission.payment.mode, 'insurance')
+  assert.equal(submission.payment.policyNumber, 'POLICY-123')
+  assert.equal(submission.payment.deductible, null)
 })

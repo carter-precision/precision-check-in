@@ -54,3 +54,9 @@ export type QuoteResult = {
   pricingProfileId: string | null
   items: QuoteResultItem[]
 }
+
+export type InsuranceQuoteAcknowledgement = {
+  kind: 'insurance_acknowledgement'
+}
+
+export type QuoteSubmissionResult = QuoteResult | InsuranceQuoteAcknowledgement

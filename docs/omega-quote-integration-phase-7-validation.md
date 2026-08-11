@@ -2,6 +2,20 @@
 
 Date: 2026-08-07
 
+## Post-validation product adjustment — 2026-08-10
+
+Live testing established that Omega creates both cash and insurance invoices
+even though the returned HTML did not match the original invoice-ID parser.
+The product owner subsequently changed the insurance completion contract:
+
+- policy number is required and sent as `account_policy_no`;
+- deductible is optional and omitted from Omega when unknown;
+- insurance submissions stop after a successful Quotes response and show a
+  dedicated insurance acknowledgement;
+- insurance submissions do not parse an invoice ID or fetch the invoice;
+- cash submissions continue to require an invoice-derived result, with the
+  parser expanded to recognize additional bounded quote/invoice markers.
+
 ## Scope and safety constraint
 
 This record covers Phase 7 of the implementation roadmap for the active kiosk

@@ -138,7 +138,7 @@ const paymentSchema = z.discriminatedUnion('mode', [
       companyId: entityIdSchema,
       companyLabel: z.string().trim().min(1).max(160),
       policyNumber: z.string().trim().min(1).max(120),
-      deductible: z.number().finite().nonnegative(),
+      deductible: z.number().finite().nonnegative().nullable(),
     })
     .strict(),
 ])
@@ -180,6 +180,12 @@ export function getServerGlassPosition(type: SupportedGlassType) {
   return glassPositionByType[type]
 }
 
+export function requiresInvoiceQuoteResult(
+  paymentMode: ValidatedQuoteSubmission['payment']['mode'],
+) {
+  return paymentMode === 'cash'
+}
+
 export function buildOmegaQuoteRequest(input: ValidatedQuoteSubmission) {
   const position = getServerGlassPosition(input.glass.type)
   const query = new URLSearchParams({
@@ -212,7 +218,10 @@ export function buildOmegaQuoteRequest(input: ValidatedQuoteSubmission) {
     query.set('campaign', 'Ins Web Quote')
     query.set('account_company_id', input.payment.companyId)
     query.set('account_policy_no', input.payment.policyNumber)
-    query.set('account_deductible', String(input.payment.deductible))
+
+    if (input.payment.deductible !== null) {
+      query.set('account_deductible', String(input.payment.deductible))
+    }
   }
 
   return {

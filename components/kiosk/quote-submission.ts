@@ -72,15 +72,18 @@ export function buildQuoteSubmission(
     return { ...common, payment: { mode: 'cash' } }
   }
 
-  const deductible = Number(data.deductibleAmount)
   if (
     !data.insuranceCompanyId.trim() ||
     !data.insuranceCompanyLabel.trim() ||
-    !data.policyNumber.trim() ||
-    !data.deductibleAmount.trim() ||
-    !Number.isFinite(deductible) ||
-    deductible < 0
+    !data.policyNumber.trim()
   ) {
+    return null
+  }
+
+  const deductibleText = data.deductibleAmount.trim()
+  const deductible = deductibleText ? Number(deductibleText) : null
+
+  if (deductible !== null && (!Number.isFinite(deductible) || deductible < 0)) {
     return null
   }
 
