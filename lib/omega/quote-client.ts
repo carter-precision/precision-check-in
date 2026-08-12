@@ -23,6 +23,28 @@ export async function quoteOmegaJsonRequest(
 ): Promise<unknown> {
   const response = await quoteOmegaRequest(path, query, 'application/json')
 
+  return parseJsonResponse(response)
+}
+
+export async function quoteOmegaJsonPost(
+  path: string,
+  body: unknown,
+): Promise<unknown> {
+  const response = await quoteOmegaRequest(
+    path,
+    undefined,
+    'application/json',
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+      contentType: 'application/json',
+    },
+  )
+
+  return parseJsonResponse(response)
+}
+
+async function parseJsonResponse(response: Response) {
   try {
     return await response.json()
   } catch {
@@ -46,6 +68,11 @@ async function quoteOmegaRequest(
   path: string,
   query: URLSearchParams | undefined,
   accept: string,
+  options: {
+    method?: 'GET' | 'POST'
+    body?: string
+    contentType?: string
+  } = {},
 ) {
   const apiKey = process.env.OMEGA_API_KEY?.trim()
 
@@ -83,7 +110,10 @@ async function quoteOmegaRequest(
       headers: {
         Accept: accept,
         api_key: apiKey,
+        ...(options.contentType ? { 'Content-Type': options.contentType } : {}),
       },
+      method: options.method ?? 'GET',
+      body: options.body,
       cache: 'no-store',
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
     })

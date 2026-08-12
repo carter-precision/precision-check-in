@@ -44,7 +44,7 @@ const quoteInputKeys = new Set<keyof KioskData>([
   'quoteServiceMode',
   'serviceAddress',
   'shopLocation',
-  'preferredDate',
+  'appointmentRequest',
 ])
 
 export function useKioskFlow(location: string) {
@@ -112,6 +112,7 @@ export function useKioskFlow(location: string) {
         quoteSubmissionStatus: 'submitting',
         quoteSubmissionError: null,
         quoteResult: null,
+        quoteSchedulingStatus: null,
       }))
 
       try {
@@ -123,6 +124,7 @@ export function useKioskFlow(location: string) {
             quoteSubmissionStatus: 'succeeded',
             quoteSubmissionError: null,
             quoteResult: null,
+            quoteSchedulingStatus: result.scheduling.status,
           }))
           setHistory((current) => [...current, step])
           setStep('windshieldInsuranceSuccess')
@@ -134,6 +136,7 @@ export function useKioskFlow(location: string) {
           quoteSubmissionStatus: 'succeeded',
           quoteSubmissionError: null,
           quoteResult: result,
+          quoteSchedulingStatus: result.scheduling.status,
         }))
         setHistory((current) => [...current, step])
         setStep('windshieldQuoteResult')
@@ -149,6 +152,7 @@ export function useKioskFlow(location: string) {
             knownError?.message ??
             "We couldn't complete your quote. Please try again.",
           quoteResult: null,
+          quoteSchedulingStatus: null,
         }))
         return false
       } finally {

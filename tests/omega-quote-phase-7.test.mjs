@@ -10,6 +10,12 @@ import {
   normalizeVinVehicle,
 } from '../lib/omega/quote-contracts.ts'
 import {
+  normalizeOmegaAppointmentSlots,
+  normalizeOmegaQuoteLocations,
+  selectMobileSchedulingLocation,
+} from '../lib/omega/scheduling-contracts.ts'
+import { buildHeldAppointmentPayload } from '../lib/omega/scheduling-request.ts'
+import {
   classifyOmegaQuoteHtml,
   extractOmegaQuoteBootstrapGuid,
   extractQuoteInvoiceId,
@@ -63,7 +69,7 @@ const cashSubmission = {
     mode: 'shop',
     address: null,
     shopLocation: 'layton',
-    preferredDate: null,
+    appointmentRequest: { kind: 'follow_up' },
   },
   payment: { mode: 'cash' },
 }
@@ -162,6 +168,124 @@ test('normalizes VIN and insurance lookup responses into minimal DTOs', () => {
     normalizeInsuranceCompanies([{ id: 42, company: 'Allstate' }]),
     [{ id: '42', label: 'Allstate' }],
   )
+})
+
+test('normalizes Omega scheduling locations and appointment windows', () => {
+  assert.deepEqual(
+    normalizeOmegaQuoteLocations([
+      {
+        id: 2,
+        name: 'Layton',
+        timezone: 'America/Denver',
+        active: '1',
+      },
+      {
+        id: 3,
+        name: 'Inactive',
+        timezone: 'America/Denver',
+        active: '0',
+      },
+    ]),
+    [
+      {
+        id: '2',
+        label: 'Layton',
+        timeZone: 'America/Denver',
+        serviced: true,
+        servicedPostalCode: null,
+        distance: null,
+      },
+    ],
+  )
+
+  const windows = normalizeOmegaAppointmentSlots(
+    [
+      {
+        date: '2024-04-09',
+        appointment_slots: [{ start: '16:00', end: '18:00' }],
+      },
+    ],
+    'America/Denver',
+  )
+
+  assert.deepEqual(windows, [
+    {
+      date: '2024-04-09',
+      start: '16:00',
+      end: '18:00',
+      label: 'Tue, Apr 9, 4:00 PM–6:00 PM',
+      startTime: Date.parse('2024-04-09T16:00:00-06:00') / 1000,
+      endTime: Date.parse('2024-04-09T18:00:00-06:00') / 1000,
+    },
+  ])
+})
+
+test('routes mobile scheduling to a mapped serviced location', () => {
+  const location = selectMobileSchedulingLocation(
+    [
+      {
+        id: '4',
+        label: 'Internal RV Shop',
+        timeZone: 'America/Denver',
+        serviced: true,
+        servicedPostalCode: '84040',
+        distance: 1,
+      },
+      {
+        id: '2',
+        label: 'Centerville',
+        timeZone: 'America/Denver',
+        serviced: true,
+        servicedPostalCode: null,
+        distance: 2,
+      },
+      {
+        id: '1',
+        label: 'Layton',
+        timeZone: 'America/Denver',
+        serviced: true,
+        servicedPostalCode: '84040',
+        distance: 3.5,
+      },
+    ],
+    '84040',
+    new Set(['1', '2']),
+  )
+
+  assert.equal(location?.id, '1')
+})
+
+test('builds a held appointment request without claiming a confirmed time', () => {
+  const payload = buildHeldAppointmentPayload(
+    cashSubmission,
+    {
+      version: 1,
+      kioskLocationSlug: 'layton',
+      serviceMode: 'shop',
+      routingKey: 'layton',
+      omegaLocationId: '2',
+      omegaLocationLabel: 'Layton',
+      kind: 'window',
+      startTime: 1_712_700_000,
+      endTime: 1_712_707_200,
+      windowLabel: 'Tue, Apr 9, 4:00 PM–6:00 PM',
+      expiresAt: 1_800_000_000,
+    },
+    '120241',
+    'Kiosk request',
+  )
+
+  assert.deepEqual(payload, {
+    invoice_id: 120241,
+    status: 'HOLD',
+    type: 'inshop',
+    location_id: 2,
+    note: 'Kiosk scheduling request. Customer requested Tue, Apr 9, 4:00 PM–6:00 PM. Exact appointment time is pending confirmation. In-shop service requested at Layton.',
+    ignore_capacity: false,
+    requested_window_start: 1_712_700_000,
+    requested_window_end: 1_712_707_200,
+    hold_reason: 'Kiosk request',
+  })
 })
 
 test('accepts valid VINs and rejects VINs containing I, O, or Q', () => {
@@ -450,6 +574,7 @@ test('requires a strict total-only result DTO', () => {
     quoteResultSchema.safeParse({
       invoiceId: '120241',
       total: 379.27,
+      scheduling: { status: 'held' },
     }).success,
     true,
   )
@@ -458,6 +583,7 @@ test('requires a strict total-only result DTO', () => {
       invoiceId: '120241',
       total: 379.27,
       tax: 27.5,
+      scheduling: { status: 'held' },
     }).success,
     false,
   )
@@ -466,12 +592,14 @@ test('requires a strict total-only result DTO', () => {
       invoiceId: '120241',
       total: 406.77,
       rawHtml: '<p>must not pass</p>',
+      scheduling: { status: 'held' },
     }).success,
     false,
   )
   assert.equal(
     insuranceQuoteAcknowledgementSchema.safeParse({
       kind: 'insurance_acknowledgement',
+      scheduling: { status: 'needs_follow_up' },
     }).success,
     true,
   )
@@ -489,6 +617,7 @@ test('builds normalized client submissions and resets all quote data', () => {
     glassPosition: 'B',
     quoteServiceMode: 'shop',
     shopLocation: 'layton',
+    appointmentRequest: { kind: 'follow_up' },
     quotePayType: 'cash',
   }
 
@@ -507,7 +636,7 @@ test('builds normalized client submissions and resets all quote data', () => {
       mode: 'shop',
       address: null,
       shopLocation: 'layton',
-      preferredDate: null,
+      appointmentRequest: { kind: 'follow_up' },
     },
     payment: { mode: 'cash' },
   })
@@ -534,6 +663,7 @@ test('builds an insurance submission without a deductible', () => {
       glassPosition: 'W',
       quoteServiceMode: 'shop',
       shopLocation: 'layton',
+      appointmentRequest: { kind: 'follow_up' },
       quotePayType: 'insurance',
       insuranceCompanyId: '42',
       insuranceCompanyLabel: 'Allstate',

@@ -39,13 +39,33 @@ export type InsuranceCompanyOption = {
   label: string
 }
 
+export type AppointmentWindowOption = {
+  token: string
+  date: string
+  start: string
+  end: string
+  label: string
+}
+
+export type AppointmentAvailability = {
+  locationLabel: string
+  windows: AppointmentWindowOption[]
+  flexibleToken: string
+}
+
+export type SchedulingResult = {
+  status: 'held' | 'needs_follow_up'
+}
+
 export type QuoteResult = {
   invoiceId: string
   total: number
+  scheduling: SchedulingResult
 }
 
 export type InsuranceQuoteAcknowledgement = {
   kind: 'insurance_acknowledgement'
+  scheduling: SchedulingResult
 }
 
 export type QuoteSubmissionResult = QuoteResult | InsuranceQuoteAcknowledgement

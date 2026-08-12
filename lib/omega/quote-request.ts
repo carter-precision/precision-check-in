@@ -52,6 +52,12 @@ const glassPositionSchema = z.enum([
   'B',
 ])
 
+const appointmentRequestSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('window'), token: z.string().min(20) }).strict(),
+  z.object({ kind: z.literal('flexible'), token: z.string().min(20) }).strict(),
+  z.object({ kind: z.literal('follow_up') }).strict(),
+])
+
 const customerSchema = z
   .object({
     firstName: z.string().trim().min(1).max(80),
@@ -114,11 +120,7 @@ const serviceSchema = z.discriminatedUnion('mode', [
       mode: z.literal('mobile'),
       address: z.string().trim().min(1).max(300),
       shopLocation: z.null(),
-      preferredDate: z
-        .string()
-        .trim()
-        .regex(/^\d{4}-\d{2}-\d{2}$/)
-        .nullable(),
+      appointmentRequest: appointmentRequestSchema,
     })
     .strict(),
   z
@@ -126,11 +128,7 @@ const serviceSchema = z.discriminatedUnion('mode', [
       mode: z.literal('shop'),
       address: z.null(),
       shopLocation: locationSlugSchema,
-      preferredDate: z
-        .string()
-        .trim()
-        .regex(/^\d{4}-\d{2}-\d{2}$/)
-        .nullable(),
+      appointmentRequest: appointmentRequestSchema,
     })
     .strict(),
 ])

@@ -14,6 +14,11 @@ import {
   getServerGlassPosition,
   quoteSubmissionSchema,
 } from '@/lib/omega/quote-request'
+import {
+  createHeldAppointment,
+  InvalidSchedulingRequestError,
+  prepareHeldAppointment,
+} from '@/lib/omega/scheduling'
 
 type QuoteOperationContext = {
   requestId: string
@@ -68,11 +73,17 @@ export async function POST(request: NextRequest) {
     context.vehicleId = parsed.data.vehicle.vehicleId
     context.position = getServerGlassPosition(parsed.data.glass.type)
     context.paymentMode = parsed.data.payment.mode
+    const preparedAppointment = prepareHeldAppointment(parsed.data)
     const result = await generateOmegaQuote(parsed.data, (invoiceId) => {
       context.invoiceId = invoiceId
     })
+    const scheduling = await createHeldAppointment(
+      parsed.data,
+      preparedAppointment,
+      context.invoiceId,
+    )
 
-    return NextResponse.json({ data: result })
+    return NextResponse.json({ data: { ...result, scheduling } })
   } catch (error) {
     if (error instanceof QuoteKioskAuthorizationError) {
       return quoteErrorResponse(
@@ -89,6 +100,14 @@ export async function POST(request: NextRequest) {
         400,
         'invalid_quote_reference',
         'The selected vehicle or insurance company is no longer available.',
+      )
+    }
+
+    if (error instanceof InvalidSchedulingRequestError) {
+      return quoteErrorResponse(
+        400,
+        'invalid_scheduling_request',
+        'The selected scheduling option expired. Please choose it again.',
       )
     }
 

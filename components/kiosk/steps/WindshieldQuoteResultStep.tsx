@@ -58,11 +58,17 @@ export function WindshieldQuoteResultStep({
           <SummaryRow label="Glass" value={getGlassLabel(data.glassType)} />
           <SummaryRow label="Service" value={formatService(data)} />
           <SummaryRow
-            label="Preferred date"
-            value={formatDate(data.preferredDate)}
+            label="Requested window"
+            value={formatAppointmentRequest(data)}
           />
           <SummaryRow label="Contact" value={data.customerName} />
         </div>
+
+        <p className="mx-auto max-w-2xl rounded-xl bg-accent-tint px-5 py-4 text-center text-sm font-semibold leading-relaxed text-[#40525a]">
+          {data.quoteSchedulingStatus === 'held'
+            ? 'Your request is in our scheduling queue. We’ll contact you to confirm the exact appointment time.'
+            : 'We’ll contact you to arrange and confirm your appointment.'}
+        </p>
 
         <p className="mx-auto max-w-2xl px-4 text-center text-xs font-medium italic leading-relaxed text-muted-foreground">
           Web quotes may not include every vehicle-specific attachment or
@@ -118,15 +124,12 @@ function formatService(data: KioskData) {
   return 'Not selected'
 }
 
-function formatDate(value: string) {
-  if (!value) return 'No preference'
-
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${value}T00:00:00Z`))
+function formatAppointmentRequest(data: KioskData) {
+  const request = data.appointmentRequest
+  if (!request || request.kind === 'follow_up')
+    return 'Team follow-up requested'
+  if (request.kind === 'flexible') return `Flexible — ${request.locationLabel}`
+  return `${request.label} — ${request.locationLabel}`
 }
 
 function formatCurrency(value: number) {

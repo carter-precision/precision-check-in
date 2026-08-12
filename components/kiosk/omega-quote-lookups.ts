@@ -1,4 +1,5 @@
 import type {
+  AppointmentAvailability,
   InsuranceCompanyOption,
   VehicleMakeOption,
   VehicleModelOption,
@@ -36,6 +37,27 @@ export function loadInsuranceCompanies(location: string, signal?: AbortSignal) {
   return fetchLookup<InsuranceCompanyOption[]>(
     '/api/kiosk/omega/insurance-companies',
     { location },
+    signal,
+  )
+}
+
+export function loadAppointmentAvailability(
+  location: string,
+  input: {
+    mode: 'mobile' | 'shop'
+    shopLocation: string | null
+    postalCode: string
+  },
+  signal?: AbortSignal,
+) {
+  return fetchLookup<AppointmentAvailability>(
+    '/api/kiosk/omega/appointment-windows',
+    {
+      location,
+      mode: input.mode,
+      postalCode: input.postalCode,
+      ...(input.shopLocation ? { shopLocation: input.shopLocation } : {}),
+    },
     signal,
   )
 }

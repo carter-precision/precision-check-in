@@ -31,7 +31,8 @@ export function buildQuoteSubmission(
     !data.glassType ||
     !data.glassPosition ||
     !data.quoteServiceMode ||
-    !data.quotePayType
+    !data.quotePayType ||
+    !data.appointmentRequest
   ) {
     return null
   }
@@ -64,7 +65,13 @@ export function buildQuoteSubmission(
         data.quoteServiceMode === 'mobile' ? data.serviceAddress.trim() : null,
       shopLocation:
         data.quoteServiceMode === 'shop' ? data.shopLocation.trim() : null,
-      preferredDate: data.preferredDate.trim() || null,
+      appointmentRequest:
+        data.appointmentRequest.kind === 'follow_up'
+          ? { kind: 'follow_up' as const }
+          : {
+              kind: data.appointmentRequest.kind,
+              token: data.appointmentRequest.token,
+            },
     },
   } satisfies Omit<QuoteSubmission, 'payment'>
 

@@ -6,13 +6,17 @@ import {
 } from './quote-lookups'
 import { QuoteOmegaApiError, quoteOmegaHtmlRequest } from './quote-client'
 import { classifyOmegaQuoteHtml } from './quote-invoice'
+import { extractQuoteInvoiceId } from './quote-invoice'
 import {
   buildOmegaQuoteCompletionRequest,
   buildOmegaQuoteRequest,
   requiresCashQuoteResult,
   type ValidatedQuoteSubmission,
 } from './quote-request'
-import type { QuoteSubmissionResult } from './quote-types'
+import type { QuoteResult } from './quote-types'
+
+type GeneratedQuoteResult =
+  Omit<QuoteResult, 'scheduling'> | { kind: 'insurance_acknowledgement' }
 
 export type QuoteGenerationStage =
   | 'reference_validation'
@@ -42,7 +46,7 @@ export class QuoteGenerationError extends Error {
 export async function generateOmegaQuote(
   input: ValidatedQuoteSubmission,
   onInvoiceId: (invoiceId: string) => void,
-): Promise<QuoteSubmissionResult> {
+): Promise<GeneratedQuoteResult> {
   await verifyQuoteReferences(input)
 
   const omegaRequest = buildOmegaQuoteRequest(input)
@@ -55,6 +59,8 @@ export async function generateOmegaQuote(
   }
 
   if (!requiresCashQuoteResult(input.payment.mode)) {
+    const invoiceId = extractQuoteInvoiceId(html)
+    if (invoiceId) onInvoiceId(invoiceId)
     return { kind: 'insurance_acknowledgement' }
   }
 

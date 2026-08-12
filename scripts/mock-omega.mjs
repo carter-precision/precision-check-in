@@ -28,13 +28,33 @@ if (!supportedScenarios.has(SCENARIO)) {
   process.exit(1)
 }
 
-const server = http.createServer((request, response) => {
+const server = http.createServer(async (request, response) => {
   const url = new URL(
     request.url ?? '/',
     `http://${request.headers.host ?? HOST}`,
   )
 
   console.log(`${request.method ?? 'GET'} ${url.pathname}${url.search}`)
+
+  if (request.method === 'POST' && url.pathname === '/api/2.0/Appointments') {
+    const body = await readJsonBody(request, response)
+    if (body === null) return
+
+    if (
+      body.status !== 'HOLD' ||
+      body.invoice_id === undefined ||
+      body.location_id === undefined
+    ) {
+      sendJson(response, 400, {
+        error_code: 400,
+        message: 'Invalid held appointment payload.',
+      })
+      return
+    }
+
+    sendJson(response, 201, Number(APPOINTMENT_ID))
+    return
+  }
 
   if (request.method !== 'GET') {
     sendJson(response, 405, {
@@ -54,6 +74,37 @@ const server = http.createServer((request, response) => {
 
   if (url.pathname === `/api/2.0/Invoices/${INVOICE_ID}`) {
     sendJson(response, 200, createInvoice())
+    return
+  }
+
+  if (url.pathname === '/api/2.0/Locations/Quotes/') {
+    sendJson(response, 200, [createLocation()])
+    return
+  }
+
+  if (url.pathname === '/api/2.0/Locations/search/') {
+    sendJson(response, 200, [
+      {
+        ...createLocation(),
+        distance: '3.5',
+        serviced: true,
+        serviced_postal_code: url.searchParams.get('postal_code'),
+      },
+    ])
+    return
+  }
+
+  if (url.pathname === `/api/2.0/Locations/${LOCATION_ID}`) {
+    sendJson(response, 200, createLocation())
+    return
+  }
+
+  if (url.pathname === `/api/2.0/Locations/${LOCATION_ID}/AppointmentSlots`) {
+    sendJson(
+      response,
+      200,
+      createAppointmentSlots(url.searchParams.get('type')),
+    )
     return
   }
 
@@ -139,6 +190,58 @@ function createAppointment() {
     end_time: startTime + 60 * 60,
     status: SCENARIO === 'closed' ? 'CLOSED' : 'OPEN',
     type: SCENARIO === 'mobile' ? 'mobile' : 'inshop',
+  }
+}
+
+function createLocation() {
+  return {
+    id: Number(LOCATION_ID),
+    name: 'Layton',
+    timezone: 'America/Denver',
+    active: '1',
+  }
+}
+
+function createAppointmentSlots(type) {
+  const now = new Date()
+  const windows =
+    type === 'inshop'
+      ? [
+          { start: '08:00', end: '10:00' },
+          { start: '10:00', end: '12:00' },
+        ]
+      : [
+          { start: '07:00', end: '12:00' },
+          { start: '12:00', end: '18:00' },
+        ]
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(now)
+    date.setUTCDate(now.getUTCDate() + index + 1)
+
+    return {
+      date: date.toISOString().slice(0, 10),
+      capacity: 6,
+      appointments: 2,
+      Hours: { open_time: '07:00', close_time: '18:00' },
+      appointment_slots: windows,
+    }
+  })
+}
+
+async function readJsonBody(request, response) {
+  const chunks = []
+
+  for await (const chunk of request) chunks.push(chunk)
+
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  } catch {
+    sendJson(response, 400, {
+      error_code: 400,
+      message: 'Invalid JSON body.',
+    })
+    return null
   }
 }
 

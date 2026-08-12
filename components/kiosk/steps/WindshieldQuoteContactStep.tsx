@@ -35,7 +35,6 @@ export function WindshieldQuoteContactStep({
   const submission = buildQuoteSubmission(data, location)
   const phoneIsValid = isValidQuotePhone(data.phone)
   const emailIsValid = isValidQuoteEmail(data.email)
-  const zipIsValid = /^\d{5}$/.test(data.serviceZip)
   const isSubmitting = data.quoteSubmissionStatus === 'submitting'
 
   useEffect(() => {
@@ -135,38 +134,18 @@ export function WindshieldQuoteContactStep({
           </QuoteField>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
-          <QuoteField id="quote-email" label="Email" optional>
-            <QuoteInput
-              id="quote-email"
-              type="email"
-              inputMode="email"
-              value={data.email}
-              placeholder="jane@example.com"
-              autoComplete="email"
-              aria-invalid={!emailIsValid}
-              onChange={(event) =>
-                updateQuoteData({ email: event.target.value })
-              }
-            />
-          </QuoteField>
-          <QuoteField id="quote-zip" label="Five-digit ZIP">
-            <QuoteInput
-              id="quote-zip"
-              inputMode="numeric"
-              maxLength={5}
-              value={data.serviceZip}
-              placeholder="84045"
-              autoComplete="postal-code"
-              aria-invalid={data.serviceZip.length > 0 && !zipIsValid}
-              onChange={(event) =>
-                updateQuoteData({
-                  serviceZip: event.target.value.replace(/\D/g, '').slice(0, 5),
-                })
-              }
-            />
-          </QuoteField>
-        </div>
+        <QuoteField id="quote-email" label="Email" optional>
+          <QuoteInput
+            id="quote-email"
+            type="email"
+            inputMode="email"
+            value={data.email}
+            placeholder="jane@example.com"
+            autoComplete="email"
+            aria-invalid={!emailIsValid}
+            onChange={(event) => updateQuoteData({ email: event.target.value })}
+          />
+        </QuoteField>
 
         <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#d7e1e3] bg-white p-4 text-base font-medium text-[#40525a] shadow-sm">
           <input

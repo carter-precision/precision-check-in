@@ -51,6 +51,25 @@ export type QuotePaymentMode = 'insurance' | 'cash'
 export type QuoteSubmissionStatus =
   'idle' | 'submitting' | 'succeeded' | 'failed'
 
+export type AppointmentRequestSelection =
+  | {
+      kind: 'window'
+      token: string
+      date: string
+      start: string
+      end: string
+      label: string
+      locationLabel: string
+    }
+  | {
+      kind: 'flexible'
+      token: string
+      locationLabel: string
+    }
+  | {
+      kind: 'follow_up'
+    }
+
 export type QuoteVehicle = {
   year: string
   makeId: string
@@ -82,7 +101,8 @@ export type QuoteSubmission = {
     mode: Exclude<QuoteServiceMode, null>
     address: string | null
     shopLocation: string | null
-    preferredDate: string | null
+    appointmentRequest:
+      { kind: 'window' | 'flexible'; token: string } | { kind: 'follow_up' }
   }
   payment:
     | { mode: 'cash' }
@@ -126,12 +146,13 @@ export type KioskData = {
   quoteServiceMode: QuoteServiceMode
   serviceAddress: string
   shopLocation: string
-  preferredDate: string
+  appointmentRequest: AppointmentRequestSelection | null
   email: string
   quoteSubmission: QuoteSubmission | null
   quoteSubmissionStatus: QuoteSubmissionStatus
   quoteSubmissionError: string | null
   quoteResult: QuoteResult | null
+  quoteSchedulingStatus: 'held' | 'needs_follow_up' | null
 }
 
 export const emptyQuoteVehicleData = {
@@ -153,7 +174,7 @@ export const emptyQuoteServiceData = {
   quoteServiceMode: null,
   serviceAddress: '',
   shopLocation: '',
-  preferredDate: '',
+  appointmentRequest: null,
 } satisfies Partial<KioskData>
 
 export const emptyQuoteOutcomeData = {
@@ -161,6 +182,7 @@ export const emptyQuoteOutcomeData = {
   quoteSubmissionStatus: 'idle',
   quoteSubmissionError: null,
   quoteResult: null,
+  quoteSchedulingStatus: null,
 } satisfies Partial<KioskData>
 
 export const emptyQuoteContactData = {

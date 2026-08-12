@@ -34,6 +34,12 @@ export function WindshieldInsuranceSuccessStep({
           will contact you about the next steps.
         </p>
 
+        <p className="mt-5 max-w-xl rounded-xl bg-accent-tint px-5 py-4 text-sm font-semibold leading-relaxed text-[#40525a]">
+          {data.quoteSchedulingStatus === 'held'
+            ? 'Your preferred service request is in our scheduling queue. We’ll contact you to confirm the exact appointment time.'
+            : 'We’ll contact you to arrange and confirm your appointment.'}
+        </p>
+
         <div className="mt-8 w-full rounded-[1.4rem] border border-[#d7e1e3] bg-white p-6 text-left shadow-sm">
           <p className="text-sm font-bold uppercase tracking-[0.16em] text-accent">
             Your responsibility
