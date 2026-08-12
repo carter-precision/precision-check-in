@@ -81,20 +81,25 @@ const rawCompanySchema = z
     label: value.company,
   }))
 
-const rawVinVehicleSchema = z.object({
-  vehicle_id: numericIdSchema,
-  year: optionalRawScalarSchema,
-  vehicle_year: optionalRawScalarSchema,
-  make_id: optionalRawScalarSchema,
-  make_name: optionalRawScalarSchema,
-  model_id: optionalRawScalarSchema,
-  model_name: optionalRawScalarSchema,
-  modifier_id: optionalRawScalarSchema,
-  modifier_dsc: optionalRawScalarSchema,
-  body_style_id: optionalRawScalarSchema,
-  body_style_dsc: optionalRawScalarSchema,
-  vehicle_description: optionalRawScalarSchema,
-})
+const rawVinVehicleSchema = z
+  .object({
+    vehicle_id: numericIdSchema.optional(),
+    id: numericIdSchema.optional(),
+    year: optionalRawScalarSchema,
+    vehicle_year: optionalRawScalarSchema,
+    make_id: optionalRawScalarSchema,
+    make_name: optionalRawScalarSchema,
+    model_id: optionalRawScalarSchema,
+    model_name: optionalRawScalarSchema,
+    modifier_id: optionalRawScalarSchema,
+    modifier_dsc: optionalRawScalarSchema,
+    body_style_id: optionalRawScalarSchema,
+    body_style_dsc: optionalRawScalarSchema,
+    vehicle_description: optionalRawScalarSchema,
+  })
+  .refine((value) => value.vehicle_id !== undefined || value.id !== undefined, {
+    message: 'VIN vehicle response is missing an identifier',
+  })
 
 export class OmegaQuoteContractError extends Error {
   constructor(contract: string) {
@@ -167,9 +172,12 @@ export function normalizeVinVehicle(
 
   if (!value) return null
 
+  const vehicleId = value.vehicle_id ?? value.id
+  if (!vehicleId) throw new OmegaQuoteContractError('VIN vehicle')
+
   return {
     vin,
-    vehicleId: value.vehicle_id,
+    vehicleId,
     year: normalizeOptionalYear(value.year ?? value.vehicle_year),
     makeId: normalizeOptionalId(value.make_id),
     makeLabel: normalizeOptionalLabel(value.make_name),

@@ -33,11 +33,11 @@ import {
 import { buildQuoteSubmission } from '../components/kiosk/quote-submission.ts'
 import { initialKioskData } from '../components/kiosk/types.ts'
 
-const validVin = '1HGCM82633A004352'
+const validVin = '3FA6P0H7XHR110241'
 
 const quoteVehicle = {
   year: '2017',
-  makeId: '138',
+  makeId: '13',
   makeLabel: 'Ford',
   modelId: '4543',
   modelLabel: 'Fusion',
@@ -71,8 +71,8 @@ const cashSubmission = {
 test('normalizes the documented 2017 Ford Fusion lookup chain', () => {
   assert.deepEqual(normalizeVehicleYears([{ year: 2017 }]), [{ year: '2017' }])
   assert.deepEqual(
-    normalizeVehicleMakes([{ make_id: 138, make_name: 'Ford' }]),
-    [{ id: '138', label: 'Ford' }],
+    normalizeVehicleMakes([{ make_id: 13, make_name: 'Ford' }]),
+    [{ id: '13', label: 'Ford' }],
   )
   assert.deepEqual(
     normalizeVehicleModels([
@@ -120,16 +120,23 @@ test('normalizes VIN and insurance lookup responses into minimal DTOs', () => {
   assert.deepEqual(
     normalizeVinVehicle(
       {
-        data: {
-          vehicle_id: 66687,
-          year: 2017,
-          make_id: 138,
-          make_name: 'Ford',
-          model_id: 4543,
-          model_name: 'Fusion',
-          body_style_id: 190,
-          body_style_dsc: '4 Door Sedan',
-        },
+        year: '2017',
+        make_id: '13',
+        make_name: 'Ford',
+        model_id: '4543',
+        model_name: 'Fusion',
+        body_style_id: '190',
+        body_style_dsc: '4 Door Sedan',
+        modifier_id: null,
+        modifier_dsc: null,
+        graphic_id: '002I0160',
+        vin_pattern: null,
+        NagsGlass: [],
+        OEMGlass: [],
+        NHTSAVehicle: null,
+        id: '66687',
+        VIN: validVin,
+        Notes: [],
       },
       validVin,
     ),
@@ -137,7 +144,7 @@ test('normalizes VIN and insurance lookup responses into minimal DTOs', () => {
       vin: validVin,
       vehicleId: '66687',
       year: '2017',
-      makeId: '138',
+      makeId: '13',
       makeLabel: 'Ford',
       modelId: '4543',
       modelLabel: 'Fusion',
@@ -146,6 +153,10 @@ test('normalizes VIN and insurance lookup responses into minimal DTOs', () => {
       bodyStyleId: '190',
       variantLabel: '4 Door Sedan',
     },
+  )
+  assert.equal(
+    normalizeVinVehicle({ vehicle_id: 66687 }, validVin)?.vehicleId,
+    '66687',
   )
   assert.deepEqual(
     normalizeInsuranceCompanies([{ id: 42, company: 'Allstate' }]),
@@ -205,7 +216,7 @@ test('builds the exact approved cash request without legacy fields', () => {
   assert.equal(request.position, 'W')
   assert.deepEqual(Object.fromEntries(request.query), {
     year: '2017',
-    make: '138',
+    make: '13',
     model: '4543',
     vehicle_id: '66687',
     position: 'W',

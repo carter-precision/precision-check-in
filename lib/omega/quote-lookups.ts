@@ -49,10 +49,8 @@ export async function getQuoteVehicleVariants(
 }
 
 export async function getQuoteVehicleByVin(vin: string) {
-  const query = new URLSearchParams({ load_options: 'true' })
   const payload = await quoteOmegaJsonRequest(
     `/NagsVehicles/${encodeURIComponent(vin)}`,
-    query,
   )
   return normalizeVinVehicle(payload, vin)
 }
