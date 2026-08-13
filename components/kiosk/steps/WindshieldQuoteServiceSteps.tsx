@@ -18,7 +18,6 @@ import {
   QuoteContinueButton,
   QuoteField,
   QuoteForm,
-  QuoteHelperButton,
   QuoteInput,
   QuoteSelect,
   QuoteToggle,
@@ -64,41 +63,44 @@ export function WindshieldGlassStep({
         <p className="text-center text-lg font-medium text-muted-foreground">
           Tap the damaged glass on the vehicle.
         </p>
-        <VehicleGlassDiagram selected={data.glassType} onSelect={selectGlass} />
+        <VehicleGlassDiagram
+          selected={data.glassType}
+          onSelect={selectGlass}
+          selectionControl={
+            <QuoteField
+              id="glass-type"
+              label="Selected glass"
+              labelClassName="sr-only"
+            >
+              <QuoteSelect
+                id="glass-type"
+                value={getGlassDropdownValue(data.glassType) ?? ''}
+                onChange={(event) =>
+                  event.target.value
+                    ? selectGlass(event.target.value as GlassType)
+                    : updateData({ glassType: null, glassPosition: null })
+                }
+              >
+                <option value="">Choose the damaged glass</option>
+                {GLASS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </QuoteSelect>
+            </QuoteField>
+          }
+        />
 
-        <div className="text-center">
-          <QuoteHelperButton onClick={() => selectGlass('other')}>
-            Not sure or multiple pieces
-          </QuoteHelperButton>
-        </div>
-
-        <QuoteField id="glass-type" label="Selected glass">
-          <QuoteSelect
-            id="glass-type"
-            value={getGlassDropdownValue(data.glassType) ?? ''}
-            onChange={(event) =>
-              event.target.value
-                ? selectGlass(event.target.value as GlassType)
-                : updateData({ glassType: null, glassPosition: null })
-            }
-          >
-            <option value="">Choose the damaged glass</option>
-            {GLASS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </QuoteSelect>
-          <p className="text-center text-base font-medium text-muted-foreground">
-            Choose from the list or tap a glass panel on the vehicle.
+        <p className="text-center text-base font-medium text-muted-foreground">
+          Choose from the list or tap a glass panel on the vehicle.
+        </p>
+        {data.glassType && !canContinue && (
+          <p className="rounded-xl bg-accent-tint p-4 text-center text-sm font-semibold text-[#40525a]">
+            Online pricing is not currently available for this selection. A team
+            member can help with next steps.
           </p>
-          {data.glassType && !canContinue && (
-            <p className="rounded-xl bg-accent-tint p-4 text-center text-sm font-semibold text-[#40525a]">
-              Online pricing is not currently available for this selection. A
-              team member can help with next steps.
-            </p>
-          )}
-        </QuoteField>
+        )}
 
         <QuoteContinueButton
           disabled={!canContinue}

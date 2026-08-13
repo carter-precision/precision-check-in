@@ -15,17 +15,22 @@ export function QuoteForm({ children }: { children: ReactNode }) {
 export function QuoteField({
   id,
   label,
+  labelClassName,
   optional = false,
   children,
 }: {
   id?: string
   label: string
+  labelClassName?: string
   optional?: boolean
   children: ReactNode
 }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor={id} className="text-base font-bold text-[#40525a]">
+      <Label
+        htmlFor={id}
+        className={cn('text-base font-bold text-[#40525a]', labelClassName)}
+      >
         {label}
         {optional && (
           <span className="font-medium text-muted-foreground">Optional</span>

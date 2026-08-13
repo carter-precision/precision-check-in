@@ -11,15 +11,15 @@ export const KIOSK_LOCATIONS = [
 
 export const GLASS_OPTIONS: Array<{ value: GlassType; label: string }> = [
   { value: 'windshield', label: 'Windshield' },
-  { value: 'driver_front', label: 'Front driver door glass' },
-  { value: 'passenger_front', label: 'Front passenger door glass' },
-  { value: 'driver_rear', label: 'Rear driver door glass' },
-  { value: 'passenger_rear', label: 'Rear passenger door glass' },
+  { value: 'driver_front', label: 'Door – Front driver' },
+  { value: 'passenger_front', label: 'Door – Front passenger' },
+  { value: 'driver_rear', label: 'Door – Rear driver' },
+  { value: 'passenger_rear', label: 'Door – Rear passenger' },
   { value: 'quarter', label: 'Quarter glass' },
   { value: 'vent', label: 'Vent glass' },
   { value: 'back', label: 'Back/rear glass' },
-  { value: 'sunroof', label: 'Sunroof/moonroof' },
-  { value: 'other', label: 'Not sure / multiple pieces' },
+  { value: 'sunroof', label: 'Sunroof' },
+  { value: 'other', label: 'Not sure or multiple pieces' },
 ]
 
 const GLASS_POSITIONS: Record<GlassType, OmegaGlassPosition | null> = {
@@ -39,17 +39,17 @@ const GLASS_POSITIONS: Record<GlassType, OmegaGlassPosition | null> = {
 
 const GLASS_LABELS: Record<GlassType, string> = {
   windshield: 'Windshield',
-  driver_front: 'Front driver door glass',
-  passenger_front: 'Front passenger door glass',
-  driver_rear: 'Rear driver door glass',
-  passenger_rear: 'Rear passenger door glass',
+  driver_front: 'Door – Front driver',
+  passenger_front: 'Door – Front passenger',
+  driver_rear: 'Door – Rear driver',
+  passenger_rear: 'Door – Rear passenger',
   driver_quarter: 'Quarter glass',
   passenger_quarter: 'Quarter glass',
   quarter: 'Quarter glass',
   vent: 'Vent glass',
   back: 'Back/rear glass',
-  sunroof: 'Sunroof/moonroof',
-  other: 'Not sure / multiple pieces',
+  sunroof: 'Sunroof',
+  other: 'Not sure or multiple pieces',
 }
 
 export function getLocationLabel(slug: string) {
