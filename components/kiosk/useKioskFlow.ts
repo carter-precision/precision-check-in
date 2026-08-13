@@ -51,7 +51,7 @@ export function useKioskFlow(location: string) {
   const [step, setStep] = useState<StepId>('welcome')
   const [, setHistory] = useState<StepId[]>([])
   const [data, setData] = useState<KioskData>(initialKioskData)
-  const [lastActivityAt, setLastActivityAt] = useState(() => Date.now())
+  const lastActivityAt = useRef<number | null>(null)
   const [showInactiveWarning, setShowInactiveWarning] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const quoteRequestInFlight = useRef(false)
@@ -96,7 +96,7 @@ export function useKioskFlow(location: string) {
     setData(initialKioskData)
     setHistory([])
     setShowInactiveWarning(false)
-    setLastActivityAt(Date.now())
+    lastActivityAt.current = Date.now()
     setStep('welcome')
   }, [])
 
@@ -211,7 +211,7 @@ export function useKioskFlow(location: string) {
 
   useEffect(() => {
     function handleActivity() {
-      if (!showInactiveWarning) setLastActivityAt(Date.now())
+      if (!showInactiveWarning) lastActivityAt.current = Date.now()
     }
 
     window.addEventListener('pointerdown', handleActivity)
@@ -233,17 +233,33 @@ export function useKioskFlow(location: string) {
       return
     }
 
-    const remaining = Math.max(
-      0,
-      INACTIVITY_WARNING_MS - (Date.now() - lastActivityAt),
-    )
-    const warningTimeout = setTimeout(
-      () => setShowInactiveWarning(true),
-      remaining,
-    )
+    let warningTimeout: ReturnType<typeof setTimeout>
+
+    function scheduleWarning() {
+      const lastActivity = lastActivityAt.current ?? Date.now()
+      lastActivityAt.current = lastActivity
+      const remaining = Math.max(
+        0,
+        INACTIVITY_WARNING_MS - (Date.now() - lastActivity),
+      )
+
+      warningTimeout = setTimeout(() => {
+        const latestActivity = lastActivityAt.current ?? Date.now()
+        lastActivityAt.current = latestActivity
+
+        if (Date.now() - latestActivity >= INACTIVITY_WARNING_MS) {
+          setShowInactiveWarning(true)
+          return
+        }
+
+        scheduleWarning()
+      }, remaining)
+    }
+
+    scheduleWarning()
 
     return () => clearTimeout(warningTimeout)
-  }, [data.quoteSubmissionStatus, step, lastActivityAt, showInactiveWarning])
+  }, [data.quoteSubmissionStatus, step, showInactiveWarning])
 
   useEffect(() => {
     if (!showInactiveWarning) return
@@ -266,7 +282,7 @@ export function useKioskFlow(location: string) {
     submitQuote,
     continueAfterInactivity: () => {
       setShowInactiveWarning(false)
-      setLastActivityAt(Date.now())
+      lastActivityAt.current = Date.now()
     },
   }
 }
