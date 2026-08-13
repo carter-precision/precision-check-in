@@ -5,10 +5,6 @@ import {
   CheckInTooEarly,
   CheckInUnavailable,
 } from '@/components/check-in/CheckInShell'
-import {
-  CheckInPreview,
-  getCheckInPreviewState,
-} from '@/components/dev/CheckInPreview'
 import { CustomerCheckInForm } from '@/components/check-in/CustomerCheckInForm'
 import { createCustomerCheckInProof } from '@/lib/auth/customer-check-in-proof'
 import { getLocationBySlug } from '@/lib/data/locations'
@@ -34,14 +30,6 @@ export default async function CheckInPage({
   const query = await searchParams
   const appointmentGuid = firstQueryValue(query.appointment)
   const invoiceId = firstQueryValue(query.id)
-
-  if (firstQueryValue(query.preview) === '1') {
-    return (
-      <CheckInPreview
-        state={getCheckInPreviewState(firstQueryValue(query.state))}
-      />
-    )
-  }
 
   if (!appointmentGuid || !invoiceId) {
     return <CheckInUnavailable />

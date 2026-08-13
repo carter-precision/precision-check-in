@@ -26,10 +26,19 @@ export function WindshieldQuoteContactStep({
   updateData,
   submitQuote,
   location,
-}: KioskStepProps) {
-  const [companies, setCompanies] = useState<InsuranceCompanyOption[]>([])
+  previewInsuranceCompanies,
+}: KioskStepProps & {
+  previewInsuranceCompanies?: InsuranceCompanyOption[]
+}) {
+  const [companies, setCompanies] = useState<InsuranceCompanyOption[]>(
+    previewInsuranceCompanies ?? [],
+  )
   const [companyStatus, setCompanyStatus] = useState<CompanyStatus>(
-    data.quotePayType === 'insurance' ? 'loading' : 'idle',
+    previewInsuranceCompanies
+      ? 'ready'
+      : data.quotePayType === 'insurance'
+        ? 'loading'
+        : 'idle',
   )
   const [companyRetry, setCompanyRetry] = useState(0)
   const submission = buildQuoteSubmission(data, location)
@@ -38,7 +47,7 @@ export function WindshieldQuoteContactStep({
   const isSubmitting = data.quoteSubmissionStatus === 'submitting'
 
   useEffect(() => {
-    if (data.quotePayType !== 'insurance') return
+    if (previewInsuranceCompanies || data.quotePayType !== 'insurance') return
 
     const controller = new AbortController()
 
@@ -53,7 +62,7 @@ export function WindshieldQuoteContactStep({
       })
 
     return () => controller.abort()
-  }, [companyRetry, data.quotePayType, location])
+  }, [companyRetry, data.quotePayType, location, previewInsuranceCompanies])
 
   function updateQuoteData(partial: Parameters<typeof updateData>[0]) {
     updateData({

@@ -21,33 +21,17 @@ CHECK_IN_PROOF_SECRET=<at least 32 random characters>
 
 ## UI preview
 
-Open this URL in any environment to exercise the customer UI without calling
-Omega or Supabase:
+Open `/prod-preview` in any environment to review common Kiosk, Dashboard, and
+Check-in screens. The page uses fake data and local-only interactions; it does
+not call Omega or Supabase and cannot create or update production records.
 
-```text
-/check-in?preview=1
-```
+The preview is available in production by default so it can be shared with
+non-technical reviewers. Set `DISABLE_PREVIEW=true` to make the route return a
+404 response. The page is marked `noindex, nofollow` whether enabled or disabled.
 
-The preview uses fake customer and vehicle data and is available in production.
-Use the state toggle to switch among the distinct customer-facing screens:
-
-- `resolved`
-- `too-early`
-- `missing-vehicle`
-- `appointment-not-found`
-
-The Appointment Not Found option consolidates the `closed`, `mobile`, `expired`,
-`appointment-missing`, and `mismatched-invoice` scenarios because they display
-the same UI and message. Those individual state values are also accepted as URL
-aliases. For example:
-
-```text
-/check-in?preview=1&state=expired
-```
-
-Either arrival option in the resolved preview displays the success state without
-creating a check-in. The missing-vehicle preview exercises the manual vehicle
-information flow.
+The Check-in tab includes ready, missing-vehicle, too-early, unavailable, and
+completed states. The ready and missing-vehicle forms can be exercised without
+creating a check-in.
 
 Only `OPEN` appointments with type `inshop` are eligible. Check-in opens 15
 minutes before the appointment and closes at the appointment end time. A failed,

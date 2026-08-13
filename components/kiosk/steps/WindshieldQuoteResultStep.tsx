@@ -1,8 +1,22 @@
-import { CheckCircle2, FileWarning } from 'lucide-react'
+import {
+  CalendarClock,
+  CarFront,
+  CheckCircle2,
+  FileWarning,
+  MapPin,
+  Store,
+  UserRound,
+  Wrench,
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
 import { KioskStep } from '../KioskPrimitives'
+import {
+  QuoteSuccessDetail,
+  QuoteSuccessDetails,
+  SchedulingQueueNotice,
+} from '../QuoteSuccess'
 import { getGlassLabel, getLocationLabel } from '../quote-options'
 import type { KioskData, KioskStepProps } from '../types'
 
@@ -41,7 +55,7 @@ export function WindshieldQuoteResultStep({
 
   return (
     <KioskStep>
-      <div className="mx-auto w-full max-w-3xl space-y-6 py-8">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 py-8">
         <div className="rounded-[1.4rem] bg-[#16262f] p-8 text-center text-white shadow-lg">
           <p className="mb-3 text-sm font-bold uppercase tracking-[0.2em] text-accent-tint">
             QUOTE #{result.invoiceId}
@@ -53,24 +67,41 @@ export function WindshieldQuoteResultStep({
           </p>
         </div>
 
-        <div className="divide-y divide-[#d7e1e3] rounded-[1.4rem] border border-[#d7e1e3] bg-white px-6 shadow-sm">
-          <SummaryRow label="Vehicle" value={formatVehicle(data)} />
-          <SummaryRow label="Glass" value={getGlassLabel(data.glassType)} />
-          <SummaryRow label="Service" value={formatService(data)} />
-          <SummaryRow
-            label="Requested window"
+        <QuoteSuccessDetails>
+          <QuoteSuccessDetail
+            icon={<CarFront />}
+            label="Vehicle"
+            value={formatVehicle(data)}
+          />
+          <QuoteSuccessDetail
+            icon={<Wrench />}
+            label="Glass"
+            value={getGlassLabel(data.glassType)}
+          />
+          <QuoteSuccessDetail
+            icon={<CalendarClock />}
+            label="Requested time"
             value={formatAppointmentRequest(data)}
           />
-          <SummaryRow label="Contact" value={data.customerName} />
-        </div>
+          <QuoteSuccessDetail
+            icon={data.quoteServiceMode === 'mobile' ? <MapPin /> : <Store />}
+            label={
+              data.quoteServiceMode === 'mobile'
+                ? 'Mobile service'
+                : 'In-shop service'
+            }
+            value={formatServiceLocation(data)}
+          />
+          <QuoteSuccessDetail
+            icon={<UserRound />}
+            label="Contact"
+            value={formatContact(data)}
+          />
+        </QuoteSuccessDetails>
 
-        <p className="mx-auto max-w-2xl rounded-xl bg-accent-tint px-5 py-4 text-center text-sm font-semibold leading-relaxed text-[#40525a]">
-          {data.quoteSchedulingStatus === 'held'
-            ? 'Your request is in our scheduling queue. We’ll contact you to confirm the exact appointment time.'
-            : 'We’ll contact you to arrange and confirm your appointment.'}
-        </p>
+        <SchedulingQueueNotice />
 
-        <p className="mx-auto max-w-2xl px-4 text-center text-xs font-medium italic leading-relaxed text-muted-foreground">
+        <p className="px-4 text-center text-xs font-medium italic leading-relaxed text-muted-foreground">
           Web quotes may not include every vehicle-specific attachment or
           feature. Our team will confirm the correct parts and final price with
           you. Confirmed quotes are valid for 48 hours because prices can
@@ -89,17 +120,6 @@ export function WindshieldQuoteResultStep({
   )
 }
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-start justify-between gap-6 py-4 text-base">
-      <span className="font-semibold text-muted-foreground">{label}</span>
-      <span className="text-right font-bold text-[#16262f]">
-        {value || 'Not provided'}
-      </span>
-    </div>
-  )
-}
-
 function formatVehicle(data: KioskData) {
   const vehicle = data.quoteVehicle
   if (!vehicle) return 'Not provided'
@@ -114,22 +134,26 @@ function formatVehicle(data: KioskData) {
     .join(' ')
 }
 
-function formatService(data: KioskData) {
-  if (data.quoteServiceMode === 'mobile') {
-    return `Mobile — ${data.serviceAddress}`
-  }
-  if (data.quoteServiceMode === 'shop') {
-    return `In shop — ${getLocationLabel(data.shopLocation)}`
-  }
-  return 'Not selected'
+function formatServiceLocation(data: KioskData) {
+  const location =
+    data.quoteServiceMode === 'mobile'
+      ? data.serviceAddress
+      : getLocationLabel(data.shopLocation)
+
+  return [location, data.serviceZip].filter(Boolean).join(' · ')
 }
 
 function formatAppointmentRequest(data: KioskData) {
   const request = data.appointmentRequest
   if (!request || request.kind === 'follow_up')
     return 'Team follow-up requested'
-  if (request.kind === 'flexible') return `Flexible — ${request.locationLabel}`
-  return `${request.label} — ${request.locationLabel}`
+  if (request.kind === 'flexible')
+    return 'Flexible — contact me to choose a time'
+  return request.label
+}
+
+function formatContact(data: KioskData) {
+  return [data.customerName, data.phone, data.email].filter(Boolean).join(' · ')
 }
 
 function formatCurrency(value: number) {

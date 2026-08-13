@@ -115,6 +115,7 @@ export function WindshieldGlassStep({
 }
 
 type ServiceLocationStepProps = KioskStepProps & {
+  previewAvailability?: AppointmentAvailability
   title?: string
   introduction?: string
   continueLabel?: string
@@ -136,6 +137,7 @@ export function WindshieldServiceLocationStep({
   continueError,
   continueDisabled = false,
   onContinue,
+  previewAvailability,
 }: ServiceLocationStepProps) {
   const [availability, setAvailability] =
     useState<AppointmentAvailability | null>(null)
@@ -154,17 +156,24 @@ export function WindshieldServiceLocationStep({
   const canLoadAvailability = serviceDetailsAreValid && zipIsValid
   const canContinue = canLoadAvailability && Boolean(data.appointmentRequest)
   const availabilityQueryKey = `${data.quoteServiceMode}:${selectedShop}:${data.serviceZip}:${availabilityRetry}`
+  const displayedAvailability = previewAvailability ?? availability
   const displayedAvailabilityStatus = !canLoadAvailability
     ? 'idle'
-    : availabilityResultKey === availabilityQueryKey
-      ? availabilityStatus
-      : 'loading'
+    : previewAvailability
+      ? 'ready'
+      : availabilityResultKey === availabilityQueryKey
+        ? availabilityStatus
+        : 'loading'
   const availableDates = useMemo(
     () =>
-      availability
-        ? [...new Set(availability.windows.map((window) => window.date))].sort()
+      displayedAvailability
+        ? [
+            ...new Set(
+              displayedAvailability.windows.map((window) => window.date),
+            ),
+          ].sort()
         : [],
-    [availability],
+    [displayedAvailability],
   )
   const requestedDate =
     data.appointmentRequest?.kind === 'window'
@@ -176,7 +185,9 @@ export function WindshieldServiceLocationStep({
       ? requestedDate
       : (availableDates[0] ?? '')
   const displayedWindows =
-    availability?.windows.filter((window) => window.date === activeDate) ?? []
+    displayedAvailability?.windows.filter(
+      (window) => window.date === activeDate,
+    ) ?? []
   const followUpSelected = data.appointmentRequest?.kind === 'follow_up'
   const locations = [
     ...KIOSK_LOCATIONS.filter((shop) => shop.slug === location),
@@ -184,7 +195,9 @@ export function WindshieldServiceLocationStep({
   ]
 
   useEffect(() => {
-    if (!canLoadAvailability || !data.quoteServiceMode) return
+    if (previewAvailability || !canLoadAvailability || !data.quoteServiceMode) {
+      return
+    }
 
     const controller = new AbortController()
 
@@ -226,6 +239,7 @@ export function WindshieldServiceLocationStep({
     data.quoteServiceMode,
     data.serviceZip,
     location,
+    previewAvailability,
     selectedShop,
   ])
 
@@ -337,92 +351,96 @@ export function WindshieldServiceLocationStep({
                 </div>
               )}
 
-              {displayedAvailabilityStatus === 'ready' && availability && (
-                <>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    These windows reflect current availability for{' '}
-                    {availability.locationLabel}. We’ll contact you to confirm
-                    the exact appointment.
-                  </p>
-                  {availableDates.length > 0 && (
-                    <AvailabilityDatePicker
-                      availableDates={availableDates}
-                      value={activeDate}
-                      onChange={(date) => {
-                        setSelectedDate(date)
-                        if (
-                          data.appointmentRequest?.kind === 'window' &&
-                          data.appointmentRequest.date !== date
-                        ) {
-                          updateData({ appointmentRequest: null })
-                        }
-                      }}
-                    />
-                  )}
+              {displayedAvailabilityStatus === 'ready' &&
+                displayedAvailability && (
+                  <>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      These windows reflect current availability for{' '}
+                      {displayedAvailability.locationLabel}. We’ll contact you
+                      to confirm the exact appointment.
+                    </p>
+                    {availableDates.length > 0 && (
+                      <AvailabilityDatePicker
+                        availableDates={availableDates}
+                        value={activeDate}
+                        onChange={(date) => {
+                          setSelectedDate(date)
+                          if (
+                            data.appointmentRequest?.kind === 'window' &&
+                            data.appointmentRequest.date !== date
+                          ) {
+                            updateData({ appointmentRequest: null })
+                          }
+                        }}
+                      />
+                    )}
 
-                  {displayedWindows.length > 0 && (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {displayedWindows.map((window) => {
-                        const selected =
-                          data.appointmentRequest?.kind === 'window' &&
-                          data.appointmentRequest.token === window.token
+                    {displayedWindows.length > 0 && (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {displayedWindows.map((window) => {
+                          const selected =
+                            data.appointmentRequest?.kind === 'window' &&
+                            data.appointmentRequest.token === window.token
 
-                        return (
-                          <button
-                            type="button"
-                            key={`${window.date}-${window.start}-${window.end}`}
-                            aria-pressed={selected}
-                            className={`rounded-xl border p-4 text-left font-bold transition ${
-                              selected
-                                ? 'border-accent bg-accent-tint text-[#16262f] shadow-sm'
-                                : 'border-[#d7e1e3] bg-white text-[#40525a] hover:border-[#a9c7ce]'
-                            }`}
-                            onClick={() =>
-                              updateData({
-                                appointmentRequest: {
-                                  kind: 'window',
-                                  token: window.token,
-                                  date: window.date,
-                                  start: window.start,
-                                  end: window.end,
-                                  label: window.label,
-                                  locationLabel: availability.locationLabel,
-                                },
-                              })
-                            }
-                          >
-                            <span className="flex items-center gap-2">
-                              <CalendarClock className="size-5 text-accent" />
-                              {window.label}
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
+                          return (
+                            <button
+                              type="button"
+                              key={`${window.date}-${window.start}-${window.end}`}
+                              aria-pressed={selected}
+                              className={`rounded-xl border p-4 text-left font-bold transition ${
+                                selected
+                                  ? 'border-accent bg-accent-tint text-[#16262f] shadow-sm'
+                                  : 'border-[#d7e1e3] bg-white text-[#40525a] hover:border-[#a9c7ce]'
+                              }`}
+                              onClick={() =>
+                                updateData({
+                                  appointmentRequest: {
+                                    kind: 'window',
+                                    token: window.token,
+                                    date: window.date,
+                                    start: window.start,
+                                    end: window.end,
+                                    label: window.label,
+                                    locationLabel:
+                                      displayedAvailability.locationLabel,
+                                  },
+                                })
+                              }
+                            >
+                              <span className="flex items-center gap-2">
+                                <CalendarClock className="size-5 text-accent" />
+                                {window.label}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
 
-                  <button
-                    type="button"
-                    aria-pressed={data.appointmentRequest?.kind === 'flexible'}
-                    className={`w-full rounded-xl border p-4 text-left font-bold transition ${
-                      data.appointmentRequest?.kind === 'flexible'
-                        ? 'border-accent bg-accent-tint text-[#16262f] shadow-sm'
-                        : 'border-[#d7e1e3] bg-white text-[#40525a] hover:border-[#a9c7ce]'
-                    }`}
-                    onClick={() =>
-                      updateData({
-                        appointmentRequest: {
-                          kind: 'flexible',
-                          token: availability.flexibleToken,
-                          locationLabel: availability.locationLabel,
-                        },
-                      })
-                    }
-                  >
-                    I’m flexible—have the team contact me
-                  </button>
-                </>
-              )}
+                    <button
+                      type="button"
+                      aria-pressed={
+                        data.appointmentRequest?.kind === 'flexible'
+                      }
+                      className={`w-full rounded-xl border p-4 text-left font-bold transition ${
+                        data.appointmentRequest?.kind === 'flexible'
+                          ? 'border-accent bg-accent-tint text-[#16262f] shadow-sm'
+                          : 'border-[#d7e1e3] bg-white text-[#40525a] hover:border-[#a9c7ce]'
+                      }`}
+                      onClick={() =>
+                        updateData({
+                          appointmentRequest: {
+                            kind: 'flexible',
+                            token: displayedAvailability.flexibleToken,
+                            locationLabel: displayedAvailability.locationLabel,
+                          },
+                        })
+                      }
+                    >
+                      I’m flexible—have the team contact me
+                    </button>
+                  </>
+                )}
 
               {displayedAvailabilityStatus === 'error' && (
                 <div className="space-y-3 rounded-xl bg-accent-tint p-4">

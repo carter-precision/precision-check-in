@@ -11,8 +11,13 @@ import { DashboardColumn } from './DashboardColumn'
 import { DashboardHeader } from './DashboardHeader'
 import { EnableSoundOverlay, SoundSettingsDialog } from './DashboardSound'
 import { ShopFlowGuide } from './ShopFlowGuide'
-import type { CheckIn } from './types'
+import type { CheckIn, CheckInQueue } from './types'
 import { useDashboardCheckIns } from './useDashboardCheckIns'
+
+type DashboardQueues = {
+  appointments: CheckInQueue
+  walkIns: CheckInQueue
+}
 
 export function TechDashboard({
   location,
@@ -42,45 +47,16 @@ export function TechDashboard({
     : ''
 
   return (
-    <main className="min-h-screen bg-[#f7f9f9] text-[#1f2933]">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-5 sm:px-8 md:px-10">
-        <DashboardHeader
-          clock={clock}
-          location={location}
-          onOpenShopFlowGuide={() => setShowShopFlowGuide(true)}
-          onOpenSoundSettings={() => setShowSoundSettings(true)}
-        />
-
-        <div className="grid flex-1 gap-6 py-6 lg:grid-cols-2">
-          <DashboardColumn
-            title="Appointments"
-            count={queues.appointments.waiting.length}
-            icon={<CalendarCheck />}
-            accent="green"
-          >
-            <CheckInList
-              queue={queues.appointments}
-              emptyLabel="No appointments waiting"
-              now={now}
-              onCloseCheckIn={closeCheckIn}
-            />
-          </DashboardColumn>
-
-          <DashboardColumn
-            title="Walk-ins"
-            count={queues.walkIns.waiting.length}
-            icon={<UserRound />}
-            accent="blue"
-          >
-            <CheckInList
-              queue={queues.walkIns}
-              emptyLabel="No walk-ins waiting"
-              now={now}
-              onCloseCheckIn={closeCheckIn}
-            />
-          </DashboardColumn>
-        </div>
-      </div>
+    <>
+      <DashboardView
+        location={location}
+        clock={clock}
+        queues={queues}
+        now={now}
+        onCloseCheckIn={closeCheckIn}
+        onOpenShopFlowGuide={() => setShowShopFlowGuide(true)}
+        onOpenSoundSettings={() => setShowSoundSettings(true)}
+      />
 
       {!isAudioUnlocked && <EnableSoundOverlay onEnableSound={enableChime} />}
 
@@ -96,6 +72,67 @@ export function TechDashboard({
         open={showShopFlowGuide}
         onOpenChange={setShowShopFlowGuide}
       />
+    </>
+  )
+}
+
+export function DashboardView({
+  location,
+  clock,
+  queues,
+  now,
+  onCloseCheckIn,
+  onOpenShopFlowGuide,
+  onOpenSoundSettings,
+}: {
+  location: string
+  clock: string
+  queues: DashboardQueues
+  now: Date | null
+  onCloseCheckIn: (id: string) => void
+  onOpenShopFlowGuide: () => void
+  onOpenSoundSettings: () => void
+}) {
+  return (
+    <main className="min-h-screen bg-[#f7f9f9] text-[#1f2933]">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-5 sm:px-8 md:px-10">
+        <DashboardHeader
+          clock={clock}
+          location={location}
+          onOpenShopFlowGuide={onOpenShopFlowGuide}
+          onOpenSoundSettings={onOpenSoundSettings}
+        />
+
+        <div className="grid flex-1 gap-6 py-6 lg:grid-cols-2">
+          <DashboardColumn
+            title="Appointments"
+            count={queues.appointments.waiting.length}
+            icon={<CalendarCheck />}
+            accent="green"
+          >
+            <CheckInList
+              queue={queues.appointments}
+              emptyLabel="No appointments waiting"
+              now={now}
+              onCloseCheckIn={onCloseCheckIn}
+            />
+          </DashboardColumn>
+
+          <DashboardColumn
+            title="Walk-ins"
+            count={queues.walkIns.waiting.length}
+            icon={<UserRound />}
+            accent="blue"
+          >
+            <CheckInList
+              queue={queues.walkIns}
+              emptyLabel="No walk-ins waiting"
+              now={now}
+              onCloseCheckIn={onCloseCheckIn}
+            />
+          </DashboardColumn>
+        </div>
+      </div>
     </main>
   )
 }

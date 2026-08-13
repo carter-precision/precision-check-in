@@ -32,38 +32,11 @@ export function CustomerCheckInForm({
   )
 
   if (state.status === 'success') {
-    const isVehicleCheckIn = state.arrivalMode === 'vehicle'
-
     return (
-      <div
-        className="animate-in fade-in zoom-in-95 py-8 text-center duration-300"
-        role="status"
-      >
-        <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-[#e9f5e3] text-accent">
-          <CheckCircle2 className="size-11" strokeWidth={2.5} />
-        </div>
-        <h1 className="text-3xl font-bold tracking-[-0.04em] text-[#16262f]">
-          You're checked in
-        </h1>
-        <p className="mx-auto mt-3 max-w-sm text-lg font-medium leading-relaxed text-muted-foreground">
-          {state.message}
-        </p>
-        <div className="mx-auto mt-6 flex w-fit items-center gap-3 rounded-2xl border border-[#dce7d5] bg-accent-tint px-5 py-3 text-left">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-accent shadow-sm [&_svg]:size-6">
-            {isVehicleCheckIn ? <CarFront /> : <Building2 />}
-          </div>
-          <div>
-            <div className="text-xs font-bold uppercase tracking-[0.12em] text-accent">
-              Check-in location
-            </div>
-            <div className="mt-0.5 text-base font-bold text-[#16262f]">
-              {isVehicleCheckIn
-                ? 'Waiting in your vehicle'
-                : 'Waiting in the lobby'}
-            </div>
-          </div>
-        </div>
-      </div>
+      <CustomerCheckInSuccess
+        message={state.message}
+        arrivalMode={state.arrivalMode}
+      />
     )
   }
 
@@ -182,6 +155,48 @@ export function CustomerCheckInForm({
         </div>
       )}
     </form>
+  )
+}
+
+export function CustomerCheckInSuccess({
+  message,
+  arrivalMode,
+}: {
+  message: string
+  arrivalMode: 'lobby' | 'vehicle'
+}) {
+  const isVehicleCheckIn = arrivalMode === 'vehicle'
+
+  return (
+    <div
+      className="animate-in fade-in zoom-in-95 py-8 text-center duration-300"
+      role="status"
+    >
+      <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-[#e9f5e3] text-accent">
+        <CheckCircle2 className="size-11" strokeWidth={2.5} />
+      </div>
+      <h1 className="text-3xl font-bold tracking-[-0.04em] text-[#16262f]">
+        You're checked in
+      </h1>
+      <p className="mx-auto mt-3 max-w-sm text-lg font-medium leading-relaxed text-muted-foreground">
+        {message}
+      </p>
+      <div className="mx-auto mt-6 flex w-fit items-center gap-3 rounded-2xl border border-[#dce7d5] bg-accent-tint px-5 py-3 text-left">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-accent shadow-sm [&_svg]:size-6">
+          {isVehicleCheckIn ? <CarFront /> : <Building2 />}
+        </div>
+        <div>
+          <div className="text-xs font-bold uppercase tracking-[0.12em] text-accent">
+            Check-in location
+          </div>
+          <div className="mt-0.5 text-base font-bold text-[#16262f]">
+            {isVehicleCheckIn
+              ? 'Waiting in your vehicle'
+              : 'Waiting in the lobby'}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

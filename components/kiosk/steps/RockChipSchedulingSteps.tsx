@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import {
   CalendarClock,
   CheckCircle2,
@@ -8,7 +8,10 @@ import {
   Store,
 } from 'lucide-react'
 
-import type { InsuranceCompanyOption } from '@/lib/omega/quote-types'
+import type {
+  AppointmentAvailability,
+  InsuranceCompanyOption,
+} from '@/lib/omega/quote-types'
 
 import { KioskStep } from '../KioskPrimitives'
 import { loadInsuranceCompanies } from '../omega-quote-lookups'
@@ -25,6 +28,11 @@ import {
   QuoteInput,
   QuoteSelect,
 } from '../QuoteForm'
+import {
+  QuoteSuccessDetail,
+  QuoteSuccessDetails,
+  SchedulingQueueNotice,
+} from '../QuoteSuccess'
 import type { KioskStepProps } from '../types'
 import { WindshieldServiceLocationStep } from './WindshieldQuoteServiceSteps'
 
@@ -35,10 +43,17 @@ export function RockChipContactStep({
   updateData,
   goTo,
   location,
-}: KioskStepProps) {
+  previewInsuranceCompanies,
+}: KioskStepProps & {
+  previewInsuranceCompanies?: InsuranceCompanyOption[]
+}) {
   const isInsurance = data.quotePayType === 'insurance'
-  const [companies, setCompanies] = useState<InsuranceCompanyOption[]>([])
-  const [companyStatus, setCompanyStatus] = useState<CompanyStatus>('loading')
+  const [companies, setCompanies] = useState<InsuranceCompanyOption[]>(
+    previewInsuranceCompanies ?? [],
+  )
+  const [companyStatus, setCompanyStatus] = useState<CompanyStatus>(
+    previewInsuranceCompanies ? 'ready' : 'loading',
+  )
   const [companyRetry, setCompanyRetry] = useState(0)
   const phoneIsValid = isValidQuotePhone(data.phone)
   const emailIsValid = isValidQuoteEmail(data.email)
@@ -53,7 +68,7 @@ export function RockChipContactStep({
     insuranceIsValid
 
   useEffect(() => {
-    if (!isInsurance) return
+    if (previewInsuranceCompanies || !isInsurance) return
 
     const controller = new AbortController()
 
@@ -68,7 +83,7 @@ export function RockChipContactStep({
       })
 
     return () => controller.abort()
-  }, [companyRetry, isInsurance, location])
+  }, [companyRetry, isInsurance, location, previewInsuranceCompanies])
 
   function selectCompany(companyId: string) {
     const company = companies.find((option) => option.id === companyId)
@@ -226,13 +241,18 @@ export function RockChipContactStep({
   )
 }
 
-export function RockChipServiceLocationStep(props: KioskStepProps) {
+export function RockChipServiceLocationStep(
+  props: KioskStepProps & {
+    previewAvailability?: AppointmentAvailability
+  },
+) {
   const submission = buildRockChipSubmission(props.data, props.location)
   const isSubmitting = props.data.quoteSubmissionStatus === 'submitting'
 
   return (
     <WindshieldServiceLocationStep
       {...props}
+      previewAvailability={props.previewAvailability}
       title="Where should we repair your chip?"
       introduction="Choose mobile or in-shop service, then request a time that works for you."
       continueLabel="Schedule my repair"
@@ -266,7 +286,7 @@ export function RockChipSuccessStep({ data, resetFlow }: KioskStepProps) {
 
   return (
     <KioskStep>
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center py-8">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center gap-6 py-8">
         <div className="text-center">
           <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-accent-tint text-accent">
             <CheckCircle2 className="size-11" />
@@ -275,33 +295,12 @@ export function RockChipSuccessStep({ data, resetFlow }: KioskStepProps) {
             Your repair request is in
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-lg font-medium text-muted-foreground">
-            We’ll contact you to confirm the exact appointment.
+            Thanks, {data.customerName || 'there'}. We received your service
+            details.
           </p>
         </div>
 
-        <div className="mt-8 space-y-4 rounded-[1.4rem] border border-[#d7e1e3] bg-white p-6 shadow-sm">
-          <SummaryRow
-            icon={<CalendarClock />}
-            label="Requested time"
-            value={appointmentLabel}
-          />
-          <SummaryRow
-            icon={data.quoteServiceMode === 'mobile' ? <MapPin /> : <Store />}
-            label={
-              data.quoteServiceMode === 'mobile'
-                ? 'Mobile service'
-                : 'In-shop service'
-            }
-            value={`${serviceLocation} · ${data.serviceZip}`}
-          />
-          <SummaryRow
-            icon={<CreditCard />}
-            label="Contact"
-            value={`${data.customerName} · ${data.phone}${data.email ? ` · ${data.email}` : ''}`}
-          />
-        </div>
-
-        <div className="mt-5 rounded-[1.4rem] border border-[#a9c7ce] bg-accent-tint/50 p-5 text-center">
+        <div className="rounded-[1.4rem] border border-[#a9c7ce] bg-accent-tint/50 p-5 text-center">
           {isInsurance ? (
             <>
               <p className="text-xl font-bold text-[#16262f]">
@@ -323,32 +322,34 @@ export function RockChipSuccessStep({ data, resetFlow }: KioskStepProps) {
           )}
         </div>
 
-        <div className="mt-6">
+        <QuoteSuccessDetails>
+          <QuoteSuccessDetail
+            icon={<CalendarClock />}
+            label="Requested time"
+            value={appointmentLabel}
+          />
+          <QuoteSuccessDetail
+            icon={data.quoteServiceMode === 'mobile' ? <MapPin /> : <Store />}
+            label={
+              data.quoteServiceMode === 'mobile'
+                ? 'Mobile service'
+                : 'In-shop service'
+            }
+            value={`${serviceLocation} · ${data.serviceZip}`}
+          />
+          <QuoteSuccessDetail
+            icon={<CreditCard />}
+            label="Contact"
+            value={`${data.customerName} · ${data.phone}${data.email ? ` · ${data.email}` : ''}`}
+          />
+        </QuoteSuccessDetails>
+
+        <SchedulingQueueNotice />
+
+        <div>
           <QuoteContinueButton onClick={resetFlow}>Finish</QuoteContinueButton>
         </div>
       </div>
     </KioskStep>
-  )
-}
-
-function SummaryRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode
-  label: string
-  value: string
-}) {
-  return (
-    <div className="flex items-start gap-4">
-      <div className="mt-0.5 text-accent [&_svg]:size-5">{icon}</div>
-      <div>
-        <p className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
-          {label}
-        </p>
-        <p className="mt-1 font-semibold text-[#16262f]">{value}</p>
-      </div>
-    </div>
   )
 }
