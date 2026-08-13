@@ -1,4 +1,9 @@
-import type { KioskData, QuoteSubmission } from './types'
+import type {
+  KioskData,
+  QuoteSubmission,
+  RockChipSubmission,
+  WindshieldQuoteSubmission,
+} from './types'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const ZIP_PATTERN = /^\d{5}$/
@@ -73,7 +78,7 @@ export function buildQuoteSubmission(
               token: data.appointmentRequest.token,
             },
     },
-  } satisfies Omit<QuoteSubmission, 'payment'>
+  } satisfies Omit<WindshieldQuoteSubmission, 'payment'>
 
   if (data.quotePayType === 'cash') {
     return { ...common, payment: { mode: 'cash' } }
@@ -102,6 +107,84 @@ export function buildQuoteSubmission(
       companyLabel: data.insuranceCompanyLabel.trim(),
       policyNumber: data.policyNumber.trim(),
       deductible,
+    },
+  }
+}
+
+export function buildRockChipSubmission(
+  data: KioskData,
+  locationSlug: string,
+): RockChipSubmission | null {
+  const firstName = data.customerName.trim()
+  const phone = data.phone.trim()
+  const email = data.email.trim()
+  const zip = data.serviceZip.trim()
+
+  if (
+    !firstName ||
+    !isValidQuotePhone(phone) ||
+    !isValidQuoteEmail(email) ||
+    !ZIP_PATTERN.test(zip) ||
+    !data.quoteServiceMode ||
+    !data.quotePayType ||
+    !data.appointmentRequest
+  ) {
+    return null
+  }
+
+  if (data.quoteServiceMode === 'mobile' && !data.serviceAddress.trim()) {
+    return null
+  }
+
+  if (data.quoteServiceMode === 'shop' && !data.shopLocation.trim()) {
+    return null
+  }
+
+  const common = {
+    serviceType: 'rock_chip' as const,
+    locationSlug,
+    customer: {
+      firstName,
+      phone,
+      email: email || null,
+      zip,
+      smsConsent: data.smsConsent,
+    },
+    service: {
+      mode: data.quoteServiceMode,
+      address:
+        data.quoteServiceMode === 'mobile' ? data.serviceAddress.trim() : null,
+      shopLocation:
+        data.quoteServiceMode === 'shop' ? data.shopLocation.trim() : null,
+      appointmentRequest:
+        data.appointmentRequest.kind === 'follow_up'
+          ? { kind: 'follow_up' as const }
+          : {
+              kind: data.appointmentRequest.kind,
+              token: data.appointmentRequest.token,
+            },
+    },
+  } satisfies Omit<RockChipSubmission, 'payment'>
+
+  if (data.quotePayType === 'cash') {
+    return { ...common, payment: { mode: 'cash' } }
+  }
+
+  if (
+    !data.insuranceCompanyId.trim() ||
+    !data.insuranceCompanyLabel.trim() ||
+    !data.policyNumber.trim()
+  ) {
+    return null
+  }
+
+  return {
+    ...common,
+    payment: {
+      mode: 'insurance',
+      companyId: data.insuranceCompanyId.trim(),
+      companyLabel: data.insuranceCompanyLabel.trim(),
+      policyNumber: data.policyNumber.trim(),
     },
   }
 }

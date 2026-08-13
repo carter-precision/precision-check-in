@@ -68,4 +68,10 @@ export type InsuranceQuoteAcknowledgement = {
   scheduling: SchedulingResult
 }
 
-export type QuoteSubmissionResult = QuoteResult | InsuranceQuoteAcknowledgement
+export type RockChipAcknowledgement = {
+  kind: 'rock_chip_acknowledgement'
+  scheduling: SchedulingResult
+}
+
+export type QuoteSubmissionResult =
+  QuoteResult | InsuranceQuoteAcknowledgement | RockChipAcknowledgement

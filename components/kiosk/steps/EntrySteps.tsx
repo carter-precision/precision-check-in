@@ -11,7 +11,11 @@ import {
 import { Button } from '@/components/ui/button'
 
 import { ChoiceButton, KioskStep } from '../KioskPrimitives'
-import type { KioskStepProps } from '../types'
+import {
+  emptyQuoteContactData,
+  emptyQuoteServiceData,
+  type KioskStepProps,
+} from '../types'
 
 export function WelcomeStep({ goTo }: KioskStepProps) {
   return (
@@ -103,6 +107,9 @@ export function ServiceTypeStep({ goTo }: KioskStepProps) {
           description="Repair for small chips or cracks."
           onClick={() =>
             goTo('paymentType', {
+              ...emptyQuoteContactData,
+              ...emptyQuoteServiceData,
+              quoteSource: 'walk_in',
               serviceType: 'rock_chip',
               paymentType: null,
             })
@@ -138,8 +145,9 @@ export function PaymentTypeStep({ goTo }: KioskStepProps) {
             </div>
           }
           onClick={() =>
-            goTo('rockChipCashAuthorization', {
+            goTo('rockChipContact', {
               paymentType: 'cash',
+              quotePayType: 'cash',
               repairAuthorized: false,
             })
           }
@@ -149,8 +157,9 @@ export function PaymentTypeStep({ goTo }: KioskStepProps) {
           label="Insurance"
           description="Often covered at no cost."
           onClick={() =>
-            goTo('rockChipInsuranceName', {
+            goTo('rockChipContact', {
               paymentType: 'insurance',
+              quotePayType: 'insurance',
               repairAuthorized: false,
             })
           }

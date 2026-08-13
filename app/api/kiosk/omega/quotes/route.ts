@@ -6,12 +6,14 @@ import {
 } from '@/lib/auth/kiosk-quote'
 import {
   generateOmegaQuote,
+  generateOmegaRockChipLead,
   InvalidQuoteReferenceError,
   QuoteGenerationError,
   type QuoteGenerationStage,
 } from '@/lib/omega/quote-generation'
 import {
   getServerGlassPosition,
+  isRockChipSubmission,
   quoteSubmissionSchema,
 } from '@/lib/omega/quote-request'
 import {
@@ -70,13 +72,31 @@ export async function POST(request: NextRequest) {
   try {
     const kiosk = await requireQuoteKiosk(parsed.data.locationSlug)
     context.location = kiosk.locationSlug
-    context.vehicleId = parsed.data.vehicle.vehicleId
-    context.position = getServerGlassPosition(parsed.data.glass.type)
     context.paymentMode = parsed.data.payment.mode
     const preparedAppointment = prepareHeldAppointment(parsed.data)
-    const result = await generateOmegaQuote(parsed.data, (invoiceId) => {
+    const rememberInvoiceId = (invoiceId: string) => {
       context.invoiceId = invoiceId
-    })
+    }
+
+    if (isRockChipSubmission(parsed.data)) {
+      context.vehicleId = null
+      context.position = 'WSREPAIR'
+      const result = await generateOmegaRockChipLead(
+        parsed.data,
+        rememberInvoiceId,
+      )
+      const scheduling = await createHeldAppointment(
+        parsed.data,
+        preparedAppointment,
+        context.invoiceId,
+      )
+
+      return NextResponse.json({ data: { ...result, scheduling } })
+    }
+
+    context.vehicleId = parsed.data.vehicle.vehicleId
+    context.position = getServerGlassPosition(parsed.data.glass.type)
+    const result = await generateOmegaQuote(parsed.data, rememberInvoiceId)
     const scheduling = await createHeldAppointment(
       parsed.data,
       preparedAppointment,

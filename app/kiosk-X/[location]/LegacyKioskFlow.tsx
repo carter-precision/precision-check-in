@@ -19,6 +19,11 @@ import {
 } from '@/components/kiosk/steps/EntrySteps'
 import { NameStep } from '@/components/kiosk/steps/NameStep'
 import { QuoteServiceTypeStep } from '@/components/kiosk/steps/QuoteSteps'
+import {
+  RockChipContactStep,
+  RockChipServiceLocationStep,
+  RockChipSuccessStep,
+} from '@/components/kiosk/steps/RockChipSchedulingSteps'
 import { SuccessStep } from '@/components/kiosk/steps/SuccessStep'
 import {
   WindshieldIntentStep,
@@ -51,6 +56,9 @@ const legacyStepComponents: Partial<
   windshieldVehicle: LegacyWindshieldCashQuoteStep,
   rockChipCashAuthorization: LegacyRockChipCashAuthorizationStep,
   rockChipInsuranceName: LegacyRockChipInsuranceNameStep,
+  rockChipContact: RockChipContactStep,
+  rockChipServiceLocation: RockChipServiceLocationStep,
+  rockChipSuccess: RockChipSuccessStep,
   success: SuccessStep,
   quoteServiceType: QuoteServiceTypeStep,
   rockChipQuote: LegacyRockChipQuoteStep,
@@ -69,7 +77,8 @@ export function LegacyKioskFlow({ location }: { location: string }) {
   const showFlowControls =
     flow.step !== 'welcome' &&
     flow.step !== 'appointment' &&
-    flow.step !== 'success'
+    flow.step !== 'success' &&
+    flow.step !== 'rockChipSuccess'
 
   if (!CurrentStep) {
     throw new Error(`Unsupported legacy kiosk step: ${flow.step}`)

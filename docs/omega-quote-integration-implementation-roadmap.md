@@ -22,7 +22,8 @@ This roadmap turns the functional design in `docs/omega-quote-integration-design
 - The existing appointment-focused `lib/omega/client.ts` contract unless a safe shared primitive can be extracted without changing its behavior. Prefer separate quote-specific modules.
 - `scripts/mock-omega.mjs` and its appointment scenarios.
 - All files under `app/kiosk-X`.
-- Rock-chip quote functionality.
+- Rock-chip functionality (outside this windshield roadmap; implemented later
+  as the scheduling flow documented in `omega-rock-chip-scheduling.md`).
 - License-plate lookup or license-plate UI.
 - A local pricing engine.
 - Omega `include_recal`, `template_id`, or unused/blank Web Quoter parameters.

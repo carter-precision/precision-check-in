@@ -10,8 +10,10 @@ import { extractQuoteInvoiceId } from './quote-invoice'
 import {
   buildOmegaQuoteCompletionRequest,
   buildOmegaQuoteRequest,
+  buildOmegaRockChipRequest,
   requiresCashQuoteResult,
-  type ValidatedQuoteSubmission,
+  type ValidatedRockChipSubmission,
+  type ValidatedWindshieldQuoteSubmission,
 } from './quote-request'
 import type { QuoteResult } from './quote-types'
 
@@ -44,7 +46,7 @@ export class QuoteGenerationError extends Error {
 }
 
 export async function generateOmegaQuote(
-  input: ValidatedQuoteSubmission,
+  input: ValidatedWindshieldQuoteSubmission,
   onInvoiceId: (invoiceId: string) => void,
 ): Promise<GeneratedQuoteResult> {
   await verifyQuoteReferences(input)
@@ -100,7 +102,30 @@ export async function generateOmegaQuote(
   return { invoiceId: result.invoiceId, total: result.total }
 }
 
-async function verifyQuoteReferences(input: ValidatedQuoteSubmission) {
+export async function generateOmegaRockChipLead(
+  input: ValidatedRockChipSubmission,
+  onInvoiceId: (invoiceId: string) => void,
+) {
+  await verifyRockChipInsuranceReference(input)
+
+  let html: string
+
+  try {
+    const request = buildOmegaRockChipRequest(input)
+    html = await quoteOmegaHtmlRequest(request.path, request.query)
+  } catch (error) {
+    throw wrapOmegaError('quotes_request', error, null)
+  }
+
+  const invoiceId = extractQuoteInvoiceId(html)
+  if (invoiceId) onInvoiceId(invoiceId)
+
+  return { kind: 'rock_chip_acknowledgement' as const }
+}
+
+async function verifyQuoteReferences(
+  input: ValidatedWindshieldQuoteSubmission,
+) {
   try {
     const variants = await getQuoteVehicleVariants(
       input.vehicle.year,
@@ -122,6 +147,23 @@ async function verifyQuoteReferences(input: ValidatedQuoteSubmission) {
       if (!companies.some((company) => company.id === companyId)) {
         throw new InvalidQuoteReferenceError()
       }
+    }
+  } catch (error) {
+    if (error instanceof InvalidQuoteReferenceError) throw error
+    throw wrapOmegaError('reference_validation', error, null)
+  }
+}
+
+async function verifyRockChipInsuranceReference(
+  input: ValidatedRockChipSubmission,
+) {
+  if (input.payment.mode !== 'insurance') return
+
+  try {
+    const companyId = input.payment.companyId
+    const companies = await getQuoteInsuranceCompanies()
+    if (!companies.some((company) => company.id === companyId)) {
+      throw new InvalidQuoteReferenceError()
     }
   } catch (error) {
     if (error instanceof InvalidQuoteReferenceError) throw error

@@ -19,7 +19,15 @@ export const insuranceQuoteAcknowledgementSchema = z
   })
   .strict()
 
+export const rockChipAcknowledgementSchema = z
+  .object({
+    kind: z.literal('rock_chip_acknowledgement'),
+    scheduling: schedulingResultSchema,
+  })
+  .strict()
+
 export const quoteSubmissionResultSchema = z.union([
   quoteResultSchema,
   insuranceQuoteAcknowledgementSchema,
+  rockChipAcknowledgementSchema,
 ])

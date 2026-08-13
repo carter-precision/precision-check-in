@@ -7,11 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useNow } from '@/hooks/useNow'
 
 import { InactivityWarning } from './InactivityWarning'
-import {
-  KioskHeader,
-  PayCashInsteadButton,
-  RingTeamButton,
-} from './KioskPrimitives'
+import { KioskHeader, RingTeamButton } from './KioskPrimitives'
 import {
   AppointmentStep,
   PaymentTypeStep,
@@ -19,14 +15,12 @@ import {
   WelcomeStep,
 } from './steps/EntrySteps'
 import { NameStep } from './steps/NameStep'
+import { QuoteServiceTypeStep } from './steps/QuoteSteps'
 import {
-  QuoteServiceTypeStep,
-  RockChipQuotePlaceholderStep,
-} from './steps/QuoteSteps'
-import {
-  RockChipCashAuthorizationStep,
-  RockChipInsuranceNameStep,
-} from './steps/RockChipSteps'
+  RockChipContactStep,
+  RockChipServiceLocationStep,
+  RockChipSuccessStep,
+} from './steps/RockChipSchedulingSteps'
 import { SuccessStep } from './steps/SuccessStep'
 import { WindshieldIntentStep } from './steps/WindshieldSteps'
 import { WindshieldVehicleStep } from './steps/WindshieldQuoteDetailsSteps'
@@ -53,11 +47,11 @@ const stepComponents: Partial<Record<StepId, ComponentType<KioskStepProps>>> = {
   windshieldContact: WindshieldQuoteContactStep,
   windshieldQuoteResult: WindshieldQuoteResultStep,
   windshieldInsuranceSuccess: WindshieldInsuranceSuccessStep,
-  rockChipCashAuthorization: RockChipCashAuthorizationStep,
-  rockChipInsuranceName: RockChipInsuranceNameStep,
+  rockChipContact: RockChipContactStep,
+  rockChipServiceLocation: RockChipServiceLocationStep,
+  rockChipSuccess: RockChipSuccessStep,
   success: SuccessStep,
   quoteServiceType: QuoteServiceTypeStep,
-  rockChipQuote: RockChipQuotePlaceholderStep,
 }
 
 const showFlowControls: Partial<Record<StepId, boolean>> = {
@@ -73,11 +67,11 @@ const showFlowControls: Partial<Record<StepId, boolean>> = {
   windshieldContact: true,
   windshieldQuoteResult: false,
   windshieldInsuranceSuccess: false,
-  rockChipCashAuthorization: true,
-  rockChipInsuranceName: true,
+  rockChipContact: true,
+  rockChipServiceLocation: true,
+  rockChipSuccess: false,
   success: false,
   quoteServiceType: true,
-  rockChipQuote: true,
 }
 
 export function KioskFlow({ location }: { location: string }) {
@@ -134,17 +128,6 @@ export function KioskFlow({ location }: { location: string }) {
                   visitType: 'walk_in',
                   serviceType: 'bell',
                   paymentType: null,
-                })
-              }
-            />
-          )}
-
-          {flow.step === 'rockChipInsuranceName' && (
-            <PayCashInsteadButton
-              onClick={() =>
-                flow.goTo('rockChipCashAuthorization', {
-                  paymentType: 'cash',
-                  repairAuthorized: false,
                 })
               }
             />

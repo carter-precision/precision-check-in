@@ -111,12 +111,29 @@ export function WindshieldGlassStep({
   )
 }
 
+type ServiceLocationStepProps = KioskStepProps & {
+  title?: string
+  introduction?: string
+  continueLabel?: string
+  continueLoading?: boolean
+  continueError?: string | null
+  continueDisabled?: boolean
+  onContinue?: () => void
+}
+
 export function WindshieldServiceLocationStep({
   data,
   updateData,
   goTo,
   location,
-}: KioskStepProps) {
+  title = 'Where should we do the work?',
+  introduction = 'We can come to you, or you can visit one of our shops.',
+  continueLabel,
+  continueLoading = false,
+  continueError,
+  continueDisabled = false,
+  onContinue,
+}: ServiceLocationStepProps) {
   const [availability, setAvailability] =
     useState<AppointmentAvailability | null>(null)
   const [availabilityStatus, setAvailabilityStatus] =
@@ -200,10 +217,10 @@ export function WindshieldServiceLocationStep({
   ])
 
   return (
-    <KioskStep title="Where should we do the work?">
+    <KioskStep title={title}>
       <QuoteForm>
         <p className="text-center text-lg font-medium text-muted-foreground">
-          We can come to you, or you can visit one of our shops.
+          {introduction}
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -429,10 +446,28 @@ export function WindshieldServiceLocationStep({
           </QuoteField>
         )}
 
+        {continueError && (
+          <div role="alert" className="rounded-xl bg-accent-tint p-4">
+            <p className="font-bold text-[#16262f]">
+              We couldn’t schedule your service
+            </p>
+            <p className="mt-1 font-medium text-[#40525a]">{continueError}</p>
+          </div>
+        )}
+
         <QuoteContinueButton
-          disabled={!canContinue}
-          onClick={() => goTo('windshieldContact')}
-        />
+          disabled={!canContinue || continueDisabled}
+          loading={continueLoading}
+          onClick={() =>
+            onContinue ? onContinue() : goTo('windshieldContact')
+          }
+        >
+          {continueLoading
+            ? 'Scheduling your service…'
+            : continueError
+              ? 'Try again'
+              : continueLabel}
+        </QuoteContinueButton>
       </QuoteForm>
     </KioskStep>
   )

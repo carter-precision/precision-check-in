@@ -17,6 +17,9 @@ export type StepId =
   | 'windshieldInsuranceSuccess'
   | 'rockChipCashAuthorization'
   | 'rockChipInsuranceName'
+  | 'rockChipContact'
+  | 'rockChipServiceLocation'
+  | 'rockChipSuccess'
   | 'success'
   | 'quoteServiceType'
   | 'rockChipQuote'
@@ -83,27 +86,31 @@ export type QuoteVehicle = {
   vin: string | null
 }
 
-export type QuoteSubmission = {
+type QuoteCustomer = {
+  firstName: string
+  phone: string
+  email: string | null
+  zip: string
+  smsConsent: boolean
+}
+
+type QuoteService = {
+  mode: Exclude<QuoteServiceMode, null>
+  address: string | null
+  shopLocation: string | null
+  appointmentRequest:
+    { kind: 'window' | 'flexible'; token: string } | { kind: 'follow_up' }
+}
+
+export type WindshieldQuoteSubmission = {
   locationSlug: string
-  customer: {
-    firstName: string
-    phone: string
-    email: string | null
-    zip: string
-    smsConsent: boolean
-  }
+  customer: QuoteCustomer
   vehicle: QuoteVehicle
   glass: {
     type: GlassType
     position: OmegaGlassPosition
   }
-  service: {
-    mode: Exclude<QuoteServiceMode, null>
-    address: string | null
-    shopLocation: string | null
-    appointmentRequest:
-      { kind: 'window' | 'flexible'; token: string } | { kind: 'follow_up' }
-  }
+  service: QuoteService
   payment:
     | { mode: 'cash' }
     | {
@@ -114,6 +121,23 @@ export type QuoteSubmission = {
         deductible: number | null
       }
 }
+
+export type RockChipSubmission = {
+  serviceType: 'rock_chip'
+  locationSlug: string
+  customer: QuoteCustomer
+  service: QuoteService
+  payment:
+    | { mode: 'cash' }
+    | {
+        mode: 'insurance'
+        companyId: string
+        companyLabel: string
+        policyNumber: string
+      }
+}
+
+export type QuoteSubmission = WindshieldQuoteSubmission | RockChipSubmission
 
 export type KioskData = {
   visitType: VisitType

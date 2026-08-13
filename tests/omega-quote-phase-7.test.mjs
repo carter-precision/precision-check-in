@@ -24,6 +24,7 @@ import {
 import {
   buildOmegaQuoteCompletionRequest,
   buildOmegaQuoteRequest,
+  buildOmegaRockChipRequest,
   getServerGlassPosition,
   quoteSubmissionSchema,
   requiresCashQuoteResult,
@@ -31,12 +32,16 @@ import {
 import {
   insuranceQuoteAcknowledgementSchema,
   quoteResultSchema,
+  rockChipAcknowledgementSchema,
 } from '../lib/omega/quote-result.ts'
 import {
   getGlassPosition,
   isGlassQuoteSupported,
 } from '../components/kiosk/quote-options.ts'
-import { buildQuoteSubmission } from '../components/kiosk/quote-submission.ts'
+import {
+  buildQuoteSubmission,
+  buildRockChipSubmission,
+} from '../components/kiosk/quote-submission.ts'
 import { initialKioskData } from '../components/kiosk/types.ts'
 
 const validVin = '3FA6P0H7XHR110241'
@@ -71,6 +76,14 @@ const cashSubmission = {
     shopLocation: 'layton',
     appointmentRequest: { kind: 'follow_up' },
   },
+  payment: { mode: 'cash' },
+}
+
+const rockChipCashSubmission = {
+  serviceType: 'rock_chip',
+  locationSlug: 'layton',
+  customer: cashSubmission.customer,
+  service: cashSubmission.service,
   payment: { mode: 'cash' },
 }
 
@@ -417,6 +430,63 @@ test('builds the exact approved insurance request from an Omega company ID', () 
   assert.equal(request.query.has('medium'), false)
 })
 
+test('builds minimal cash and insurance rock chip lead requests', () => {
+  const cashRequest = buildOmegaRockChipRequest(rockChipCashSubmission)
+
+  assert.equal(
+    quoteSubmissionSchema.safeParse(rockChipCashSubmission).success,
+    true,
+  )
+  assert.equal(cashRequest.path, '/Quotes/66687/WSREPAIR')
+  assert.deepEqual(Object.fromEntries(cashRequest.query), {
+    position: 'WSREPAIR',
+    customer_zip: '84041',
+    customer_fname: 'Validation',
+    customer_phone: '8015550100',
+    customer_sms: '0',
+    folder: 'pag',
+    campaign: 'Rock Chip Web Quote',
+    smart: 'true',
+    lead_type: 'web_lead',
+    customer_email: 'validation@example.com',
+  })
+
+  for (const field of [
+    'year',
+    'make',
+    'model',
+    'vehicle_id',
+    'vehicle_vin',
+    'account_deductible',
+    'medium',
+    'source',
+    'referrer',
+    'campid',
+    'Tags',
+    'template_id',
+  ]) {
+    assert.equal(cashRequest.query.has(field), false)
+  }
+
+  const insuranceRequest = buildOmegaRockChipRequest({
+    ...rockChipCashSubmission,
+    payment: {
+      mode: 'insurance',
+      companyId: '42',
+      companyLabel: 'Allstate',
+      policyNumber: 'POLICY-123',
+    },
+  })
+
+  assert.equal(
+    insuranceRequest.query.get('campaign'),
+    'Ins Rock Chip Web Quote',
+  )
+  assert.equal(insuranceRequest.query.get('account_company_id'), '42')
+  assert.equal(insuranceRequest.query.get('account_policy_no'), 'POLICY-123')
+  assert.equal(insuranceRequest.query.has('account_deductible'), false)
+})
+
 test('requires an insurance policy number and permits an omitted deductible', () => {
   const withoutDeductible = {
     ...cashSubmission,
@@ -603,6 +673,13 @@ test('requires a strict total-only result DTO', () => {
     }).success,
     true,
   )
+  assert.equal(
+    rockChipAcknowledgementSchema.safeParse({
+      kind: 'rock_chip_acknowledgement',
+      scheduling: { status: 'held' },
+    }).success,
+    true,
+  )
 })
 
 test('builds normalized client submissions and resets all quote data', () => {
@@ -677,4 +754,38 @@ test('builds an insurance submission without a deductible', () => {
   assert.equal(submission.payment.mode, 'insurance')
   assert.equal(submission.payment.policyNumber, 'POLICY-123')
   assert.equal(submission.payment.deductible, null)
+})
+
+test('builds a rock chip scheduling submission without vehicle or deductible fields', () => {
+  const submission = buildRockChipSubmission(
+    {
+      ...initialKioskData,
+      customerName: 'Validation',
+      phone: '8015550100',
+      email: 'validation@example.com',
+      serviceZip: '84041',
+      quoteServiceMode: 'shop',
+      shopLocation: 'layton',
+      appointmentRequest: { kind: 'follow_up' },
+      quotePayType: 'insurance',
+      paymentType: 'insurance',
+      insuranceCompanyId: '42',
+      insuranceCompanyLabel: 'Allstate',
+      policyNumber: 'POLICY-123',
+      deductibleAmount: '500',
+    },
+    'layton',
+  )
+
+  assert.ok(submission)
+  assert.equal(submission.serviceType, 'rock_chip')
+  assert.deepEqual(submission.payment, {
+    mode: 'insurance',
+    companyId: '42',
+    companyLabel: 'Allstate',
+    policyNumber: 'POLICY-123',
+  })
+  assert.equal('vehicle' in submission, false)
+  assert.equal('glass' in submission, false)
+  assert.equal('deductible' in submission.payment, false)
 })

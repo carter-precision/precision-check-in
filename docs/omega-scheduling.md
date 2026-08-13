@@ -5,8 +5,8 @@ returned by Omega. Customers can select an Omega-provided service window or
 indicate that they are flexible. The selected window is a request, not a
 confirmed appointment.
 
-After the quote creates an Omega invoice, the server attempts to create an
-appointment with:
+After a windshield quote or rock chip lead creates an Omega invoice, the server
+attempts to create an appointment with:
 
 - `status: HOLD`
 - `type: inshop` or `mobile`
@@ -25,14 +25,19 @@ customer.
 2. Enter the service ZIP. Mobile requests use it to resolve an Omega quote
    location; in-shop requests use the selected shop's configured Omega ID.
 3. Choose one of Omega's current windows or choose the flexible option.
-4. Complete the quote.
+4. Complete the windshield quote or rock chip service request.
 5. The result explains that a rep will confirm the exact appointment.
 
 If availability cannot be loaded, the customer can choose rep follow-up and
-finish the quote without an appointment write. If quote creation succeeds but
-the held appointment write fails, the quote remains successful and the result
-uses the same follow-up wording. This avoids retrying the quote and creating a
-duplicate Omega invoice.
+finish without an appointment write. If lead/quote creation succeeds but the
+held appointment write fails, the submission remains successful and the result
+uses the same follow-up wording. This avoids retrying the state-changing Omega
+request and creating a duplicate invoice.
+
+Rock chip requests use the same availability and held-appointment mechanism,
+but skip windshield quote completion and invoice fetching. See
+`omega-rock-chip-scheduling.md` for the minimal request contract and campaign
+tags.
 
 ## Configuration
 

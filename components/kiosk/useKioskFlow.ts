@@ -14,7 +14,7 @@ import {
   type StepId,
 } from './types'
 
-const INACTIVITY_WARNING_MS = 52_000
+const INACTIVITY_WARNING_MS = 72_000
 export const INACTIVITY_RESET_MS = 8_000
 
 const quoteInputKeys = new Set<keyof KioskData>([
@@ -127,7 +127,11 @@ export function useKioskFlow(location: string) {
             quoteSchedulingStatus: result.scheduling.status,
           }))
           setHistory((current) => [...current, step])
-          setStep('windshieldInsuranceSuccess')
+          setStep(
+            result.kind === 'rock_chip_acknowledgement'
+              ? 'rockChipSuccess'
+              : 'windshieldInsuranceSuccess',
+          )
           return true
         }
 
@@ -144,13 +148,15 @@ export function useKioskFlow(location: string) {
       } catch (error) {
         const knownError =
           error instanceof KioskQuoteSubmissionError ? error : null
+        const isRockChip = 'serviceType' in submission
 
         setData((current) => ({
           ...current,
           quoteSubmissionStatus: 'failed',
-          quoteSubmissionError:
-            knownError?.message ??
-            "We couldn't complete your quote. Please try again.",
+          quoteSubmissionError: isRockChip
+            ? getRockChipSubmissionError(knownError)
+            : (knownError?.message ??
+              "We couldn't complete your quote. Please try again."),
           quoteResult: null,
           quoteSchedulingStatus: null,
         }))
@@ -285,4 +291,14 @@ export function useKioskFlow(location: string) {
       lastActivityAt.current = Date.now()
     },
   }
+}
+
+function getRockChipSubmissionError(error: KioskQuoteSubmissionError | null) {
+  if (error?.code === 'invalid_scheduling_request') return error.message
+
+  if (error?.code === 'invalid_quote_reference') {
+    return 'The selected insurance company is no longer available. Please go back and choose it again.'
+  }
+
+  return "We couldn't submit your service request. Please try again."
 }
