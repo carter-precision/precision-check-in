@@ -34,6 +34,10 @@ held appointment write fails, the submission remains successful and the result
 uses the same follow-up wording. This avoids retrying the state-changing Omega
 request and creating a duplicate invoice.
 
+When a mobile ZIP does not resolve to a service location, the kiosk asks the
+customer to double-check the ZIP. In the fallback controls, Retry is highlighted
+by default; choosing team follow-up highlights that selection instead.
+
 Rock chip requests use the same availability and held-appointment mechanism,
 but skip windshield quote completion and invoice fetching. See
 `omega-rock-chip-scheduling.md` for the minimal request contract and campaign

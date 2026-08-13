@@ -33,7 +33,10 @@ import {
   KIOSK_LOCATIONS,
 } from '../quote-options'
 import type { GlassType, KioskStepProps } from '../types'
-import { loadAppointmentAvailability } from '../omega-quote-lookups'
+import {
+  KioskOmegaLookupError,
+  loadAppointmentAvailability,
+} from '../omega-quote-lookups'
 
 type AvailabilityStatus = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -140,6 +143,7 @@ export function WindshieldServiceLocationStep({
     useState<AvailabilityStatus>('idle')
   const [availabilityRetry, setAvailabilityRetry] = useState(0)
   const [availabilityResultKey, setAvailabilityResultKey] = useState('')
+  const [availabilityErrorMessage, setAvailabilityErrorMessage] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
   const selectedShop = data.shopLocation || location
   const zipIsValid = /^\d{5}$/.test(data.serviceZip)
@@ -173,6 +177,7 @@ export function WindshieldServiceLocationStep({
       : (availableDates[0] ?? '')
   const displayedWindows =
     availability?.windows.filter((window) => window.date === activeDate) ?? []
+  const followUpSelected = data.appointmentRequest?.kind === 'follow_up'
   const locations = [
     ...KIOSK_LOCATIONS.filter((shop) => shop.slug === location),
     ...KIOSK_LOCATIONS.filter((shop) => shop.slug !== location),
@@ -196,12 +201,20 @@ export function WindshieldServiceLocationStep({
         if (controller.signal.aborted) return
         setAvailability(result)
         setAvailabilityStatus('ready')
+        setAvailabilityErrorMessage('')
         setAvailabilityResultKey(availabilityQueryKey)
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (controller.signal.aborted) return
         setAvailability(null)
         setAvailabilityStatus('error')
+        setAvailabilityErrorMessage(
+          data.quoteServiceMode === 'mobile' &&
+            error instanceof KioskOmegaLookupError &&
+            error.code === 'no_results'
+            ? 'We couldn’t find mobile service for that ZIP. Please double-check the ZIP and try again.'
+            : 'We couldn’t load scheduling options. You can retry or have our team contact you.',
+        )
         setAvailabilityResultKey(availabilityQueryKey)
       })
 
@@ -414,13 +427,15 @@ export function WindshieldServiceLocationStep({
               {displayedAvailabilityStatus === 'error' && (
                 <div className="space-y-3 rounded-xl bg-accent-tint p-4">
                   <p className="font-semibold text-[#40525a]">
-                    We couldn’t load scheduling options. You can retry or have
-                    our team contact you.
+                    {availabilityErrorMessage}
                   </p>
                   <div className="flex flex-wrap gap-3">
                     <button
                       type="button"
-                      className="font-bold text-accent underline decoration-2 underline-offset-4"
+                      className={cn(
+                        'font-bold underline decoration-2 underline-offset-4 transition-colors',
+                        followUpSelected ? 'text-[#16262f]' : 'text-accent',
+                      )}
                       onClick={() => {
                         updateData({ appointmentRequest: null })
                         setAvailabilityRetry((value) => value + 1)
@@ -430,7 +445,11 @@ export function WindshieldServiceLocationStep({
                     </button>
                     <button
                       type="button"
-                      className="font-bold text-[#16262f] underline decoration-2 underline-offset-4"
+                      aria-pressed={followUpSelected}
+                      className={cn(
+                        'font-bold underline decoration-2 underline-offset-4 transition-colors',
+                        followUpSelected ? 'text-accent' : 'text-[#16262f]',
+                      )}
                       onClick={() =>
                         updateData({
                           appointmentRequest: { kind: 'follow_up' },

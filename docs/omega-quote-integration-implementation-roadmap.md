@@ -50,7 +50,7 @@ Do not modify out-of-scope files merely to reuse code. New quote-specific files 
 6. A valid resolved vehicle is required for both cash and insurance quotes.
 7. Contact data uses one required first-name field, one required phone field, an optional email field, and one required five-digit ZIP field. Do not collect or send a surname.
 8. Policy-holder name and phone are the same as the customer's first name and phone. Do not collect duplicate policy-holder contact fields.
-9. SMS consent must be an explicit checkbox, unchecked by default, and must map to `customer_sms=0|1`.
+9. SMS consent must be an explicit checkbox, checked by default, and must map to `customer_sms=0|1`.
 10. Insurance company, policy number, and deductible are required when insurance is selected.
 11. Insurance companies come from:
 
@@ -366,7 +366,7 @@ Create one final details step that collects the remaining required quote data an
    - Phone — required and validated.
    - Email — optional, but validated when present.
    - Five-digit ZIP — required for both cash and insurance.
-   - SMS consent — explicit unchecked checkbox.
+   - SMS consent — explicit checkbox, checked by default.
 
 2. Add an accessible cash/insurance toggle on this same step. Defaulting to no selection is preferred so consent and attribution are explicit.
 
@@ -395,7 +395,7 @@ Do not continue until the reviewer can confirm:
 
 - ZIP is required for every quote.
 - Only first name is collected; surname is absent.
-- SMS consent is visible, explicit, and unchecked by default.
+- SMS consent is visible, explicit, and checked by default.
 - Insurance is chosen at the end of the flow.
 - Insurance fields render dynamically and are required only for insurance.
 - Insurance company options come from Omega and retain `account_company_id`.

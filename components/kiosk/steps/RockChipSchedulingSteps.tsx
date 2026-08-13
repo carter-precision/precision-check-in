@@ -86,7 +86,7 @@ export function RockChipContactStep({
           service.
         </p>
 
-        {isInsurance ? (
+        {isInsurance && (
           <div className="flex items-center gap-4 rounded-[1.4rem] border border-[#a9c7ce] bg-accent-tint/50 p-5 shadow-sm">
             <ShieldCheck className="size-8 shrink-0 text-accent" />
             <div>
@@ -97,16 +97,6 @@ export function RockChipContactStep({
                 Just share your insurance company and policy number below.
               </p>
             </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between rounded-[1.4rem] border border-[#d7e1e3] bg-white p-5 shadow-sm">
-            <span className="flex items-center gap-3 font-bold text-[#16262f]">
-              <CreditCard className="size-6 text-accent" />
-              Cash-pay repair
-            </span>
-            <span className="text-3xl font-bold tracking-tight text-accent">
-              $79.99
-            </span>
           </div>
         )}
 
@@ -148,20 +138,6 @@ export function RockChipContactStep({
             onChange={(event) => updateData({ email: event.target.value })}
           />
         </QuoteField>
-
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#d7e1e3] bg-white p-4 text-base font-medium text-[#40525a] shadow-sm">
-          <input
-            type="checkbox"
-            className="mt-1 size-5 accent-[#009fc0]"
-            checked={data.smsConsent}
-            onChange={(event) =>
-              updateData({ smsConsent: event.target.checked })
-            }
-          />
-          <span>
-            I agree to receive text messages about this service and scheduling.
-          </span>
-        </label>
 
         {isInsurance && (
           <div className="space-y-5 rounded-[1.4rem] border border-[#d7e1e3] bg-white p-5 shadow-sm">
@@ -220,6 +196,20 @@ export function RockChipContactStep({
             </QuoteField>
           </div>
         )}
+
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#d7e1e3] bg-white p-4 text-base font-medium text-[#40525a] shadow-sm">
+          <input
+            type="checkbox"
+            className="mt-1 size-5 accent-[#009fc0]"
+            checked={data.smsConsent}
+            onChange={(event) =>
+              updateData({ smsConsent: event.target.checked })
+            }
+          />
+          <span>
+            I agree to receive text messages about this service and scheduling.
+          </span>
+        </label>
 
         <QuoteContinueButton
           disabled={!canContinue}

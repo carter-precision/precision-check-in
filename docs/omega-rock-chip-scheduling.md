@@ -8,7 +8,8 @@ submit through the existing kiosk Omega quote API.
 
 1. Choose cash pay or insurance. The walk-in path already reaches this choice
    after selecting Rock chip; the header path now joins the same step.
-2. Enter first name, phone, optional email, and SMS consent.
+2. Enter first name, phone, optional email, and SMS consent. The SMS checkbox
+   appears last before submission and is checked by default.
 3. For insurance, select the Omega insurance company and enter a policy number.
    Rock chip requests do not collect or send a deductible.
 4. Choose mobile or in-shop service, enter the ZIP, and select an available

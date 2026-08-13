@@ -147,20 +147,6 @@ export function WindshieldQuoteContactStep({
           />
         </QuoteField>
 
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#d7e1e3] bg-white p-4 text-base font-medium text-[#40525a] shadow-sm">
-          <input
-            type="checkbox"
-            className="mt-1 size-5 accent-[#009fc0]"
-            checked={data.smsConsent}
-            onChange={(event) =>
-              updateQuoteData({ smsConsent: event.target.checked })
-            }
-          />
-          <span>
-            I agree to receive text messages about this quote and scheduling.
-          </span>
-        </label>
-
         <QuoteField label="How will you pay?">
           <div
             className="grid grid-cols-2 gap-3"
@@ -261,6 +247,20 @@ export function WindshieldQuoteContactStep({
               </p>
             </div>
           )}
+
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#d7e1e3] bg-white p-4 text-base font-medium text-[#40525a] shadow-sm">
+          <input
+            type="checkbox"
+            className="mt-1 size-5 accent-[#009fc0]"
+            checked={data.smsConsent}
+            onChange={(event) =>
+              updateQuoteData({ smsConsent: event.target.checked })
+            }
+          />
+          <span>
+            I agree to receive text messages about this quote and scheduling.
+          </span>
+        </label>
 
         <QuoteContinueButton
           disabled={!submission || isSubmitting}

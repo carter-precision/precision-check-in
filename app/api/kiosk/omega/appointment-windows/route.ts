@@ -75,7 +75,9 @@ export async function GET(request: NextRequest) {
       return errorResponse(
         404,
         'no_results',
-        'No scheduling location is available for those details.',
+        query.data.mode === 'mobile'
+          ? 'We could not find mobile service for that ZIP. Please double-check the ZIP and try again.'
+          : 'No scheduling location is available for those details.',
       )
     }
 

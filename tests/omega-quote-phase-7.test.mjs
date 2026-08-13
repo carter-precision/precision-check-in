@@ -705,7 +705,7 @@ test('builds normalized client submissions and resets all quote data', () => {
       phone: '(801) 555-0100',
       email: null,
       zip: '84041',
-      smsConsent: false,
+      smsConsent: true,
     },
     vehicle: quoteVehicle,
     glass: { type: 'back', position: 'B' },
@@ -718,7 +718,7 @@ test('builds normalized client submissions and resets all quote data', () => {
     payment: { mode: 'cash' },
   })
 
-  assert.equal(initialKioskData.smsConsent, false)
+  assert.equal(initialKioskData.smsConsent, true)
   assert.equal(initialKioskData.quoteVehicle, null)
   assert.equal(initialKioskData.quoteSubmission, null)
   assert.equal(initialKioskData.quoteSubmissionStatus, 'idle')
