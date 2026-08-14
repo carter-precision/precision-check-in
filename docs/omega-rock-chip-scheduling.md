@@ -1,67 +1,52 @@
-# Omega rock chip scheduling
+# Omega rock chip walk-ins
 
-The kiosk rock chip paths are service-request flows, not quote-result flows.
-Both the walk-in entry and the header entry collect the same information and
-submit through the existing kiosk Omega quote API.
+The kiosk rock chip paths are in-shop walk-in lead flows, not quote-result or
+scheduling flows. Both the walk-in entry and the header entry collect the same
+information and submit through the existing kiosk Omega quote API.
 
 ## Customer flow
 
-1. Choose cash pay or insurance. The walk-in path already reaches this choice
-   after selecting Rock chip; the header path now joins the same step.
-2. Enter first name, phone, optional email, and SMS consent. The SMS checkbox
-   appears last before submission and is checked by default.
-3. For insurance, select the Omega insurance company and enter a policy number.
-   Rock chip requests do not collect or send a deductible.
-4. Choose mobile or in-shop service, enter the ZIP, and select an available
-   service window or flexible follow-up.
-5. Submit the lead and scheduling request.
-6. Review the entered information and finish. Cash pay displays `$79.99`;
-   insurance displays the claim-handling message.
+1. Choose cash pay or insurance.
+2. Enter first name, phone, and optional email.
+3. Resolve the vehicle through VIN or year/make/model/body-style selection.
+4. Cash customers accept the repair authorization. Insurance customers see the
+   claim-handling message and can switch to cash pay.
+5. Submit the Omega lead and dashboard check-in.
+6. Show the default kiosk check-in success step.
+
+The flow does not collect service location, appointment time, ZIP, SMS consent,
+insurance company, policy number, deductible, or damaged-glass details.
 
 ## Omega request
 
-Rock chip leads use:
+Rock chip leads use the vehicle ID returned by the existing Omega vehicle lookup
+flow:
 
 ```text
-GET /api/2.0/Quotes/66687/WSREPAIR
+GET /api/2.0/Quotes/{resolved_vehicle_id}/WSREPAIR
 ```
 
-The server sends only the fields collected or required by this flow:
+The request sends:
 
 ```text
 position=WSREPAIR
-customer_zip
 customer_fname
 customer_phone
 customer_email       # only when provided
-customer_sms
 folder=pag
-campaign
+campaign=Rock Chip Web Quote   # cash only
 smart=true
 lead_type=web_lead
-account_company_id   # insurance only
-account_policy_no    # insurance only
 ```
 
-Campaign attribution is exact:
+Insurance rock chip requests omit campaign and insurance-account fields. Do not
+use a fixed vehicle ID or add year, make, model, deductible, scheduling, or blank
+attribution/template fields to the query.
 
-```text
-Rock Chip Web Quote
-Ins Rock Chip Web Quote
-```
+## Result behavior
 
-Do not add year, make, model, vehicle query fields, deductible, or blank
-attribution/template fields. The fixed path identifier is part of Omega's rock
-chip repair route and is not customer vehicle data.
-
-## Result and scheduling behavior
-
-The rock chip response does not run the windshield cash completion flow and
-does not fetch an invoice or expose an invoice/price result to the browser. If
-Omega's initial HTML includes an invoice ID, the server uses it only to attach
-the customer's held scheduling request. If no ID is available, the lead still
-succeeds and the result indicates that the team must follow up.
-
-The final kiosk step always treats the selected time as a request pending exact
-confirmation. It recaps contact, service location, ZIP, requested window, and
-payment/insurance details.
+The rock chip response does not run the windshield cash completion flow, create
+an appointment, or expose invoice/price details to the browser. Omega lead
+creation and the dashboard check-in are attempted independently from the same
+guarded submission. An Omega failure does not block the dashboard request or
+the default kiosk success step, so the customer is not prompted to resubmit.

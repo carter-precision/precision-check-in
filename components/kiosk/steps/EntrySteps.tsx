@@ -14,6 +14,7 @@ import { ChoiceButton, KioskStep } from '../KioskPrimitives'
 import {
   emptyQuoteContactData,
   emptyQuoteServiceData,
+  emptyQuoteVehicleData,
   type KioskStepProps,
 } from '../types'
 
@@ -104,11 +105,12 @@ export function ServiceTypeStep({ goTo }: KioskStepProps) {
         <ChoiceButton
           icon={<Wrench />}
           label="Rock chip"
-          description="Repair for small chips or cracks."
+          description="Check in for a small chip or crack repair."
           onClick={() =>
             goTo('paymentType', {
               ...emptyQuoteContactData,
               ...emptyQuoteServiceData,
+              ...emptyQuoteVehicleData,
               quoteSource: 'walk_in',
               serviceType: 'rock_chip',
               paymentType: null,

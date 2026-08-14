@@ -31,6 +31,7 @@ import {
   isGlassQuoteSupported,
   KIOSK_LOCATIONS,
 } from '../quote-options'
+import { buildAppointmentSubmission } from '../quote-submission'
 import type { GlassType, KioskStepProps } from '../types'
 import {
   KioskOmegaLookupError,
@@ -43,7 +44,6 @@ export function WindshieldGlassStep({
   data,
   updateData,
   goTo,
-  location,
 }: KioskStepProps) {
   const glassPosition = getGlassPosition(data.glassType)
   const canContinue =
@@ -106,9 +106,7 @@ export function WindshieldGlassStep({
           disabled={!canContinue}
           onClick={() => {
             if (!canContinue) return
-            goTo('windshieldServiceLocation', {
-              shopLocation: data.shopLocation || location,
-            })
+            goTo('windshieldContact')
           }}
         />
       </QuoteForm>
@@ -130,10 +128,10 @@ type ServiceLocationStepProps = KioskStepProps & {
 export function WindshieldServiceLocationStep({
   data,
   updateData,
-  goTo,
+  submitAppointment,
   location,
-  title = 'Where should we do the work?',
-  introduction = 'We can come to you, or you can visit one of our shops.',
+  title = 'Schedule your appointment',
+  introduction = 'Choose in-shop or mobile service, then select a date and time.',
   continueLabel,
   continueLoading = false,
   continueError,
@@ -157,6 +155,10 @@ export function WindshieldServiceLocationStep({
       : data.quoteServiceMode === 'shop' && Boolean(selectedShop)
   const canLoadAvailability = serviceDetailsAreValid && zipIsValid
   const canContinue = canLoadAvailability && Boolean(data.appointmentRequest)
+  const appointmentSubmission = buildAppointmentSubmission(data, location)
+  const isSubmitting =
+    continueLoading || data.appointmentSubmissionStatus === 'submitting'
+  const submissionError = continueError ?? data.appointmentSubmissionError
   const availabilityQueryKey = `${data.quoteServiceMode}:${selectedShop}:${data.serviceZip}:${availabilityRetry}`
   const displayedAvailability = previewAvailability ?? availability
   const displayedAvailabilityStatus = !canLoadAvailability
@@ -357,9 +359,8 @@ export function WindshieldServiceLocationStep({
                 displayedAvailability && (
                   <>
                     <p className="text-sm font-medium text-muted-foreground">
-                      These windows reflect current availability for{' '}
-                      {displayedAvailability.locationLabel}. We’ll contact you
-                      to confirm the exact appointment.
+                      Select an available appointment window for{' '}
+                      {displayedAvailability.locationLabel}.
                     </p>
                     {availableDates.length > 0 && (
                       <AvailabilityDatePicker
@@ -419,28 +420,6 @@ export function WindshieldServiceLocationStep({
                       </div>
                     )}
 
-                    <button
-                      type="button"
-                      aria-pressed={
-                        data.appointmentRequest?.kind === 'flexible'
-                      }
-                      className={`w-full rounded-xl border p-4 text-left font-bold transition ${
-                        data.appointmentRequest?.kind === 'flexible'
-                          ? 'border-accent bg-accent-tint text-[#16262f] shadow-sm'
-                          : 'border-[#d7e1e3] bg-white text-[#40525a] hover:border-[#a9c7ce]'
-                      }`}
-                      onClick={() =>
-                        updateData({
-                          appointmentRequest: {
-                            kind: 'flexible',
-                            token: displayedAvailability.flexibleToken,
-                            locationLabel: displayedAvailability.locationLabel,
-                          },
-                        })
-                      }
-                    >
-                      I’m flexible—have the team contact me
-                    </button>
                   </>
                 )}
 
@@ -485,27 +464,36 @@ export function WindshieldServiceLocationStep({
           </QuoteField>
         )}
 
-        {continueError && (
+        {submissionError && (
           <div role="alert" className="rounded-xl bg-accent-tint p-4">
             <p className="font-bold text-[#16262f]">
               We couldn’t schedule your service
             </p>
-            <p className="mt-1 font-medium text-[#40525a]">{continueError}</p>
+            <p className="mt-1 font-medium text-[#40525a]">{submissionError}</p>
           </div>
         )}
 
         <QuoteContinueButton
-          disabled={!canContinue || continueDisabled}
-          loading={continueLoading}
-          onClick={() =>
-            onContinue ? onContinue() : goTo('windshieldContact')
+          disabled={
+            !canContinue ||
+            !appointmentSubmission ||
+            continueDisabled ||
+            isSubmitting
           }
+          loading={isSubmitting}
+          onClick={() => {
+            if (onContinue) {
+              onContinue()
+            } else if (appointmentSubmission) {
+              void submitAppointment(appointmentSubmission)
+            }
+          }}
         >
-          {continueLoading
+          {isSubmitting
             ? 'Scheduling your service…'
-            : continueError
+            : submissionError
               ? 'Try again'
-              : continueLabel}
+              : (continueLabel ?? 'Request appointment')}
         </QuoteContinueButton>
       </QuoteForm>
     </KioskStep>

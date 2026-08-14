@@ -50,7 +50,6 @@ export type AppointmentWindowOption = {
 export type AppointmentAvailability = {
   locationLabel: string
   windows: AppointmentWindowOption[]
-  flexibleToken: string
 }
 
 export type SchedulingResult = {
@@ -60,17 +59,15 @@ export type SchedulingResult = {
 export type QuoteResult = {
   invoiceId: string
   total: number
-  scheduling: SchedulingResult
 }
 
 export type InsuranceQuoteAcknowledgement = {
   kind: 'insurance_acknowledgement'
-  scheduling: SchedulingResult
+  invoiceId: string
 }
 
 export type RockChipAcknowledgement = {
   kind: 'rock_chip_acknowledgement'
-  scheduling: SchedulingResult
 }
 
 export type QuoteSubmissionResult =

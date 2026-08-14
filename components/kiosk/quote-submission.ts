@@ -2,6 +2,7 @@ import type {
   KioskData,
   QuoteSubmission,
   RockChipSubmission,
+  WindshieldAppointmentSubmission,
   WindshieldQuoteSubmission,
 } from './types'
 
@@ -35,18 +36,8 @@ export function buildQuoteSubmission(
     !data.quoteVehicle ||
     !data.glassType ||
     !data.glassPosition ||
-    !data.quoteServiceMode ||
-    !data.quotePayType ||
-    !data.appointmentRequest
+    !data.quotePayType
   ) {
-    return null
-  }
-
-  if (data.quoteServiceMode === 'mobile' && !data.serviceAddress.trim()) {
-    return null
-  }
-
-  if (data.quoteServiceMode === 'shop' && !data.shopLocation.trim()) {
     return null
   }
 
@@ -63,20 +54,6 @@ export function buildQuoteSubmission(
     glass: {
       type: data.glassType,
       position: data.glassPosition,
-    },
-    service: {
-      mode: data.quoteServiceMode,
-      address:
-        data.quoteServiceMode === 'mobile' ? data.serviceAddress.trim() : null,
-      shopLocation:
-        data.quoteServiceMode === 'shop' ? data.shopLocation.trim() : null,
-      appointmentRequest:
-        data.appointmentRequest.kind === 'follow_up'
-          ? { kind: 'follow_up' as const }
-          : {
-              kind: data.appointmentRequest.kind,
-              token: data.appointmentRequest.token,
-            },
     },
   } satisfies Omit<WindshieldQuoteSubmission, 'payment'>
 
@@ -111,23 +88,15 @@ export function buildQuoteSubmission(
   }
 }
 
-export function buildRockChipSubmission(
+export function buildAppointmentSubmission(
   data: KioskData,
   locationSlug: string,
-): RockChipSubmission | null {
-  const firstName = data.customerName.trim()
-  const phone = data.phone.trim()
-  const email = data.email.trim()
-  const zip = data.serviceZip.trim()
-
+): WindshieldAppointmentSubmission | null {
   if (
-    !firstName ||
-    !isValidQuotePhone(phone) ||
-    !isValidQuoteEmail(email) ||
-    !ZIP_PATTERN.test(zip) ||
     !data.quoteServiceMode ||
-    !data.quotePayType ||
-    !data.appointmentRequest
+    !data.appointmentRequest ||
+    !data.quoteInvoiceId ||
+    !ZIP_PATTERN.test(data.serviceZip.trim())
   ) {
     return null
   }
@@ -140,16 +109,10 @@ export function buildRockChipSubmission(
     return null
   }
 
-  const common = {
-    serviceType: 'rock_chip' as const,
+  return {
     locationSlug,
-    customer: {
-      firstName,
-      phone,
-      email: email || null,
-      zip,
-      smsConsent: data.smsConsent,
-    },
+    invoiceId: data.quoteInvoiceId,
+    postalCode: data.serviceZip.trim(),
     service: {
       mode: data.quoteServiceMode,
       address:
@@ -158,33 +121,47 @@ export function buildRockChipSubmission(
         data.quoteServiceMode === 'shop' ? data.shopLocation.trim() : null,
       appointmentRequest:
         data.appointmentRequest.kind === 'follow_up'
-          ? { kind: 'follow_up' as const }
+          ? { kind: 'follow_up' }
           : {
               kind: data.appointmentRequest.kind,
               token: data.appointmentRequest.token,
             },
     },
-  } satisfies Omit<RockChipSubmission, 'payment'>
-
-  if (data.quotePayType === 'cash') {
-    return { ...common, payment: { mode: 'cash' } }
   }
+}
+
+export function buildRockChipSubmission(
+  data: KioskData,
+  locationSlug: string,
+): RockChipSubmission | null {
+  const firstName = data.customerName.trim()
+  const phone = data.phone.trim()
+  const email = data.email.trim()
 
   if (
-    !data.insuranceCompanyId.trim() ||
-    !data.insuranceCompanyLabel.trim() ||
-    !data.policyNumber.trim()
+    !firstName ||
+    !isValidQuotePhone(phone) ||
+    !isValidQuoteEmail(email) ||
+    !data.quoteVehicle ||
+    !data.quotePayType ||
+    (data.quotePayType === 'cash' && !data.repairAuthorized)
   ) {
     return null
   }
 
+  const common = {
+    serviceType: 'rock_chip' as const,
+    locationSlug,
+    customer: {
+      firstName,
+      phone,
+      email: email || null,
+    },
+    vehicle: data.quoteVehicle,
+  } satisfies Omit<RockChipSubmission, 'payment'>
+
   return {
     ...common,
-    payment: {
-      mode: 'insurance',
-      companyId: data.insuranceCompanyId.trim(),
-      companyLabel: data.insuranceCompanyLabel.trim(),
-      policyNumber: data.policyNumber.trim(),
-    },
+    payment: { mode: data.quotePayType },
   }
 }

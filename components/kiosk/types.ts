@@ -15,11 +15,10 @@ export type StepId =
   | 'windshieldContact'
   | 'windshieldQuoteResult'
   | 'windshieldInsuranceSuccess'
+  | 'windshieldAppointmentSuccess'
   | 'rockChipCashAuthorization'
   | 'rockChipInsuranceName'
   | 'rockChipContact'
-  | 'rockChipServiceLocation'
-  | 'rockChipSuccess'
   | 'success'
   | 'quoteServiceType'
   | 'rockChipQuote'
@@ -65,11 +64,6 @@ export type AppointmentRequestSelection =
       locationLabel: string
     }
   | {
-      kind: 'flexible'
-      token: string
-      locationLabel: string
-    }
-  | {
       kind: 'follow_up'
     }
 
@@ -94,12 +88,14 @@ type QuoteCustomer = {
   smsConsent: boolean
 }
 
+type RockChipCustomer = Pick<QuoteCustomer, 'firstName' | 'phone' | 'email'>
+
 type QuoteService = {
   mode: Exclude<QuoteServiceMode, null>
   address: string | null
   shopLocation: string | null
   appointmentRequest:
-    { kind: 'window' | 'flexible'; token: string } | { kind: 'follow_up' }
+    { kind: 'window'; token: string } | { kind: 'follow_up' }
 }
 
 export type WindshieldQuoteSubmission = {
@@ -110,7 +106,6 @@ export type WindshieldQuoteSubmission = {
     type: GlassType
     position: OmegaGlassPosition
   }
-  service: QuoteService
   payment:
     | { mode: 'cash' }
     | {
@@ -122,19 +117,19 @@ export type WindshieldQuoteSubmission = {
       }
 }
 
+export type WindshieldAppointmentSubmission = {
+  locationSlug: string
+  invoiceId: string
+  postalCode: string
+  service: QuoteService
+}
+
 export type RockChipSubmission = {
   serviceType: 'rock_chip'
   locationSlug: string
-  customer: QuoteCustomer
-  service: QuoteService
-  payment:
-    | { mode: 'cash' }
-    | {
-        mode: 'insurance'
-        companyId: string
-        companyLabel: string
-        policyNumber: string
-      }
+  customer: RockChipCustomer
+  vehicle: QuoteVehicle
+  payment: { mode: 'cash' } | { mode: 'insurance' }
 }
 
 export type QuoteSubmission = WindshieldQuoteSubmission | RockChipSubmission
@@ -176,7 +171,10 @@ export type KioskData = {
   quoteSubmissionStatus: QuoteSubmissionStatus
   quoteSubmissionError: string | null
   quoteResult: QuoteResult | null
+  quoteInvoiceId: string | null
   quoteSchedulingStatus: 'held' | 'needs_follow_up' | null
+  appointmentSubmissionStatus: QuoteSubmissionStatus
+  appointmentSubmissionError: string | null
 }
 
 export const emptyQuoteVehicleData = {
@@ -206,7 +204,10 @@ export const emptyQuoteOutcomeData = {
   quoteSubmissionStatus: 'idle',
   quoteSubmissionError: null,
   quoteResult: null,
+  quoteInvoiceId: null,
   quoteSchedulingStatus: null,
+  appointmentSubmissionStatus: 'idle',
+  appointmentSubmissionError: null,
 } satisfies Partial<KioskData>
 
 export const emptyQuoteContactData = {
@@ -252,6 +253,10 @@ export type KioskStepProps = {
   updateData: (partial: Partial<KioskData>) => void
   submitCheckIn: () => Promise<boolean>
   submitQuote: (submission: QuoteSubmission) => Promise<boolean>
+  submitAppointment: (
+    submission: WindshieldAppointmentSubmission,
+  ) => Promise<boolean>
+  submitRockChip: (submission: RockChipSubmission) => Promise<boolean>
   resetFlow: () => void
   isSubmitting: boolean
   location: string

@@ -14,7 +14,7 @@ import {
   normalizeOmegaQuoteLocations,
   selectMobileSchedulingLocation,
 } from '../lib/omega/scheduling-contracts.ts'
-import { buildHeldAppointmentPayload } from '../lib/omega/scheduling-request.ts'
+import { buildAppointmentPayload } from '../lib/omega/scheduling-request.ts'
 import {
   classifyOmegaQuoteHtml,
   extractOmegaQuoteBootstrapGuid,
@@ -39,6 +39,7 @@ import {
   isGlassQuoteSupported,
 } from '../components/kiosk/quote-options.ts'
 import {
+  buildAppointmentSubmission,
   buildQuoteSubmission,
   buildRockChipSubmission,
 } from '../components/kiosk/quote-submission.ts'
@@ -70,20 +71,30 @@ const cashSubmission = {
   },
   vehicle: quoteVehicle,
   glass: { type: 'windshield', position: 'W' },
+  payment: { mode: 'cash' },
+}
+
+const appointmentSubmission = {
+  locationSlug: 'layton',
+  invoiceId: '120241',
+  postalCode: '84041',
   service: {
     mode: 'shop',
     address: null,
     shopLocation: 'layton',
     appointmentRequest: { kind: 'follow_up' },
   },
-  payment: { mode: 'cash' },
 }
 
 const rockChipCashSubmission = {
   serviceType: 'rock_chip',
   locationSlug: 'layton',
-  customer: cashSubmission.customer,
-  service: cashSubmission.service,
+  customer: {
+    firstName: 'Validation',
+    phone: '8015550100',
+    email: 'validation@example.com',
+  },
+  vehicle: { ...quoteVehicle, vehicleId: '77777' },
   payment: { mode: 'cash' },
 }
 
@@ -268,9 +279,9 @@ test('routes mobile scheduling to a mapped serviced location', () => {
   assert.equal(location?.id, '1')
 })
 
-test('builds a held appointment request without claiming a confirmed time', () => {
-  const payload = buildHeldAppointmentPayload(
-    cashSubmission,
+test('builds the minimal appointment request from the selected slot', () => {
+  const payload = buildAppointmentPayload(
+    appointmentSubmission,
     {
       version: 1,
       kioskLocationSlug: 'layton',
@@ -285,19 +296,57 @@ test('builds a held appointment request without claiming a confirmed time', () =
       expiresAt: 1_800_000_000,
     },
     '120241',
-    'Kiosk request',
   )
 
   assert.deepEqual(payload, {
-    invoice_id: 120241,
+    invoice_id: '120241',
     status: 'HOLD',
     type: 'inshop',
-    location_id: 2,
-    note: 'Kiosk scheduling request. Customer requested Tue, Apr 9, 4:00 PM–6:00 PM. Exact appointment time is pending confirmation. In-shop service requested at Layton.',
-    ignore_capacity: false,
+    location_id: '2',
+    note: 'Kiosk appointment. Customer selected Tue, Apr 9, 4:00 PM–6:00 PM. In-shop service requested at Layton.',
     requested_window_start: 1_712_700_000,
     requested_window_end: 1_712_707_200,
-    hold_reason: 'Kiosk request',
+  })
+})
+
+test('adds only the collected address for mobile appointments', () => {
+  const payload = buildAppointmentPayload(
+    {
+      ...appointmentSubmission,
+      postalCode: '84124',
+      service: {
+        mode: 'mobile',
+        address: '4525 Wasatch Blvd, Midvale, UT 84124',
+        shopLocation: null,
+        appointmentRequest: { kind: 'window', token: 'signed-token' },
+      },
+    },
+    {
+      version: 1,
+      kioskLocationSlug: 'layton',
+      serviceMode: 'mobile',
+      routingKey: '84124',
+      omegaLocationId: '2',
+      omegaLocationLabel: 'Midvale',
+      kind: 'window',
+      startTime: 1_712_700_000,
+      endTime: 1_712_707_200,
+      windowLabel: 'Tue, Apr 9, 4:00 PM–6:00 PM',
+      expiresAt: 1_800_000_000,
+    },
+    '120241',
+  )
+
+  assert.deepEqual(payload, {
+    invoice_id: '120241',
+    status: 'HOLD',
+    type: 'mobile',
+    location_id: '2',
+    note: 'Kiosk appointment. Customer selected Tue, Apr 9, 4:00 PM–6:00 PM. Mobile service requested at 4525 Wasatch Blvd, Midvale, UT 84124.',
+    requested_window_start: 1_712_700_000,
+    requested_window_end: 1_712_707_200,
+    service_address:
+      '{"description":"4525 Wasatch Blvd, Midvale, UT 84124"}',
   })
 })
 
@@ -430,24 +479,22 @@ test('builds the exact approved insurance request from an Omega company ID', () 
   assert.equal(request.query.has('medium'), false)
 })
 
-test('builds minimal cash and insurance rock chip lead requests', () => {
+test('builds minimal cash and insurance rock chip walk-in leads', () => {
   const cashRequest = buildOmegaRockChipRequest(rockChipCashSubmission)
 
   assert.equal(
     quoteSubmissionSchema.safeParse(rockChipCashSubmission).success,
     true,
   )
-  assert.equal(cashRequest.path, '/Quotes/66687/WSREPAIR')
+  assert.equal(cashRequest.path, '/Quotes/77777/WSREPAIR')
   assert.deepEqual(Object.fromEntries(cashRequest.query), {
     position: 'WSREPAIR',
-    customer_zip: '84041',
     customer_fname: 'Validation',
     customer_phone: '8015550100',
-    customer_sms: '0',
     folder: 'pag',
-    campaign: 'Rock Chip Web Quote',
     smart: 'true',
     lead_type: 'web_lead',
+    campaign: 'Rock Chip Web Quote',
     customer_email: 'validation@example.com',
   })
 
@@ -470,20 +517,12 @@ test('builds minimal cash and insurance rock chip lead requests', () => {
 
   const insuranceRequest = buildOmegaRockChipRequest({
     ...rockChipCashSubmission,
-    payment: {
-      mode: 'insurance',
-      companyId: '42',
-      companyLabel: 'Allstate',
-      policyNumber: 'POLICY-123',
-    },
+    payment: { mode: 'insurance' },
   })
 
-  assert.equal(
-    insuranceRequest.query.get('campaign'),
-    'Ins Rock Chip Web Quote',
-  )
-  assert.equal(insuranceRequest.query.get('account_company_id'), '42')
-  assert.equal(insuranceRequest.query.get('account_policy_no'), 'POLICY-123')
+  assert.equal(insuranceRequest.query.has('campaign'), false)
+  assert.equal(insuranceRequest.query.has('account_company_id'), false)
+  assert.equal(insuranceRequest.query.has('account_policy_no'), false)
   assert.equal(insuranceRequest.query.has('account_deductible'), false)
 })
 
@@ -644,7 +683,6 @@ test('requires a strict total-only result DTO', () => {
     quoteResultSchema.safeParse({
       invoiceId: '120241',
       total: 379.27,
-      scheduling: { status: 'held' },
     }).success,
     true,
   )
@@ -653,7 +691,6 @@ test('requires a strict total-only result DTO', () => {
       invoiceId: '120241',
       total: 379.27,
       tax: 27.5,
-      scheduling: { status: 'held' },
     }).success,
     false,
   )
@@ -662,21 +699,19 @@ test('requires a strict total-only result DTO', () => {
       invoiceId: '120241',
       total: 406.77,
       rawHtml: '<p>must not pass</p>',
-      scheduling: { status: 'held' },
     }).success,
     false,
   )
   assert.equal(
     insuranceQuoteAcknowledgementSchema.safeParse({
       kind: 'insurance_acknowledgement',
-      scheduling: { status: 'needs_follow_up' },
+      invoiceId: '120241',
     }).success,
     true,
   )
   assert.equal(
     rockChipAcknowledgementSchema.safeParse({
       kind: 'rock_chip_acknowledgement',
-      scheduling: { status: 'held' },
     }).success,
     true,
   )
@@ -696,6 +731,7 @@ test('builds normalized client submissions and resets all quote data', () => {
     shopLocation: 'layton',
     appointmentRequest: { kind: 'follow_up' },
     quotePayType: 'cash',
+    quoteInvoiceId: '120241',
   }
 
   assert.deepEqual(buildQuoteSubmission(data, 'layton'), {
@@ -709,13 +745,19 @@ test('builds normalized client submissions and resets all quote data', () => {
     },
     vehicle: quoteVehicle,
     glass: { type: 'back', position: 'B' },
+    payment: { mode: 'cash' },
+  })
+
+  assert.deepEqual(buildAppointmentSubmission(data, 'layton'), {
+    locationSlug: 'layton',
+    invoiceId: '120241',
+    postalCode: '84041',
     service: {
       mode: 'shop',
       address: null,
       shopLocation: 'layton',
       appointmentRequest: { kind: 'follow_up' },
     },
-    payment: { mode: 'cash' },
   })
 
   assert.equal(initialKioskData.smsConsent, true)
@@ -756,36 +798,48 @@ test('builds an insurance submission without a deductible', () => {
   assert.equal(submission.payment.deductible, null)
 })
 
-test('builds a rock chip scheduling submission without vehicle or deductible fields', () => {
+test('builds a rock chip walk-in submission with the resolved vehicle', () => {
   const submission = buildRockChipSubmission(
     {
       ...initialKioskData,
       customerName: 'Validation',
       phone: '8015550100',
       email: 'validation@example.com',
-      serviceZip: '84041',
-      quoteServiceMode: 'shop',
-      shopLocation: 'layton',
-      appointmentRequest: { kind: 'follow_up' },
+      quoteVehicle,
       quotePayType: 'insurance',
       paymentType: 'insurance',
-      insuranceCompanyId: '42',
-      insuranceCompanyLabel: 'Allstate',
-      policyNumber: 'POLICY-123',
-      deductibleAmount: '500',
     },
     'layton',
   )
 
   assert.ok(submission)
   assert.equal(submission.serviceType, 'rock_chip')
-  assert.deepEqual(submission.payment, {
-    mode: 'insurance',
-    companyId: '42',
-    companyLabel: 'Allstate',
-    policyNumber: 'POLICY-123',
+  assert.deepEqual(submission.payment, { mode: 'insurance' })
+  assert.deepEqual(submission.customer, {
+    firstName: 'Validation',
+    phone: '8015550100',
+    email: 'validation@example.com',
   })
-  assert.equal('vehicle' in submission, false)
+  assert.deepEqual(submission.vehicle, quoteVehicle)
+  assert.equal('service' in submission, false)
   assert.equal('glass' in submission, false)
   assert.equal('deductible' in submission.payment, false)
+})
+
+test('requires repair authorization for cash rock chip walk-ins', () => {
+  const data = {
+    ...initialKioskData,
+    customerName: 'Validation',
+    phone: '8015550100',
+    quoteVehicle,
+    quotePayType: 'cash',
+    paymentType: 'cash',
+  }
+
+  assert.equal(buildRockChipSubmission(data, 'layton'), null)
+  assert.deepEqual(
+    buildRockChipSubmission({ ...data, repairAuthorized: true }, 'layton')
+      ?.payment,
+    { mode: 'cash' },
+  )
 })

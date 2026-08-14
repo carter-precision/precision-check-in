@@ -7,11 +7,17 @@ import {
   submitKioskOmegaQuote,
 } from './omega-quote-submit'
 import {
+  KioskAppointmentSubmissionError,
+  submitKioskOmegaAppointment,
+} from './omega-appointment-submit'
+import {
   emptyQuoteOutcomeData,
   initialKioskData,
   type KioskData,
   type QuoteSubmission,
+  type RockChipSubmission,
   type StepId,
+  type WindshieldAppointmentSubmission,
 } from './types'
 
 const INACTIVITY_WARNING_MS = 72_000
@@ -41,6 +47,9 @@ const quoteInputKeys = new Set<keyof KioskData>([
   'quoteVehicle',
   'glassType',
   'glassPosition',
+])
+
+const appointmentInputKeys = new Set<keyof KioskData>([
   'quoteServiceMode',
   'serviceAddress',
   'shopLocation',
@@ -60,10 +69,20 @@ export function useKioskFlow(location: string) {
     const changesQuoteInput = Object.keys(partial).some((key) =>
       quoteInputKeys.has(key as keyof KioskData),
     )
+    const changesAppointmentInput = Object.keys(partial).some((key) =>
+      appointmentInputKeys.has(key as keyof KioskData),
+    )
 
     setData((current) => ({
       ...current,
       ...(changesQuoteInput ? emptyQuoteOutcomeData : {}),
+      ...(changesAppointmentInput
+        ? {
+            quoteSchedulingStatus: null,
+            appointmentSubmissionStatus: 'idle' as const,
+            appointmentSubmissionError: null,
+          }
+        : {}),
       ...partial,
     }))
   }, [])
@@ -102,6 +121,7 @@ export function useKioskFlow(location: string) {
 
   const submitQuote = useCallback(
     async (submission: QuoteSubmission) => {
+      if ('serviceType' in submission) return false
       if (quoteRequestInFlight.current) return false
 
       quoteRequestInFlight.current = true
@@ -112,6 +132,7 @@ export function useKioskFlow(location: string) {
         quoteSubmissionStatus: 'submitting',
         quoteSubmissionError: null,
         quoteResult: null,
+        quoteInvoiceId: null,
         quoteSchedulingStatus: null,
       }))
 
@@ -119,19 +140,23 @@ export function useKioskFlow(location: string) {
         const result = await submitKioskOmegaQuote(submission)
 
         if ('kind' in result) {
+          if (result.kind === 'rock_chip_acknowledgement') {
+            throw new KioskQuoteSubmissionError(
+              'The quote service returned an invalid result.',
+              'invalid_success_response',
+            )
+          }
+
           setData((current) => ({
             ...current,
             quoteSubmissionStatus: 'succeeded',
             quoteSubmissionError: null,
             quoteResult: null,
-            quoteSchedulingStatus: result.scheduling.status,
+            quoteInvoiceId: result.invoiceId,
+            quoteSchedulingStatus: null,
           }))
           setHistory((current) => [...current, step])
-          setStep(
-            result.kind === 'rock_chip_acknowledgement'
-              ? 'rockChipSuccess'
-              : 'windshieldInsuranceSuccess',
-          )
+          setStep('windshieldInsuranceSuccess')
           return true
         }
 
@@ -140,7 +165,8 @@ export function useKioskFlow(location: string) {
           quoteSubmissionStatus: 'succeeded',
           quoteSubmissionError: null,
           quoteResult: result,
-          quoteSchedulingStatus: result.scheduling.status,
+          quoteInvoiceId: result.invoiceId,
+          quoteSchedulingStatus: null,
         }))
         setHistory((current) => [...current, step])
         setStep('windshieldQuoteResult')
@@ -148,16 +174,14 @@ export function useKioskFlow(location: string) {
       } catch (error) {
         const knownError =
           error instanceof KioskQuoteSubmissionError ? error : null
-        const isRockChip = 'serviceType' in submission
-
         setData((current) => ({
           ...current,
           quoteSubmissionStatus: 'failed',
-          quoteSubmissionError: isRockChip
-            ? getRockChipSubmissionError(knownError)
-            : (knownError?.message ??
-              "We couldn't complete your quote. Please try again."),
+          quoteSubmissionError:
+            knownError?.message ??
+            "We couldn't complete your quote. Please try again.",
           quoteResult: null,
+          quoteInvoiceId: null,
           quoteSchedulingStatus: null,
         }))
         return false
@@ -166,6 +190,121 @@ export function useKioskFlow(location: string) {
       }
     },
     [step],
+  )
+
+  const submitAppointment = useCallback(
+    async (submission: WindshieldAppointmentSubmission) => {
+      if (quoteRequestInFlight.current) return false
+
+      quoteRequestInFlight.current = true
+      setShowInactiveWarning(false)
+      setData((current) => ({
+        ...current,
+        appointmentSubmissionStatus: 'submitting',
+        appointmentSubmissionError: null,
+        quoteSchedulingStatus: null,
+      }))
+
+      try {
+        const result = await submitKioskOmegaAppointment(submission)
+        setData((current) => ({
+          ...current,
+          appointmentSubmissionStatus: 'succeeded',
+          appointmentSubmissionError: null,
+          quoteSchedulingStatus: result.status,
+        }))
+        setHistory((current) => [...current, step])
+        setStep('windshieldAppointmentSuccess')
+        return true
+      } catch (error) {
+        const knownError =
+          error instanceof KioskAppointmentSubmissionError ? error : null
+        setData((current) => ({
+          ...current,
+          appointmentSubmissionStatus: 'failed',
+          appointmentSubmissionError:
+            knownError?.message ??
+            "We couldn't schedule your service. Please try again.",
+          quoteSchedulingStatus: null,
+        }))
+        return false
+      } finally {
+        quoteRequestInFlight.current = false
+      }
+    },
+    [step],
+  )
+
+  const submitRockChip = useCallback(
+    async (submission: RockChipSubmission) => {
+      if (quoteRequestInFlight.current || isSubmitting) return false
+
+      quoteRequestInFlight.current = true
+      setIsSubmitting(true)
+      setShowInactiveWarning(false)
+
+      setData((current) => ({
+        ...current,
+        quoteSubmission: submission,
+        quoteSubmissionStatus: 'submitting',
+        quoteSubmissionError: null,
+        quoteResult: null,
+        quoteSchedulingStatus: null,
+      }))
+
+      try {
+        const [omegaResult, dashboardResult] = await Promise.allSettled([
+          submitKioskOmegaQuote(submission),
+          createCheckInAction({
+            locationSlug: location,
+            customerName: submission.customer.firstName,
+            phone: submission.customer.phone,
+            visitType: 'walk_in',
+            serviceType: 'rock_chip',
+            paymentType: submission.payment.mode,
+            source: 'kiosk',
+            repairAuthorized:
+              submission.payment.mode === 'cash' && data.repairAuthorized,
+            windshieldIntent: null,
+          }),
+        ])
+
+        if (
+          omegaResult.status === 'rejected' ||
+          !('kind' in omegaResult.value) ||
+          omegaResult.value.kind !== 'rock_chip_acknowledgement'
+        ) {
+          console.error(
+            'Rock chip Omega lead submission failed:',
+            omegaResult.status === 'rejected'
+              ? omegaResult.reason
+              : 'invalid acknowledgement',
+          )
+        }
+
+        if (dashboardResult.status === 'rejected') {
+          console.error(
+            'Failed to create rock chip dashboard check-in:',
+            dashboardResult.reason,
+          )
+        }
+
+        setData((current) => ({
+          ...current,
+          quoteSubmissionStatus: 'succeeded',
+          quoteSubmissionError: null,
+          quoteResult: null,
+          quoteSchedulingStatus: null,
+        }))
+        setHistory([])
+        setStep('success')
+        return true
+      } finally {
+        quoteRequestInFlight.current = false
+        setIsSubmitting(false)
+      }
+    },
+    [data.repairAuthorized, isSubmitting, location],
   )
 
   const submitCheckIn = useCallback(
@@ -182,6 +321,7 @@ export function useKioskFlow(location: string) {
         await createCheckInAction({
           locationSlug: location,
           customerName: finalData.customerName.trim(),
+          phone: finalData.phone.trim() || undefined,
           visitType: finalData.visitType ?? 'walk_in',
           serviceType: finalData.serviceType,
           paymentType: finalData.paymentType,
@@ -286,19 +426,11 @@ export function useKioskFlow(location: string) {
     updateData,
     submitCheckIn,
     submitQuote,
+    submitAppointment,
+    submitRockChip,
     continueAfterInactivity: () => {
       setShowInactiveWarning(false)
       lastActivityAt.current = Date.now()
     },
   }
-}
-
-function getRockChipSubmissionError(error: KioskQuoteSubmissionError | null) {
-  if (error?.code === 'invalid_scheduling_request') return error.message
-
-  if (error?.code === 'invalid_quote_reference') {
-    return 'The selected insurance company is no longer available. Please go back and choose it again.'
-  }
-
-  return "We couldn't submit your service request. Please try again."
 }

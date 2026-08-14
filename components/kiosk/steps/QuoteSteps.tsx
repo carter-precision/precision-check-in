@@ -30,11 +30,12 @@ export function QuoteServiceTypeStep({ goTo }: KioskStepProps) {
         <ChoiceButton
           icon={<Wrench />}
           label="Rock chip"
-          description="Schedule a rock chip repair."
+          description="Check in for a rock chip repair."
           onClick={() =>
             goTo('paymentType', {
               ...emptyQuoteServiceData,
               ...emptyQuoteContactData,
+              ...emptyQuoteVehicleData,
               quoteSource: 'header',
               serviceType: 'rock_chip',
               paymentType: null,

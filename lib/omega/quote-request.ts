@@ -21,7 +21,6 @@ const vinSchema = z
   .toUpperCase()
   .regex(/^[A-HJ-NPR-Z0-9]{17}$/)
   .nullable()
-const ROCK_CHIP_ROUTE_VEHICLE_ID = '66687'
 const ROCK_CHIP_POSITION = 'WSREPAIR'
 
 const glassPositionByType = {
@@ -54,9 +53,8 @@ const glassPositionSchema = z.enum([
   'B',
 ])
 
-const appointmentRequestSchema = z.discriminatedUnion('kind', [
+export const appointmentRequestSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('window'), token: z.string().min(20) }).strict(),
-  z.object({ kind: z.literal('flexible'), token: z.string().min(20) }).strict(),
   z.object({ kind: z.literal('follow_up') }).strict(),
 ])
 
@@ -78,6 +76,22 @@ const customerSchema = z
       .trim()
       .regex(/^\d{5}$/),
     smsConsent: z.boolean(),
+  })
+  .strict()
+
+const rockChipCustomerSchema = z
+  .object({
+    firstName: z.string().trim().min(1).max(80),
+    phone: z
+      .string()
+      .trim()
+      .min(1)
+      .max(30)
+      .refine((value) => {
+        const digits = value.replace(/\D/g, '').length
+        return digits >= 10 && digits <= 15
+      }),
+    email: z.string().trim().email().max(254).nullable(),
   })
   .strict()
 
@@ -116,7 +130,7 @@ const glassSchema = z
     }
   })
 
-const serviceSchema = z.discriminatedUnion('mode', [
+export const quoteServiceSchema = z.discriminatedUnion('mode', [
   z
     .object({
       mode: z.literal('mobile'),
@@ -150,14 +164,7 @@ const windshieldPaymentSchema = z.discriminatedUnion('mode', [
 
 const rockChipPaymentSchema = z.discriminatedUnion('mode', [
   z.object({ mode: z.literal('cash') }).strict(),
-  z
-    .object({
-      mode: z.literal('insurance'),
-      companyId: entityIdSchema,
-      companyLabel: z.string().trim().min(1).max(160),
-      policyNumber: z.string().trim().min(1).max(120),
-    })
-    .strict(),
+  z.object({ mode: z.literal('insurance') }).strict(),
 ])
 
 export const windshieldQuoteSubmissionSchema = z
@@ -166,7 +173,6 @@ export const windshieldQuoteSubmissionSchema = z
     customer: customerSchema,
     vehicle: vehicleSchema,
     glass: glassSchema,
-    service: serviceSchema,
     payment: windshieldPaymentSchema,
   })
   .strict()
@@ -175,8 +181,8 @@ export const rockChipSubmissionSchema = z
   .object({
     serviceType: z.literal('rock_chip'),
     locationSlug: locationSlugSchema,
-    customer: customerSchema,
-    service: serviceSchema,
+    customer: rockChipCustomerSchema,
+    vehicle: vehicleSchema,
     payment: rockChipPaymentSchema,
   })
   .strict()
@@ -279,30 +285,23 @@ export function buildOmegaRockChipRequest(input: ValidatedRockChipSubmission) {
   const position = ROCK_CHIP_POSITION
   const query = new URLSearchParams({
     position,
-    customer_zip: input.customer.zip,
     customer_fname: input.customer.firstName,
     customer_phone: input.customer.phone,
-    customer_sms: input.customer.smsConsent ? '1' : '0',
     folder: 'pag',
-    campaign:
-      input.payment.mode === 'insurance'
-        ? 'Ins Rock Chip Web Quote'
-        : 'Rock Chip Web Quote',
     smart: 'true',
     lead_type: 'web_lead',
   })
+
+  if (input.payment.mode === 'cash') {
+    query.set('campaign', 'Rock Chip Web Quote')
+  }
 
   if (input.customer.email) {
     query.set('customer_email', input.customer.email)
   }
 
-  if (input.payment.mode === 'insurance') {
-    query.set('account_company_id', input.payment.companyId)
-    query.set('account_policy_no', input.payment.policyNumber)
-  }
-
   return {
-    path: `/Quotes/${ROCK_CHIP_ROUTE_VEHICLE_ID}/${position}`,
+    path: `/Quotes/${encodeURIComponent(input.vehicle.vehicleId)}/${position}`,
     position,
     query,
   }

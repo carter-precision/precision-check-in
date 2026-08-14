@@ -16,11 +16,7 @@ import {
 } from './steps/EntrySteps'
 import { NameStep } from './steps/NameStep'
 import { QuoteServiceTypeStep } from './steps/QuoteSteps'
-import {
-  RockChipContactStep,
-  RockChipServiceLocationStep,
-  RockChipSuccessStep,
-} from './steps/RockChipSchedulingSteps'
+import { RockChipContactStep } from './steps/RockChipSteps'
 import { SuccessStep } from './steps/SuccessStep'
 import { WindshieldIntentStep } from './steps/WindshieldSteps'
 import { WindshieldVehicleStep } from './steps/WindshieldQuoteDetailsSteps'
@@ -30,6 +26,7 @@ import {
 } from './steps/WindshieldQuoteServiceSteps'
 import { WindshieldQuoteContactStep } from './steps/WindshieldQuoteContactStep'
 import { WindshieldInsuranceSuccessStep } from './steps/WindshieldInsuranceSuccessStep'
+import { WindshieldAppointmentSuccessStep } from './steps/WindshieldAppointmentSuccessStep'
 import { WindshieldQuoteResultStep } from './steps/WindshieldQuoteResultStep'
 import type { KioskStepProps, StepId } from './types'
 import { useKioskFlow } from './useKioskFlow'
@@ -47,9 +44,8 @@ const stepComponents: Partial<Record<StepId, ComponentType<KioskStepProps>>> = {
   windshieldContact: WindshieldQuoteContactStep,
   windshieldQuoteResult: WindshieldQuoteResultStep,
   windshieldInsuranceSuccess: WindshieldInsuranceSuccessStep,
+  windshieldAppointmentSuccess: WindshieldAppointmentSuccessStep,
   rockChipContact: RockChipContactStep,
-  rockChipServiceLocation: RockChipServiceLocationStep,
-  rockChipSuccess: RockChipSuccessStep,
   success: SuccessStep,
   quoteServiceType: QuoteServiceTypeStep,
 }
@@ -67,9 +63,8 @@ const showFlowControls: Partial<Record<StepId, boolean>> = {
   windshieldContact: true,
   windshieldQuoteResult: false,
   windshieldInsuranceSuccess: false,
+  windshieldAppointmentSuccess: false,
   rockChipContact: true,
-  rockChipServiceLocation: true,
-  rockChipSuccess: false,
   success: false,
   quoteServiceType: true,
 }
@@ -78,7 +73,8 @@ export function KioskFlow({ location }: { location: string }) {
   const now = useNow()
   const flow = useKioskFlow(location)
   const CurrentStep = stepComponents[flow.step] ?? WelcomeStep
-  const quoteIsSubmitting = flow.data.quoteSubmissionStatus === 'submitting'
+  const quoteIsSubmitting =
+    flow.isSubmitting || flow.data.quoteSubmissionStatus === 'submitting'
   const clock = now
     ? new Intl.DateTimeFormat('en-US', {
         hour: 'numeric',

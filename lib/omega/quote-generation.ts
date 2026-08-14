@@ -18,7 +18,8 @@ import {
 import type { QuoteResult } from './quote-types'
 
 type GeneratedQuoteResult =
-  Omit<QuoteResult, 'scheduling'> | { kind: 'insurance_acknowledgement' }
+  | QuoteResult
+  | { kind: 'insurance_acknowledgement'; invoiceId: string }
 
 export type QuoteGenerationStage =
   | 'reference_validation'
@@ -62,8 +63,16 @@ export async function generateOmegaQuote(
 
   if (!requiresCashQuoteResult(input.payment.mode)) {
     const invoiceId = extractQuoteInvoiceId(html)
-    if (invoiceId) onInvoiceId(invoiceId)
-    return { kind: 'insurance_acknowledgement' }
+    if (!invoiceId) {
+      throw new QuoteGenerationError(
+        'quote_result_extraction',
+        'invalid_response',
+        null,
+        null,
+      )
+    }
+    onInvoiceId(invoiceId)
+    return { kind: 'insurance_acknowledgement', invoiceId }
   }
 
   const initialResult = classifyOmegaQuoteHtml(html)
@@ -106,7 +115,7 @@ export async function generateOmegaRockChipLead(
   input: ValidatedRockChipSubmission,
   onInvoiceId: (invoiceId: string) => void,
 ) {
-  await verifyRockChipInsuranceReference(input)
+  await verifyQuoteVehicleReference(input)
 
   let html: string
 
@@ -126,6 +135,29 @@ export async function generateOmegaRockChipLead(
 async function verifyQuoteReferences(
   input: ValidatedWindshieldQuoteSubmission,
 ) {
+  await verifyQuoteVehicleReference(input)
+
+  if (input.payment.mode !== 'insurance') return
+
+  try {
+    const companyId = input.payment.companyId
+    const companies = await getQuoteInsuranceCompanies()
+
+    if (!companies.some((company) => company.id === companyId)) {
+      throw new InvalidQuoteReferenceError()
+    }
+  } catch (error) {
+    if (error instanceof InvalidQuoteReferenceError) throw error
+    throw wrapOmegaError('reference_validation', error, null)
+  }
+}
+
+async function verifyQuoteVehicleReference(
+  input: Pick<
+    ValidatedWindshieldQuoteSubmission | ValidatedRockChipSubmission,
+    'vehicle'
+  >,
+) {
   try {
     const variants = await getQuoteVehicleVariants(
       input.vehicle.year,
@@ -137,32 +169,6 @@ async function verifyQuoteReferences(
     if (
       !variants.some((variant) => variant.vehicleId === input.vehicle.vehicleId)
     ) {
-      throw new InvalidQuoteReferenceError()
-    }
-
-    if (input.payment.mode === 'insurance') {
-      const companyId = input.payment.companyId
-      const companies = await getQuoteInsuranceCompanies()
-
-      if (!companies.some((company) => company.id === companyId)) {
-        throw new InvalidQuoteReferenceError()
-      }
-    }
-  } catch (error) {
-    if (error instanceof InvalidQuoteReferenceError) throw error
-    throw wrapOmegaError('reference_validation', error, null)
-  }
-}
-
-async function verifyRockChipInsuranceReference(
-  input: ValidatedRockChipSubmission,
-) {
-  if (input.payment.mode !== 'insurance') return
-
-  try {
-    const companyId = input.payment.companyId
-    const companies = await getQuoteInsuranceCompanies()
-    if (!companies.some((company) => company.id === companyId)) {
       throw new InvalidQuoteReferenceError()
     }
   } catch (error) {

@@ -27,12 +27,29 @@ import {
 import type { KioskData, KioskStepProps, QuoteVehicle } from '../types'
 import { KioskStep } from '../KioskPrimitives'
 
-export function WindshieldVehicleStep({
+export function WindshieldVehicleStep({ goTo, ...props }: KioskStepProps) {
+  return (
+    <KioskStep title="Tell us about your vehicle">
+      <QuoteForm>
+        <VehicleLookupFields
+          {...props}
+          onContinue={() => goTo('windshieldGlass')}
+        />
+      </QuoteForm>
+    </KioskStep>
+  )
+}
+
+export function VehicleLookupFields({
   data,
   updateData,
-  goTo,
   location,
-}: KioskStepProps) {
+  onContinue,
+  showIntroduction = true,
+}: Pick<KioskStepProps, 'data' | 'updateData' | 'location'> & {
+  onContinue?: () => void
+  showIntroduction?: boolean
+}) {
   const [years, setYears] = useState<VehicleYearOption[]>([])
   const [makes, setMakes] = useState<VehicleMakeOption[]>([])
   const [models, setModels] = useState<VehicleModelOption[]>([])
@@ -327,189 +344,183 @@ export function WindshieldVehicleStep({
   }
 
   return (
-    <KioskStep title="Tell us about your vehicle">
-      <QuoteForm>
+    <div className="flex flex-col gap-5">
+      {showIntroduction && (
         <p className="text-center text-lg font-medium text-muted-foreground">
           Use your VIN for the fastest match, or select the vehicle manually.
         </p>
+      )}
 
-        {!data.vinUnknown ? (
-          <QuoteField id="vehicle-vin" label="VIN">
-            <QuoteInput
-              id="vehicle-vin"
-              value={data.vin}
-              maxLength={17}
-              autoCapitalize="characters"
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="17-character VIN"
-              onChange={(event) => handleVinChange(event.target.value)}
-            />
-            {data.vin.length > 0 && !vinIsValid && (
-              <p className="text-sm font-medium text-destructive">
-                Enter all 17 characters. VINs cannot contain I, O, or Q.
-              </p>
-            )}
+      {!data.vinUnknown ? (
+        <QuoteField id="vehicle-vin" label="VIN">
+          <QuoteInput
+            id="vehicle-vin"
+            value={data.vin}
+            maxLength={17}
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="17-character VIN"
+            onChange={(event) => handleVinChange(event.target.value)}
+          />
+          {data.vin.length > 0 && !vinIsValid && (
+            <p className="text-sm font-medium text-destructive">
+              Enter all 17 characters. VINs cannot contain I, O, or Q.
+            </p>
+          )}
+          <LookupFeedback
+            status={vinStatus}
+            loading="Matching your VIN…"
+            empty="We couldn't match that VIN. Check it or use manual selection."
+            error="VIN lookup is temporarily unavailable. Try again or select manually."
+            onRetry={() => void resolveVin()}
+          />
+          <QuoteHelperButton onClick={switchToManual}>
+            Select year, make, and model instead
+          </QuoteHelperButton>
+        </QuoteField>
+      ) : (
+        <div className="space-y-5 rounded-[1.4rem] border border-[#d7e1e3] bg-white p-5 shadow-sm">
+          <QuoteField id="vehicle-year" label="Vehicle year">
+            <QuoteSelect
+              id="vehicle-year"
+              value={data.vehicleYear}
+              disabled={yearsStatus === 'loading'}
+              onChange={(event) => selectYear(event.target.value)}
+            >
+              <option value="">
+                {yearsStatus === 'loading' ? 'Loading years…' : 'Select year'}
+              </option>
+              {years.map((option) => (
+                <option key={option.year} value={option.year}>
+                  {option.year}
+                </option>
+              ))}
+            </QuoteSelect>
             <LookupFeedback
-              status={vinStatus}
-              loading="Matching your VIN…"
-              empty="We couldn't match that VIN. Check it or use manual selection."
-              error="VIN lookup is temporarily unavailable. Try again or select manually."
-              onRetry={() => void resolveVin()}
+              status={yearsStatus}
+              empty="No vehicle years are currently available."
+              error="We couldn't load vehicle years."
+              onRetry={() => {
+                setYearsStatus('loading')
+                setYearsRetry((value) => value + 1)
+              }}
             />
-            <QuoteHelperButton onClick={switchToManual}>
-              Select year, make, and model instead
-            </QuoteHelperButton>
           </QuoteField>
-        ) : (
-          <div className="space-y-5 rounded-[1.4rem] border border-[#d7e1e3] bg-white p-5 shadow-sm">
-            <QuoteField id="vehicle-year" label="Vehicle year">
-              <QuoteSelect
-                id="vehicle-year"
-                value={data.vehicleYear}
-                disabled={yearsStatus === 'loading'}
-                onChange={(event) => selectYear(event.target.value)}
-              >
-                <option value="">
-                  {yearsStatus === 'loading' ? 'Loading years…' : 'Select year'}
-                </option>
-                {years.map((option) => (
-                  <option key={option.year} value={option.year}>
-                    {option.year}
-                  </option>
-                ))}
-              </QuoteSelect>
-              <LookupFeedback
-                status={yearsStatus}
-                empty="No vehicle years are currently available."
-                error="We couldn't load vehicle years."
-                onRetry={() => {
-                  setYearsStatus('loading')
-                  setYearsRetry((value) => value + 1)
-                }}
-              />
-            </QuoteField>
 
-            <QuoteField id="vehicle-make" label="Vehicle make">
-              <QuoteSelect
-                id="vehicle-make"
-                value={data.vehicleMakeId}
-                disabled={!data.vehicleYear || makesStatus === 'loading'}
-                onChange={(event) => selectMake(event.target.value)}
-              >
-                <option value="">
-                  {makesStatus === 'loading' ? 'Loading makes…' : 'Select make'}
+          <QuoteField id="vehicle-make" label="Vehicle make">
+            <QuoteSelect
+              id="vehicle-make"
+              value={data.vehicleMakeId}
+              disabled={!data.vehicleYear || makesStatus === 'loading'}
+              onChange={(event) => selectMake(event.target.value)}
+            >
+              <option value="">
+                {makesStatus === 'loading' ? 'Loading makes…' : 'Select make'}
+              </option>
+              {makes.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
                 </option>
-                {makes.map((option) => (
-                  <option key={option.id} value={option.id}>
+              ))}
+            </QuoteSelect>
+            <LookupFeedback
+              status={makesStatus}
+              empty="No makes were found for that year."
+              error="We couldn't load vehicle makes."
+              onRetry={() => {
+                setMakesStatus('loading')
+                setMakesRetry((value) => value + 1)
+              }}
+            />
+          </QuoteField>
+
+          <QuoteField id="vehicle-model" label="Vehicle model">
+            <QuoteSelect
+              id="vehicle-model"
+              value={
+                data.vehicleModelId
+                  ? `${data.vehicleModelId}:${data.vehicleModifierId ?? ''}`
+                  : ''
+              }
+              disabled={!data.vehicleMakeId || modelsStatus === 'loading'}
+              onChange={(event) => selectModel(event.target.value)}
+            >
+              <option value="">
+                {modelsStatus === 'loading'
+                  ? 'Loading models…'
+                  : 'Select model'}
+              </option>
+              {models.map((option) => (
+                <option
+                  key={modelOptionValue(option)}
+                  value={modelOptionValue(option)}
+                >
+                  {modelOptionLabel(option)}
+                </option>
+              ))}
+            </QuoteSelect>
+            <LookupFeedback
+              status={modelsStatus}
+              empty="No models were found for that make."
+              error="We couldn't load vehicle models."
+              onRetry={() => {
+                setModelsStatus('loading')
+                setModelsRetry((value) => value + 1)
+              }}
+            />
+          </QuoteField>
+
+          {variants.length > 1 && (
+            <QuoteField id="vehicle-variant" label="Body style or trim">
+              <QuoteSelect
+                id="vehicle-variant"
+                value={data.quoteVehicle?.vehicleId ?? ''}
+                onChange={(event) => selectVariant(event.target.value)}
+              >
+                <option value="">Select body style or trim</option>
+                {variants.map((option) => (
+                  <option key={option.vehicleId} value={option.vehicleId}>
                     {option.label}
                   </option>
                 ))}
               </QuoteSelect>
-              <LookupFeedback
-                status={makesStatus}
-                empty="No makes were found for that year."
-                error="We couldn't load vehicle makes."
-                onRetry={() => {
-                  setMakesStatus('loading')
-                  setMakesRetry((value) => value + 1)
-                }}
-              />
             </QuoteField>
+          )}
 
-            <QuoteField id="vehicle-model" label="Vehicle model">
-              <QuoteSelect
-                id="vehicle-model"
-                value={
-                  data.vehicleModelId
-                    ? `${data.vehicleModelId}:${data.vehicleModifierId ?? ''}`
-                    : ''
-                }
-                disabled={!data.vehicleMakeId || modelsStatus === 'loading'}
-                onChange={(event) => selectModel(event.target.value)}
-              >
-                <option value="">
-                  {modelsStatus === 'loading'
-                    ? 'Loading models…'
-                    : 'Select model'}
-                </option>
-                {models.map((option) => (
-                  <option
-                    key={modelOptionValue(option)}
-                    value={modelOptionValue(option)}
-                  >
-                    {modelOptionLabel(option)}
-                  </option>
-                ))}
-              </QuoteSelect>
-              <LookupFeedback
-                status={modelsStatus}
-                empty="No models were found for that make."
-                error="We couldn't load vehicle models."
-                onRetry={() => {
-                  setModelsStatus('loading')
-                  setModelsRetry((value) => value + 1)
-                }}
-              />
-            </QuoteField>
+          <LookupFeedback
+            status={variantsStatus}
+            loading="Loading body styles and trims…"
+            empty="No matching body styles or trims were found."
+            error="We couldn't load body styles and trims."
+            onRetry={() => {
+              setVariantsStatus('loading')
+              setVariantsRetry((value) => value + 1)
+            }}
+          />
 
-            {variants.length > 1 && (
-              <QuoteField id="vehicle-variant" label="Body style or trim">
-                <QuoteSelect
-                  id="vehicle-variant"
-                  value={data.quoteVehicle?.vehicleId ?? ''}
-                  onChange={(event) => selectVariant(event.target.value)}
-                >
-                  <option value="">Select body style or trim</option>
-                  {variants.map((option) => (
-                    <option key={option.vehicleId} value={option.vehicleId}>
-                      {option.label}
-                    </option>
-                  ))}
-                </QuoteSelect>
-              </QuoteField>
-            )}
+          <QuoteHelperButton onClick={switchToVin}>
+            Use my VIN instead
+          </QuoteHelperButton>
+        </div>
+      )}
 
-            <LookupFeedback
-              status={variantsStatus}
-              loading="Loading body styles and trims…"
-              empty="No matching body styles or trims were found."
-              error="We couldn't load body styles and trims."
-              onRetry={() => {
-                setVariantsStatus('loading')
-                setVariantsRetry((value) => value + 1)
-              }}
-            />
+      {data.quoteVehicle && <VehicleConfirmation vehicle={data.quoteVehicle} />}
 
-            <QuoteHelperButton onClick={switchToVin}>
-              Use my VIN instead
-            </QuoteHelperButton>
-          </div>
-        )}
-
-        {data.quoteVehicle && (
-          <VehicleConfirmation vehicle={data.quoteVehicle} />
-        )}
-
+      {!data.vinUnknown && !data.quoteVehicle && (
         <QuoteContinueButton
-          disabled={
-            data.vinUnknown
-              ? !data.quoteVehicle
-              : vinStatus === 'loading' || (!data.quoteVehicle && !vinIsValid)
-          }
-          onClick={() => {
-            if (data.quoteVehicle) goTo('windshieldGlass')
-            else void resolveVin()
-          }}
+          disabled={vinStatus === 'loading' || !vinIsValid}
+          loading={vinStatus === 'loading'}
+          onClick={() => void resolveVin()}
         >
-          {!data.vinUnknown && !data.quoteVehicle
-            ? vinStatus === 'loading'
-              ? 'Matching vehicle…'
-              : 'Look up VIN'
-            : 'Continue'}
+          {vinStatus === 'loading' ? 'Matching vehicle…' : 'Look up VIN'}
         </QuoteContinueButton>
-      </QuoteForm>
-    </KioskStep>
+      )}
+
+      {data.quoteVehicle && onContinue && (
+        <QuoteContinueButton onClick={onContinue}>Continue</QuoteContinueButton>
+      )}
+    </div>
   )
 }
 

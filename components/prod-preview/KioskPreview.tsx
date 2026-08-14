@@ -9,12 +9,9 @@ import type {
 } from '@/lib/omega/quote-types'
 import { Button } from '@/components/ui/button'
 import { KioskHeader } from '@/components/kiosk/KioskPrimitives'
-import {
-  RockChipContactStep,
-  RockChipServiceLocationStep,
-  RockChipSuccessStep,
-} from '@/components/kiosk/steps/RockChipSchedulingSteps'
+import { RockChipContactStep } from '@/components/kiosk/steps/RockChipSteps'
 import { WindshieldInsuranceSuccessStep } from '@/components/kiosk/steps/WindshieldInsuranceSuccessStep'
+import { WindshieldAppointmentSuccessStep } from '@/components/kiosk/steps/WindshieldAppointmentSuccessStep'
 import { WindshieldQuoteContactStep } from '@/components/kiosk/steps/WindshieldQuoteContactStep'
 import { WindshieldVehicleStep } from '@/components/kiosk/steps/WindshieldQuoteDetailsSteps'
 import { WindshieldQuoteResultStep } from '@/components/kiosk/steps/WindshieldQuoteResultStep'
@@ -44,16 +41,14 @@ export const kioskPreviewOptions = [
     value: 'windshield-success-insurance',
     label: 'Windshield · Insurance success',
   },
+  {
+    value: 'windshield-appointment-success',
+    label: 'Windshield · Appointment success',
+  },
   { value: 'rock-chip-contact-cash', label: 'Rock chip · Cash details' },
   {
     value: 'rock-chip-contact-insurance',
     label: 'Rock chip · Insurance details',
-  },
-  { value: 'rock-chip-scheduler', label: 'Rock chip · Scheduler' },
-  { value: 'rock-chip-success-cash', label: 'Rock chip · Cash success' },
-  {
-    value: 'rock-chip-success-insurance',
-    label: 'Rock chip · Insurance success',
   },
 ] as const
 
@@ -67,7 +62,6 @@ const previewInsuranceCompanies: InsuranceCompanyOption[] = [
 
 const previewAvailability: AppointmentAvailability = {
   locationLabel: 'Layton',
-  flexibleToken: 'preview-flexible',
   windows: [
     {
       token: 'preview-morning',
@@ -95,17 +89,15 @@ const previewAvailability: AppointmentAvailability = {
 
 const previousStates: Partial<Record<KioskPreviewState, KioskPreviewState>> = {
   'windshield-glass': 'windshield-vehicle',
-  'windshield-scheduler': 'windshield-glass',
-  'windshield-contact-cash': 'windshield-scheduler',
-  'windshield-contact-insurance': 'windshield-scheduler',
-  'rock-chip-scheduler': 'rock-chip-contact-cash',
+  'windshield-contact-cash': 'windshield-glass',
+  'windshield-contact-insurance': 'windshield-glass',
+  'windshield-scheduler': 'windshield-success-cash',
 }
 
 const outcomeStates = new Set<KioskPreviewState>([
   'windshield-success-cash',
   'windshield-success-insurance',
-  'rock-chip-success-cash',
-  'rock-chip-success-insurance',
+  'windshield-appointment-success',
 ])
 
 export function KioskPreview({
@@ -134,19 +126,24 @@ export function KioskPreview({
 
   async function submitQuote(submission: QuoteSubmission) {
     if ('serviceType' in submission) {
-      onStateChange(
-        submission.payment.mode === 'insurance'
-          ? 'rock-chip-success-insurance'
-          : 'rock-chip-success-cash',
-      )
-    } else {
-      onStateChange(
-        submission.payment.mode === 'insurance'
-          ? 'windshield-success-insurance'
-          : 'windshield-success-cash',
-      )
+      return false
     }
 
+    onStateChange(
+      submission.payment.mode === 'insurance'
+        ? 'windshield-success-insurance'
+        : 'windshield-success-cash',
+    )
+
+    return true
+  }
+
+  async function submitRockChip() {
+    return true
+  }
+
+  async function submitAppointment() {
+    onStateChange('windshield-appointment-success')
     return true
   }
 
@@ -156,6 +153,8 @@ export function KioskPreview({
     updateData,
     submitCheckIn: async () => false,
     submitQuote,
+    submitAppointment,
+    submitRockChip,
     resetFlow,
     isSubmitting: false,
     location: 'layton',
@@ -228,24 +227,11 @@ function PreviewStep({
       return <WindshieldQuoteResultStep {...previewProps} />
     case 'windshield-success-insurance':
       return <WindshieldInsuranceSuccessStep {...previewProps} />
+    case 'windshield-appointment-success':
+      return <WindshieldAppointmentSuccessStep {...previewProps} />
     case 'rock-chip-contact-cash':
     case 'rock-chip-contact-insurance':
-      return (
-        <RockChipContactStep
-          {...previewProps}
-          previewInsuranceCompanies={previewInsuranceCompanies}
-        />
-      )
-    case 'rock-chip-scheduler':
-      return (
-        <RockChipServiceLocationStep
-          {...previewProps}
-          previewAvailability={previewAvailability}
-        />
-      )
-    case 'rock-chip-success-cash':
-    case 'rock-chip-success-insurance':
-      return <RockChipSuccessStep {...previewProps} />
+      return <RockChipContactStep {...previewProps} />
   }
 }
 
@@ -265,6 +251,7 @@ function getPreviewData(state: KioskPreviewState): KioskData {
     smsConsent: true,
     windshieldIntent: isRockChip ? null : 'quote',
     quotePayType: isInsurance ? 'insurance' : 'cash',
+    repairAuthorized: !isInsurance,
     quoteSource: 'walk_in',
     insuranceCompanyId: isInsurance ? 'state-farm' : '',
     insuranceCompanyLabel: isInsurance ? 'State Farm' : '',
@@ -304,13 +291,16 @@ function getPreviewData(state: KioskPreviewState): KioskData {
       locationLabel: 'Layton',
     },
     quoteSubmissionStatus: state.includes('success') ? 'succeeded' : 'idle',
-    quoteSchedulingStatus: 'held',
+    quoteInvoiceId: '123654',
+    quoteSchedulingStatus:
+      state === 'windshield-appointment-success' ? 'held' : null,
+    appointmentSubmissionStatus:
+      state === 'windshield-appointment-success' ? 'succeeded' : 'idle',
     quoteResult:
       state === 'windshield-success-cash'
         ? {
             invoiceId: '123654',
             total: 389.45,
-            scheduling: { status: 'held' },
           }
         : null,
   }
@@ -335,8 +325,6 @@ function mapStepToPreviewState(
       return data.quotePayType === 'insurance'
         ? 'rock-chip-contact-insurance'
         : 'rock-chip-contact-cash'
-    case 'rockChipServiceLocation':
-      return 'rock-chip-scheduler'
     default:
       return null
   }

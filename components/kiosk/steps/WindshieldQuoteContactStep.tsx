@@ -156,6 +156,25 @@ export function WindshieldQuoteContactStep({
           />
         </QuoteField>
 
+        <QuoteField id="quote-zip" label="ZIP code">
+          <QuoteInput
+            id="quote-zip"
+            inputMode="numeric"
+            maxLength={5}
+            value={data.serviceZip}
+            placeholder="84045"
+            autoComplete="postal-code"
+            aria-invalid={
+              data.serviceZip.length > 0 && !/^\d{5}$/.test(data.serviceZip)
+            }
+            onChange={(event) =>
+              updateQuoteData({
+                serviceZip: event.target.value.replace(/\D/g, '').slice(0, 5),
+              })
+            }
+          />
+        </QuoteField>
+
         <QuoteField label="How will you pay?">
           <div
             className="grid grid-cols-2 gap-3"
@@ -267,7 +286,7 @@ export function WindshieldQuoteContactStep({
             }
           />
           <span>
-            I agree to receive text messages about this quote and scheduling.
+            I agree to receive text messages about this quote and appointment.
           </span>
         </label>
 

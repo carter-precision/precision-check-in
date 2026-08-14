@@ -10,8 +10,8 @@ import {
   quoteOmegaJsonRequest,
 } from './quote-client'
 import type { AppointmentAvailability, SchedulingResult } from './quote-types'
-import type { ValidatedQuoteSubmission } from './quote-request'
-import { buildHeldAppointmentPayload } from './scheduling-request'
+import type { ValidatedAppointmentSubmission } from './appointment-request'
+import { buildAppointmentPayload } from './scheduling-request'
 import {
   normalizeOmegaAppointmentSlots,
   normalizeOmegaLocation,
@@ -32,7 +32,7 @@ type AvailabilityInput = {
   postalCode: string
 }
 
-export type PreparedHeldAppointment = {
+export type PreparedAppointment = {
   token: SchedulingTokenPayload
 }
 
@@ -93,19 +93,12 @@ export async function getAppointmentAvailability(
         windowLabel: window.label,
       }),
     })),
-    flexibleToken: createSchedulingToken({
-      ...tokenBase,
-      kind: 'flexible',
-      startTime: null,
-      endTime: null,
-      windowLabel: null,
-    }),
   }
 }
 
-export function prepareHeldAppointment(
-  input: ValidatedQuoteSubmission,
-): PreparedHeldAppointment | null {
+export function prepareAppointment(
+  input: ValidatedAppointmentSubmission,
+): PreparedAppointment | null {
   const request = input.service.appointmentRequest
 
   if (request.kind === 'follow_up') return null
@@ -124,7 +117,7 @@ export function prepareHeldAppointment(
   const routingKey =
     input.service.mode === 'shop'
       ? input.service.shopLocation
-      : input.customer.zip
+      : input.postalCode
 
   if (
     token.kioskLocationSlug !== input.locationSlug ||
@@ -138,31 +131,24 @@ export function prepareHeldAppointment(
   return { token }
 }
 
-export async function createHeldAppointment(
-  input: ValidatedQuoteSubmission,
-  prepared: PreparedHeldAppointment | null,
-  invoiceId: string | null,
+export async function createAppointment(
+  input: ValidatedAppointmentSubmission,
+  prepared: PreparedAppointment | null,
 ): Promise<SchedulingResult> {
-  if (!prepared || !invoiceId) return { status: 'needs_follow_up' }
+  if (!prepared) return { status: 'needs_follow_up' }
 
   const { token } = prepared
-  const holdReason = process.env.OMEGA_KIOSK_HOLD_REASON?.trim()
-  const payload = buildHeldAppointmentPayload(
-    input,
-    token,
-    invoiceId,
-    holdReason || null,
-  )
+  const payload = buildAppointmentPayload(input, token, input.invoiceId)
 
   try {
     await quoteOmegaJsonPost('/Appointments', payload)
     return { status: 'held' }
   } catch (error) {
-    console.error('Kiosk Omega appointment hold failed', {
+    console.error('Kiosk Omega appointment creation failed', {
       location: input.locationSlug,
       serviceMode: input.service.mode,
       omegaLocationId: token.omegaLocationId,
-      invoiceId,
+      invoiceId: input.invoiceId,
       kind: error instanceof Error ? error.name : 'unexpected',
     })
     return { status: 'needs_follow_up' }

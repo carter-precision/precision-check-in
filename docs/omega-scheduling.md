@@ -1,102 +1,82 @@
-# Omega availability-aware scheduling requests
+# Omega appointment scheduling
 
-The kiosk now replaces the arbitrary preferred-date field with availability
-returned by Omega. Customers can select an Omega-provided service window or
-indicate that they are flexible. The selected window is a request, not a
-confirmed appointment.
+Windshield quotes and appointment scheduling are separate operations. The kiosk
+first creates the quote, preserves its Omega invoice ID, and displays the cash
+quote or insurance acknowledgement. Only after that result does the customer
+choose in-shop or mobile service and select an Omega-provided appointment
+window.
 
-After a windshield quote or rock chip lead creates an Omega invoice, the server
-attempts to create an appointment with:
+The server then creates the appointment with `POST /Appointments`. The request
+contains only the data collected or resolved during the kiosk flow:
 
+- `invoice_id` from the successful Quotes response
+- `location_id` from the server-signed availability token
 - `status: HOLD`
 - `type: inshop` or `mobile`
-- the Omega location used for the availability lookup
-- `requested_window_start` and `requested_window_end` when a window was chosen
-- a kiosk note stating that the exact time still requires confirmation
-- `ignore_capacity: false`
+- `requested_window_start` and `requested_window_end`
+- `service_address` for mobile service
+- a concise note describing the selected window and service location
 
-Held appointments are intended to give reps a structured scheduling queue
-without consuming schedule capacity or promising an exact appointment to the
-customer.
+Fields such as technician, inspection, signature, receipt, coordinates, bay,
+skills, capacity overrides, and hold reason are not sent.
+
+## Location ID handling
+
+The browser does not choose or map an Omega location ID. The appointment-window
+lookup resolves the correct Omega location and embeds that ID, the routing key,
+service mode, and selected window in a short-lived signed token. On appointment
+submission, the server verifies the token against the kiosk location, service
+mode, and routing key before using its `omegaLocationId`.
+
+For in-shop service, the selected local shop slug is mapped through
+`OMEGA_LOCATION_MAP`. For mobile service, the ZIP is resolved through Omega's
+quote-location route with the existing serviced-location fallback.
 
 ## Customer flow
 
-1. Choose mobile or in-shop service.
-2. Enter the service ZIP. Mobile requests use it to resolve an Omega quote
-   location; in-shop requests use the selected shop's configured Omega ID.
-3. Choose one of Omega's current windows or choose the flexible option.
-4. Complete the windshield quote or rock chip service request.
-5. The result explains that a rep will confirm the exact appointment.
+1. Capture vehicle/VIN, glass, contact, ZIP, and payment/insurance details.
+2. Create and display the quote or insurance acknowledgement.
+3. Prompt the customer to schedule an appointment.
+4. Choose in-shop or mobile service.
+5. Choose an available date and appointment window.
+6. Create a HOLD Omega appointment and display the requested appointment details.
 
-If availability cannot be loaded, the customer can choose rep follow-up and
-finish without an appointment write. If lead/quote creation succeeds but the
-held appointment write fails, the submission remains successful and the result
-uses the same follow-up wording. This avoids retrying the state-changing Omega
-request and creating a duplicate invoice.
-
-When a mobile ZIP does not resolve to a service location, the kiosk asks the
-customer to double-check the ZIP. In the fallback controls, Retry is highlighted
-by default; choosing team follow-up highlights that selection instead.
-
-Rock chip requests use the same availability and held-appointment mechanism,
-but skip windshield quote completion and invoice fetching. See
-`omega-rock-chip-scheduling.md` for the minimal request contract and campaign
-tags.
+The scheduler intentionally has no flexible option. If availability cannot be
+loaded, the customer can request team follow-up without creating an Omega
+appointment.
 
 ## Configuration
-
-The existing `OMEGA_LOCATION_MAP` maps Omega location IDs to local slugs and is
-used in reverse for in-shop availability.
-
-For mobile work, the server first checks Omega's quote-location route. Some
-serviced ZIP codes return an empty result from that route, so the integration
-falls back to Omega's location-search route. The fallback accepts only active,
-serviced locations present in `OMEGA_LOCATION_MAP`, preferring an explicit ZIP
-match and then the nearest location. Internal or unmapped Omega locations are
-never offered to the kiosk.
-
-Optional scheduling variables:
 
 ```env
 OMEGA_DEFAULT_TIME_ZONE=America/Denver
 OMEGA_SCHEDULING_SECRET=<at least 32 characters>
-OMEGA_KIOSK_HOLD_REASON=Kiosk scheduling request
 ```
 
 - `OMEGA_DEFAULT_TIME_ZONE` is used only when Omega omits a location timezone.
 - `OMEGA_SCHEDULING_SECRET` signs short-lived availability tokens. If omitted,
   `CHECK_IN_PROOF_SECRET` is used. One of them must contain at least 32
   characters.
-- `OMEGA_KIOSK_HOLD_REASON` is optional. When supplied, it must match a hold
-  reason accepted by the Omega account. When omitted, `hold_reason` is not sent.
+- `OMEGA_LOCATION_MAP` must contain every shop/location that the kiosk may
+  schedule.
 
-The Omega API key needs permission to view locations/availability and create
-appointments. Omega calls remain server-side.
+The Omega API key needs permission to read locations and appointment slots and
+to create appointments. All Omega calls remain server-side.
 
 ## Safe local testing
-
-The local mock supports the new read and write routes:
 
 ```powershell
 npm.cmd run omega:mock
 ```
 
-It returns seven days of mock availability and accepts only appointment POSTs
-whose status is `HOLD`. No request reaches Omega when `OMEGA_API_URL` points to
-the local mock.
+The local mock returns appointment availability and accepts minimal HOLD
+appointment payloads that include both `invoice_id` and `location_id`.
 
 ## Production test checklist
 
-When you are ready to test against Omega:
-
 1. Verify the API key has appointment-create access.
-2. If using `OMEGA_KIOSK_HOLD_REASON`, configure the exact same reason in Omega.
-3. Submit one cash quote using a window.
-4. Confirm the new appointment is in Omega's Hold queue, does not consume
-   capacity, and contains the requested window and kiosk note.
-5. Submit a flexible request and confirm it creates a hold without a requested
-   window.
-6. Test mobile routing with a ZIP near each service area.
-7. Test insurance separately. Omega's insurance response does not always expose
-   an invoice ID; in that case the quote succeeds and the kiosk reports that a
-   rep will follow up rather than attempting an appointment write.
+2. Submit a cash quote and select an in-shop window.
+3. Confirm the HOLD appointment uses the quote invoice and token location IDs.
+4. Confirm its requested start/end match the selected window.
+5. Submit mobile service and verify the serialized service address.
+6. Repeat the flow for insurance and verify its Quotes response exposes the
+   required invoice ID before scheduling begins.

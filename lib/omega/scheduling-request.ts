@@ -1,19 +1,17 @@
-import type { ValidatedQuoteSubmission } from './quote-request'
+import type { ValidatedAppointmentSubmission } from './appointment-request'
 import type { SchedulingTokenPayload } from './scheduling-token'
 
-export function buildHeldAppointmentPayload(
-  input: ValidatedQuoteSubmission,
+export function buildAppointmentPayload(
+  input: ValidatedAppointmentSubmission,
   token: SchedulingTokenPayload,
   invoiceId: string,
-  holdReason: string | null,
 ) {
   const payload: Record<string, unknown> = {
-    invoice_id: Number(invoiceId),
+    invoice_id: invoiceId,
     status: 'HOLD',
     type: input.service.mode === 'shop' ? 'inshop' : 'mobile',
-    location_id: Number(token.omegaLocationId),
+    location_id: token.omegaLocationId,
     note: buildAppointmentNote(input, token),
-    ignore_capacity: false,
   }
 
   if (token.kind === 'window') {
@@ -27,23 +25,21 @@ export function buildHeldAppointmentPayload(
     })
   }
 
-  if (holdReason) payload.hold_reason = holdReason
-
   return payload
 }
 
 function buildAppointmentNote(
-  input: ValidatedQuoteSubmission,
+  input: ValidatedAppointmentSubmission,
   token: SchedulingTokenPayload,
 ) {
   const preference =
     token.kind === 'window'
-      ? `Customer requested ${token.windowLabel}. Exact appointment time is pending confirmation.`
+      ? `Customer selected ${token.windowLabel}.`
       : 'Customer is flexible. Contact them to confirm an appointment date and time.'
   const service =
     input.service.mode === 'mobile'
       ? `Mobile service requested at ${input.service.address}.`
       : `In-shop service requested at ${token.omegaLocationLabel}.`
 
-  return `Kiosk scheduling request. ${preference} ${service}`
+  return `Kiosk appointment. ${preference} ${service}`
 }
