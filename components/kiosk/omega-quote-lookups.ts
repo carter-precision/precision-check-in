@@ -41,6 +41,18 @@ export function loadInsuranceCompanies(location: string, signal?: AbortSignal) {
   )
 }
 
+export function loadInsuranceCompany(
+  location: string,
+  companyId: string,
+  signal?: AbortSignal,
+) {
+  return fetchLookup<InsuranceCompanyOption>(
+    `/api/kiosk/omega/insurance-companies/${encodeURIComponent(companyId)}`,
+    { location },
+    signal,
+  )
+}
+
 export function loadAppointmentAvailability(
   location: string,
   input: {

@@ -20,8 +20,16 @@ export const rockChipAcknowledgementSchema = z
   })
   .strict()
 
+export const manualQuoteLeadAcknowledgementSchema = z
+  .object({
+    kind: z.literal('manual_quote_lead_acknowledgement'),
+    invoiceId: z.string().regex(/^[1-9]\d*$/),
+  })
+  .strict()
+
 export const quoteSubmissionResultSchema = z.union([
   quoteResultSchema,
   insuranceQuoteAcknowledgementSchema,
   rockChipAcknowledgementSchema,
+  manualQuoteLeadAcknowledgementSchema,
 ])

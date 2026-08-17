@@ -55,9 +55,9 @@ export const kioskPreviewOptions = [
 export type KioskPreviewState = (typeof kioskPreviewOptions)[number]['value']
 
 const previewInsuranceCompanies: InsuranceCompanyOption[] = [
-  { id: 'state-farm', label: 'State Farm' },
-  { id: 'progressive', label: 'Progressive' },
-  { id: 'allstate', label: 'Allstate' },
+  { id: '1', label: 'State Farm', pricingProfileId: '1' },
+  { id: '2', label: 'Progressive', pricingProfileId: '2' },
+  { id: '42', label: 'Allstate', pricingProfileId: '13' },
 ]
 
 const previewAvailability: AppointmentAvailability = {
@@ -253,8 +253,9 @@ function getPreviewData(state: KioskPreviewState): KioskData {
     quotePayType: isInsurance ? 'insurance' : 'cash',
     repairAuthorized: !isInsurance,
     quoteSource: 'walk_in',
-    insuranceCompanyId: isInsurance ? 'state-farm' : '',
+    insuranceCompanyId: isInsurance ? '1' : '',
     insuranceCompanyLabel: isInsurance ? 'State Farm' : '',
+    insurancePricingProfileId: isInsurance ? '1' : '',
     policyNumber: isInsurance ? 'SF-2048-UT' : '',
     deductibleAmount: isInsurance ? '500' : '',
     vin: '4T1G11AK5RU123456',

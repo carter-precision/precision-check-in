@@ -73,6 +73,10 @@ export function getGlassDropdownValue(value: GlassType | null) {
     : value
 }
 
-export function isGlassQuoteSupported(value: GlassType | null) {
-  return getGlassPosition(value) !== null
+export function isGlassSelectionSupported(value: GlassType | null) {
+  return isManualQuoteSelection(value) || getGlassPosition(value) !== null
+}
+
+export function isManualQuoteSelection(value: GlassType | null) {
+  return value === 'sunroof' || value === 'other'
 }

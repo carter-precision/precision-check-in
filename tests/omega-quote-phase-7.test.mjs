@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  normalizeInsuranceCompany,
   normalizeInsuranceCompanies,
   normalizeVehicleMakes,
   normalizeVehicleModels,
@@ -15,6 +16,7 @@ import {
   selectMobileSchedulingLocation,
 } from '../lib/omega/scheduling-contracts.ts'
 import { buildAppointmentPayload } from '../lib/omega/scheduling-request.ts'
+import { buildOmegaManualQuoteInvoicePayload } from '../lib/omega/invoice-request.ts'
 import {
   classifyOmegaQuoteHtml,
   extractOmegaQuoteBootstrapGuid,
@@ -33,10 +35,11 @@ import {
   insuranceQuoteAcknowledgementSchema,
   quoteResultSchema,
   rockChipAcknowledgementSchema,
+  manualQuoteLeadAcknowledgementSchema,
 } from '../lib/omega/quote-result.ts'
 import {
   getGlassPosition,
-  isGlassQuoteSupported,
+  isGlassSelectionSupported,
 } from '../components/kiosk/quote-options.ts'
 import {
   buildAppointmentSubmission,
@@ -190,7 +193,27 @@ test('normalizes VIN and insurance lookup responses into minimal DTOs', () => {
   )
   assert.deepEqual(
     normalizeInsuranceCompanies([{ id: 42, company: 'Allstate' }]),
-    [{ id: '42', label: 'Allstate' }],
+    [{ id: '42', label: 'Allstate', pricingProfileId: null }],
+  )
+  assert.deepEqual(
+    normalizeInsuranceCompany({
+      id: 42,
+      company: 'Allstate',
+      pricing_profile_id: '13',
+    }),
+    { id: '42', label: 'Allstate', pricingProfileId: '13' },
+  )
+  assert.deepEqual(
+    normalizeInsuranceCompany({
+      id: 43,
+      company: 'Default Profile Insurance',
+      pricing_profile_id: null,
+    }),
+    {
+      id: '43',
+      label: 'Default Profile Insurance',
+      pricingProfileId: '1',
+    },
   )
 })
 
@@ -345,8 +368,7 @@ test('adds only the collected address for mobile appointments', () => {
     note: 'Kiosk appointment. Customer selected Tue, Apr 9, 4:00 PM–6:00 PM. Mobile service requested at 4525 Wasatch Blvd, Midvale, UT 84124.',
     requested_window_start: 1_712_700_000,
     requested_window_end: 1_712_707_200,
-    service_address:
-      '{"description":"4525 Wasatch Blvd, Midvale, UT 84124"}',
+    service_address: '{"description":"4525 Wasatch Blvd, Midvale, UT 84124"}',
   })
 })
 
@@ -386,13 +408,13 @@ test('maps every supported glass selection and blocks unsupported choices', () =
   for (const [glassType, position] of Object.entries(expected)) {
     assert.equal(getGlassPosition(glassType), position)
     assert.equal(getServerGlassPosition(glassType), position)
-    assert.equal(isGlassQuoteSupported(glassType), true)
+    assert.equal(isGlassSelectionSupported(glassType), true)
   }
 
   assert.equal(getGlassPosition('sunroof'), null)
   assert.equal(getGlassPosition('other'), null)
-  assert.equal(isGlassQuoteSupported('sunroof'), false)
-  assert.equal(isGlassQuoteSupported('other'), false)
+  assert.equal(isGlassSelectionSupported('sunroof'), true)
+  assert.equal(isGlassSelectionSupported('other'), true)
 })
 
 test('builds the exact approved cash request without legacy fields', () => {
@@ -466,6 +488,7 @@ test('builds the exact approved insurance request from an Omega company ID', () 
       mode: 'insurance',
       companyId: '42',
       companyLabel: 'Allstate',
+      pricingProfileId: '13',
       policyNumber: 'POLICY-123',
       deductible: 250,
     },
@@ -533,6 +556,7 @@ test('requires an insurance policy number and permits an omitted deductible', ()
       mode: 'insurance',
       companyId: '42',
       companyLabel: 'Allstate',
+      pricingProfileId: '13',
       policyNumber: 'POLICY-123',
       deductible: null,
     },
@@ -574,6 +598,90 @@ test('rejects client glass-position tampering and unsupported glass types', () =
     }).success,
     false,
   )
+  assert.equal(
+    quoteSubmissionSchema.safeParse({
+      ...cashSubmission,
+      glass: { type: 'sunroof', position: null },
+    }).success,
+    true,
+  )
+  assert.equal(
+    quoteSubmissionSchema.safeParse({
+      ...cashSubmission,
+      glass: { type: 'other', position: null },
+    }).success,
+    true,
+  )
+})
+
+test('builds cash and insurance manual quote leads with the correct campaigns', () => {
+  const cashPayload = buildOmegaManualQuoteInvoicePayload(
+    {
+      ...cashSubmission,
+      glass: { type: 'sunroof', position: null },
+    },
+    '2',
+  )
+
+  assert.equal(cashPayload.salesman_1_id, '')
+  assert.equal(cashPayload.location_id, 2)
+  assert.equal(cashPayload.account_company_id, 1)
+  assert.equal(cashPayload.pricing_profile_id, 1)
+  assert.equal(cashPayload.job_status, 'LE')
+  assert.equal(cashPayload.invoice_status, 'NS')
+  assert.equal(cashPayload.campaign, 'WEB QUOTE')
+  assert.deepEqual(cashPayload.Tags, [
+    { id: '8', color: '#888188', text: 'Sunroof Part' },
+  ])
+  assert.deepEqual(cashPayload.Notes, [
+    {
+      note: 'Customer selected Sunroof in the kiosk. Manual review and pricing required.',
+      customer_visible: false,
+      is_tech_note: false,
+    },
+  ])
+
+  const insurancePayload = buildOmegaManualQuoteInvoicePayload(
+    {
+      ...cashSubmission,
+      glass: { type: 'sunroof', position: null },
+      payment: {
+        mode: 'insurance',
+        companyId: '42',
+        companyLabel: 'Allstate',
+        pricingProfileId: '13',
+        policyNumber: 'POLICY-123',
+        deductible: 250,
+      },
+    },
+    '2',
+  )
+
+  assert.equal(insurancePayload.account_company_id, 42)
+  assert.equal(insurancePayload.pricing_profile_id, 13)
+  assert.equal(insurancePayload.campaign, 'Ins Web Quote')
+  assert.equal(insurancePayload.account_policy_no, 'POLICY-123')
+  assert.equal(insurancePayload.account_deductible, 250)
+
+  const multiplePiecesPayload = buildOmegaManualQuoteInvoicePayload(
+    {
+      ...cashSubmission,
+      glass: { type: 'other', position: null },
+    },
+    '2',
+  )
+
+  assert.equal(multiplePiecesPayload.campaign, 'WEB QUOTE')
+  assert.deepEqual(multiplePiecesPayload.Tags, [
+    { id: '190', color: '#656165', text: 'Other Glass' },
+  ])
+  assert.deepEqual(multiplePiecesPayload.Notes, [
+    {
+      note: 'Kiosk customer is unsure which glass needs replacement or needs multiple pieces serviced. Manual review and pricing required.',
+      customer_visible: false,
+      is_tech_note: false,
+    },
+  ])
 })
 
 test('extracts stable and fallback invoice IDs without exposing HTML', () => {
@@ -715,6 +823,13 @@ test('requires a strict total-only result DTO', () => {
     }).success,
     true,
   )
+  assert.equal(
+    manualQuoteLeadAcknowledgementSchema.safeParse({
+      kind: 'manual_quote_lead_acknowledgement',
+      invoiceId: '120241',
+    }).success,
+    true,
+  )
 })
 
 test('builds normalized client submissions and resets all quote data', () => {
@@ -767,7 +882,30 @@ test('builds normalized client submissions and resets all quote data', () => {
   assert.equal(initialKioskData.quoteSubmissionError, null)
   assert.equal(initialKioskData.quoteResult, null)
   assert.equal(initialKioskData.insuranceCompanyId, '')
+  assert.equal(initialKioskData.insurancePricingProfileId, '')
   assert.equal(initialKioskData.policyNumber, '')
+})
+
+test('builds manual quote lead submissions without Omega glass positions', () => {
+  for (const glassType of ['sunroof', 'other']) {
+    const submission = buildQuoteSubmission(
+      {
+        ...initialKioskData,
+        customerName: 'Validation',
+        phone: '8015550100',
+        serviceZip: '84041',
+        quoteVehicle,
+        glassType,
+        glassPosition: null,
+        quotePayType: 'cash',
+      },
+      'layton',
+    )
+
+    assert.ok(submission)
+    assert.deepEqual(submission.glass, { type: glassType, position: null })
+    assert.deepEqual(submission.payment, { mode: 'cash' })
+  }
 })
 
 test('builds an insurance submission without a deductible', () => {
@@ -786,6 +924,7 @@ test('builds an insurance submission without a deductible', () => {
       quotePayType: 'insurance',
       insuranceCompanyId: '42',
       insuranceCompanyLabel: 'Allstate',
+      insurancePricingProfileId: '13',
       policyNumber: 'POLICY-123',
       deductibleAmount: '',
     },
@@ -794,6 +933,7 @@ test('builds an insurance submission without a deductible', () => {
 
   assert.ok(submission)
   assert.equal(submission.payment.mode, 'insurance')
+  assert.equal(submission.payment.pricingProfileId, '13')
   assert.equal(submission.payment.policyNumber, 'POLICY-123')
   assert.equal(submission.payment.deductible, null)
 })

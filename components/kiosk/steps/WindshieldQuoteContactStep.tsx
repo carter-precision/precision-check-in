@@ -1,14 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import type { InsuranceCompanyOption } from '@/lib/omega/quote-types'
 
 import { KioskStep } from '../KioskPrimitives'
-import { loadInsuranceCompanies } from '../omega-quote-lookups'
+import {
+  loadInsuranceCompanies,
+  loadInsuranceCompany,
+} from '../omega-quote-lookups'
 import {
   buildQuoteSubmission,
   isValidQuoteEmail,
   isValidQuotePhone,
 } from '../quote-submission'
+import { isManualQuoteSelection } from '../quote-options'
 import {
   QuoteContinueButton,
   QuoteField,
@@ -19,7 +23,8 @@ import {
 } from '../QuoteForm'
 import type { KioskStepProps } from '../types'
 
-type CompanyStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error'
+type CompanyStatus =
+  'idle' | 'loading' | 'resolving' | 'ready' | 'empty' | 'error'
 
 export function WindshieldQuoteContactStep({
   data,
@@ -41,10 +46,12 @@ export function WindshieldQuoteContactStep({
         : 'idle',
   )
   const [companyRetry, setCompanyRetry] = useState(0)
+  const companyDetailRequest = useRef<AbortController | null>(null)
   const submission = buildQuoteSubmission(data, location)
   const phoneIsValid = isValidQuotePhone(data.phone)
   const emailIsValid = isValidQuoteEmail(data.email)
   const isSubmitting = data.quoteSubmissionStatus === 'submitting'
+  const isManualQuote = isManualQuoteSelection(data.glassType)
 
   useEffect(() => {
     if (previewInsuranceCompanies || data.quotePayType !== 'insurance') return
@@ -64,6 +71,8 @@ export function WindshieldQuoteContactStep({
     return () => controller.abort()
   }, [companyRetry, data.quotePayType, location, previewInsuranceCompanies])
 
+  useEffect(() => () => companyDetailRequest.current?.abort(), [])
+
   function updateQuoteData(partial: Parameters<typeof updateData>[0]) {
     updateData({
       ...partial,
@@ -75,11 +84,14 @@ export function WindshieldQuoteContactStep({
   }
 
   function selectCash() {
+    companyDetailRequest.current?.abort()
+    companyDetailRequest.current = null
     updateQuoteData({
       paymentType: 'cash',
       quotePayType: 'cash',
       insuranceCompanyId: '',
       insuranceCompanyLabel: '',
+      insurancePricingProfileId: '',
       policyNumber: '',
       deductibleAmount: '',
     })
@@ -95,11 +107,39 @@ export function WindshieldQuoteContactStep({
   }
 
   function selectCompany(companyId: string) {
+    companyDetailRequest.current?.abort()
     const company = companies.find((option) => option.id === companyId)
     updateQuoteData({
       insuranceCompanyId: company?.id ?? '',
       insuranceCompanyLabel: company?.label ?? '',
+      insurancePricingProfileId: company?.pricingProfileId ?? '',
     })
+
+    if (!company || company.pricingProfileId) return
+
+    const controller = new AbortController()
+    companyDetailRequest.current = controller
+    setCompanyStatus('resolving')
+
+    void loadInsuranceCompany(location, company.id, controller.signal)
+      .then((details) => {
+        if (controller.signal.aborted) return
+        updateQuoteData({
+          insuranceCompanyId: details.id,
+          insuranceCompanyLabel: details.label,
+          insurancePricingProfileId: details.pricingProfileId ?? '1',
+        })
+        setCompanyStatus('ready')
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        updateQuoteData({
+          insuranceCompanyId: '',
+          insuranceCompanyLabel: '',
+          insurancePricingProfileId: '',
+        })
+        setCompanyStatus('error')
+      })
   }
 
   function updateDeductible(value: string) {
@@ -112,7 +152,9 @@ export function WindshieldQuoteContactStep({
     <KioskStep title="Your quote details">
       <QuoteForm>
         <p className="text-center text-lg font-medium text-muted-foreground">
-          Tell us where to send the quote and whether you are using insurance.
+          {isManualQuote
+            ? 'Tell us how to contact you about your glass replacement.'
+            : 'Tell us where to send the quote and whether you are using insurance.'}
         </p>
 
         <div className="grid gap-5 md:grid-cols-2">
@@ -202,7 +244,9 @@ export function WindshieldQuoteContactStep({
               <QuoteSelect
                 id="insurance-company"
                 value={data.insuranceCompanyId}
-                disabled={companyStatus !== 'ready'}
+                disabled={
+                  companyStatus !== 'ready' && companyStatus !== 'resolving'
+                }
                 onChange={(event) => selectCompany(event.target.value)}
               >
                 <option value="">
@@ -300,10 +344,14 @@ export function WindshieldQuoteContactStep({
           }}
         >
           {isSubmitting
-            ? 'Getting your quote…'
+            ? isManualQuote
+              ? 'Sending your request…'
+              : 'Getting your quote…'
             : data.quoteSubmissionStatus === 'failed'
               ? 'Try again'
-              : 'Get my quote'}
+              : isManualQuote
+                ? 'Send my request'
+                : 'Get my quote'}
         </QuoteContinueButton>
       </QuoteForm>
     </KioskStep>

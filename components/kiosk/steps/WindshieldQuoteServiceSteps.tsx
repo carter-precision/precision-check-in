@@ -28,7 +28,7 @@ import {
   getGlassDropdownValue,
   getGlassPosition,
   getLocationLabel,
-  isGlassQuoteSupported,
+  isGlassSelectionSupported,
   KIOSK_LOCATIONS,
 } from '../quote-options'
 import { buildAppointmentSubmission } from '../quote-submission'
@@ -47,7 +47,7 @@ export function WindshieldGlassStep({
 }: KioskStepProps) {
   const glassPosition = getGlassPosition(data.glassType)
   const canContinue =
-    isGlassQuoteSupported(data.glassType) &&
+    isGlassSelectionSupported(data.glassType) &&
     data.glassPosition === glassPosition
 
   function selectGlass(glassType: GlassType) {
@@ -419,7 +419,6 @@ export function WindshieldServiceLocationStep({
                         })}
                       </div>
                     )}
-
                   </>
                 )}
 

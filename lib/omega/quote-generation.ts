@@ -1,10 +1,18 @@
 import 'server-only'
 
+import { z } from 'zod'
+
 import {
   getQuoteInsuranceCompanies,
   getQuoteVehicleVariants,
 } from './quote-lookups'
-import { QuoteOmegaApiError, quoteOmegaHtmlRequest } from './quote-client'
+import { buildOmegaManualQuoteInvoicePayload } from './invoice-request'
+import { getOmegaLocationId } from './location-config'
+import {
+  QuoteOmegaApiError,
+  quoteOmegaHtmlRequest,
+  quoteOmegaJsonPost,
+} from './quote-client'
 import { classifyOmegaQuoteHtml } from './quote-invoice'
 import { extractQuoteInvoiceId } from './quote-invoice'
 import {
@@ -20,11 +28,18 @@ import type { QuoteResult } from './quote-types'
 type GeneratedQuoteResult =
   | QuoteResult
   | { kind: 'insurance_acknowledgement'; invoiceId: string }
+  | { kind: 'manual_quote_lead_acknowledgement'; invoiceId: string }
+
+const createdInvoiceIdSchema = z
+  .union([z.string(), z.number().int().positive()])
+  .transform((value) => String(value).trim())
+  .pipe(z.string().regex(/^[1-9]\d*$/))
 
 export type QuoteGenerationStage =
   | 'reference_validation'
   | 'quotes_request'
   | 'quote_completion'
+  | 'invoice_creation'
   | 'quote_result_extraction'
 
 export class InvalidQuoteReferenceError extends Error {
@@ -130,6 +145,53 @@ export async function generateOmegaRockChipLead(
   if (invoiceId) onInvoiceId(invoiceId)
 
   return { kind: 'rock_chip_acknowledgement' as const }
+}
+
+export async function generateOmegaManualQuoteLead(
+  input: ValidatedWindshieldQuoteSubmission,
+  onInvoiceId: (invoiceId: string) => void,
+) {
+  if (input.glass.type !== 'sunroof' && input.glass.type !== 'other') {
+    throw new QuoteGenerationError(
+      'invoice_creation',
+      'invalid_response',
+      null,
+      null,
+    )
+  }
+
+  await verifyQuoteVehicleReference(input)
+
+  let payload: unknown
+
+  try {
+    payload = await quoteOmegaJsonPost(
+      '/Invoices',
+      buildOmegaManualQuoteInvoicePayload(
+        input,
+        getOmegaLocationId(input.locationSlug),
+      ),
+    )
+  } catch (error) {
+    throw wrapOmegaError('invoice_creation', error, null)
+  }
+
+  const parsedInvoiceId = createdInvoiceIdSchema.safeParse(payload)
+
+  if (!parsedInvoiceId.success) {
+    throw new QuoteGenerationError(
+      'invoice_creation',
+      'invalid_response',
+      null,
+      null,
+    )
+  }
+
+  onInvoiceId(parsedInvoiceId.data)
+  return {
+    kind: 'manual_quote_lead_acknowledgement' as const,
+    invoiceId: parsedInvoiceId.data,
+  }
 }
 
 async function verifyQuoteReferences(

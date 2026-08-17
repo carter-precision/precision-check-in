@@ -41,6 +41,7 @@ type QuoteLookupOperation =
   | 'vehicle_variants'
   | 'vehicle_vin'
   | 'insurance_companies'
+  | 'insurance_company'
 
 export function readQuoteQuery(request: NextRequest) {
   const values: Record<string, string | string[]> = {}

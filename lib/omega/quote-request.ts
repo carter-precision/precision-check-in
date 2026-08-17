@@ -114,7 +114,7 @@ const vehicleSchema = z
   })
   .strict()
 
-const glassSchema = z
+const pricedGlassSchema = z
   .object({
     type: glassTypeSchema,
     position: glassPositionSchema,
@@ -129,6 +129,16 @@ const glassSchema = z
       })
     }
   })
+
+const glassSchema = z.union([
+  pricedGlassSchema,
+  z
+    .object({
+      type: z.enum(['sunroof', 'other']),
+      position: z.null(),
+    })
+    .strict(),
+])
 
 export const quoteServiceSchema = z.discriminatedUnion('mode', [
   z
@@ -156,6 +166,7 @@ const windshieldPaymentSchema = z.discriminatedUnion('mode', [
       mode: z.literal('insurance'),
       companyId: entityIdSchema,
       companyLabel: z.string().trim().min(1).max(160),
+      pricingProfileId: entityIdSchema,
       policyNumber: z.string().trim().min(1).max(120),
       deductible: z.number().finite().nonnegative().nullable(),
     })
@@ -216,6 +227,10 @@ export function requiresCashQuoteResult(
 export function buildOmegaQuoteRequest(
   input: ValidatedWindshieldQuoteSubmission,
 ) {
+  if (input.glass.type === 'sunroof' || input.glass.type === 'other') {
+    throw new Error('Manual quote leads do not use the Quotes endpoint')
+  }
+
   const position = getServerGlassPosition(input.glass.type)
   const query = new URLSearchParams({
     year: input.vehicle.year,

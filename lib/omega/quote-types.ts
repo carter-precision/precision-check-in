@@ -37,6 +37,7 @@ export type VinVehicleResult = {
 export type InsuranceCompanyOption = {
   id: string
   label: string
+  pricingProfileId: string | null
 }
 
 export type AppointmentWindowOption = {
@@ -70,5 +71,13 @@ export type RockChipAcknowledgement = {
   kind: 'rock_chip_acknowledgement'
 }
 
+export type ManualQuoteLeadAcknowledgement = {
+  kind: 'manual_quote_lead_acknowledgement'
+  invoiceId: string
+}
+
 export type QuoteSubmissionResult =
-  QuoteResult | InsuranceQuoteAcknowledgement | RockChipAcknowledgement
+  | QuoteResult
+  | InsuranceQuoteAcknowledgement
+  | RockChipAcknowledgement
+  | ManualQuoteLeadAcknowledgement

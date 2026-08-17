@@ -15,6 +15,7 @@ export type StepId =
   | 'windshieldContact'
   | 'windshieldQuoteResult'
   | 'windshieldInsuranceSuccess'
+  | 'windshieldManualQuoteSuccess'
   | 'windshieldAppointmentSuccess'
   | 'rockChipCashAuthorization'
   | 'rockChipInsuranceName'
@@ -94,8 +95,7 @@ type QuoteService = {
   mode: Exclude<QuoteServiceMode, null>
   address: string | null
   shopLocation: string | null
-  appointmentRequest:
-    { kind: 'window'; token: string } | { kind: 'follow_up' }
+  appointmentRequest: { kind: 'window'; token: string } | { kind: 'follow_up' }
 }
 
 export type WindshieldQuoteSubmission = {
@@ -104,7 +104,7 @@ export type WindshieldQuoteSubmission = {
   vehicle: QuoteVehicle
   glass: {
     type: GlassType
-    position: OmegaGlassPosition
+    position: OmegaGlassPosition | null
   }
   payment:
     | { mode: 'cash' }
@@ -112,6 +112,7 @@ export type WindshieldQuoteSubmission = {
         mode: 'insurance'
         companyId: string
         companyLabel: string
+        pricingProfileId: string
         policyNumber: string
         deductible: number | null
       }
@@ -146,6 +147,7 @@ export type KioskData = {
   quoteSource: 'walk_in' | 'header' | null
   insuranceCompanyId: string
   insuranceCompanyLabel: string
+  insurancePricingProfileId: string
   policyNumber: string
   serviceZip: string
   deductibleAmount: string
@@ -220,6 +222,7 @@ export const emptyQuoteContactData = {
   quotePayType: null,
   insuranceCompanyId: '',
   insuranceCompanyLabel: '',
+  insurancePricingProfileId: '',
   policyNumber: '',
   deductibleAmount: '',
   ...emptyQuoteOutcomeData,
@@ -237,6 +240,7 @@ export const initialKioskData: KioskData = {
   quoteSource: null,
   insuranceCompanyId: '',
   insuranceCompanyLabel: '',
+  insurancePricingProfileId: '',
   policyNumber: '',
   serviceZip: '',
   deductibleAmount: '',

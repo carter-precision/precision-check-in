@@ -2,6 +2,7 @@ import 'server-only'
 
 import {
   normalizeInsuranceCompanies,
+  normalizeInsuranceCompany,
   normalizeVehicleMakes,
   normalizeVehicleModels,
   normalizeVehicleVariants,
@@ -64,4 +65,11 @@ export async function getQuoteInsuranceCompanies() {
   })
   const payload = await quoteOmegaJsonRequest('/Companies', query)
   return normalizeInsuranceCompanies(payload)
+}
+
+export async function getQuoteInsuranceCompany(companyId: string) {
+  const payload = await quoteOmegaJsonRequest(
+    `/Companies/${encodeURIComponent(companyId)}`,
+  )
+  return normalizeInsuranceCompany(payload)
 }

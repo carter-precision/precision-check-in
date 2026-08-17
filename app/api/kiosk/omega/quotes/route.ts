@@ -7,6 +7,7 @@ import {
 import {
   generateOmegaQuote,
   generateOmegaRockChipLead,
+  generateOmegaManualQuoteLead,
   InvalidQuoteReferenceError,
   QuoteGenerationError,
   type QuoteGenerationStage,
@@ -76,6 +77,19 @@ export async function POST(request: NextRequest) {
       context.vehicleId = parsed.data.vehicle.vehicleId
       context.position = 'WSREPAIR'
       const result = await generateOmegaRockChipLead(
+        parsed.data,
+        rememberInvoiceId,
+      )
+      return NextResponse.json({ data: result })
+    }
+
+    if (
+      parsed.data.glass.type === 'sunroof' ||
+      parsed.data.glass.type === 'other'
+    ) {
+      context.vehicleId = parsed.data.vehicle.vehicleId
+      context.position = null
+      const result = await generateOmegaManualQuoteLead(
         parsed.data,
         rememberInvoiceId,
       )

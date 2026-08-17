@@ -75,10 +75,24 @@ const rawCompanySchema = z
   .object({
     id: numericIdSchema,
     company: labelSchema,
+    pricing_profile_id: optionalRawScalarSchema,
   })
   .transform((value): InsuranceCompanyOption => ({
     id: value.id,
     label: value.company,
+    pricingProfileId: normalizeOptionalId(value.pricing_profile_id),
+  }))
+
+const rawCompanyDetailSchema = z
+  .object({
+    id: numericIdSchema,
+    company: labelSchema,
+    pricing_profile_id: optionalRawScalarSchema,
+  })
+  .transform((value): InsuranceCompanyOption => ({
+    id: value.id,
+    label: value.company,
+    pricingProfileId: normalizeOptionalId(value.pricing_profile_id) ?? '1',
   }))
 
 const rawVinVehicleSchema = z
@@ -145,6 +159,18 @@ export function normalizeInsuranceCompanies(
     parseCollection(payload, rawCompanySchema, 'insurance companies'),
     (option) => option.id,
   )
+}
+
+export function normalizeInsuranceCompany(
+  payload: unknown,
+): InsuranceCompanyOption {
+  const parsed = rawCompanyDetailSchema.safeParse(payload)
+
+  if (!parsed.success) {
+    throw new OmegaQuoteContractError('insurance company')
+  }
+
+  return parsed.data
 }
 
 export function normalizeVinVehicle(

@@ -27,6 +27,10 @@ export function buildQuoteSubmission(
   const phone = data.phone.trim()
   const email = data.email.trim()
   const zip = data.serviceZip.trim()
+  const hasSupportedGlassSelection =
+    data.glassType === 'sunroof' || data.glassType === 'other'
+      ? data.glassPosition === null
+      : data.glassPosition !== null
 
   if (
     !firstName ||
@@ -35,7 +39,7 @@ export function buildQuoteSubmission(
     !ZIP_PATTERN.test(zip) ||
     !data.quoteVehicle ||
     !data.glassType ||
-    !data.glassPosition ||
+    !hasSupportedGlassSelection ||
     !data.quotePayType
   ) {
     return null
@@ -64,6 +68,7 @@ export function buildQuoteSubmission(
   if (
     !data.insuranceCompanyId.trim() ||
     !data.insuranceCompanyLabel.trim() ||
+    !data.insurancePricingProfileId.trim() ||
     !data.policyNumber.trim()
   ) {
     return null
@@ -82,6 +87,7 @@ export function buildQuoteSubmission(
       mode: 'insurance',
       companyId: data.insuranceCompanyId.trim(),
       companyLabel: data.insuranceCompanyLabel.trim(),
+      pricingProfileId: data.insurancePricingProfileId.trim(),
       policyNumber: data.policyNumber.trim(),
       deductible,
     },

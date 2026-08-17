@@ -33,6 +33,7 @@ const quoteInputKeys = new Set<keyof KioskData>([
   'quotePayType',
   'insuranceCompanyId',
   'insuranceCompanyLabel',
+  'insurancePricingProfileId',
   'policyNumber',
   'deductibleAmount',
   'vin',
@@ -156,7 +157,11 @@ export function useKioskFlow(location: string) {
             quoteSchedulingStatus: null,
           }))
           setHistory((current) => [...current, step])
-          setStep('windshieldInsuranceSuccess')
+          setStep(
+            result.kind === 'manual_quote_lead_acknowledgement'
+              ? 'windshieldManualQuoteSuccess'
+              : 'windshieldInsuranceSuccess',
+          )
           return true
         }
 

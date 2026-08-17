@@ -26,6 +26,7 @@ import {
 } from './steps/WindshieldQuoteServiceSteps'
 import { WindshieldQuoteContactStep } from './steps/WindshieldQuoteContactStep'
 import { WindshieldInsuranceSuccessStep } from './steps/WindshieldInsuranceSuccessStep'
+import { WindshieldManualQuoteSuccessStep } from './steps/WindshieldManualQuoteSuccessStep'
 import { WindshieldAppointmentSuccessStep } from './steps/WindshieldAppointmentSuccessStep'
 import { WindshieldQuoteResultStep } from './steps/WindshieldQuoteResultStep'
 import type { KioskStepProps, StepId } from './types'
@@ -44,6 +45,7 @@ const stepComponents: Partial<Record<StepId, ComponentType<KioskStepProps>>> = {
   windshieldContact: WindshieldQuoteContactStep,
   windshieldQuoteResult: WindshieldQuoteResultStep,
   windshieldInsuranceSuccess: WindshieldInsuranceSuccessStep,
+  windshieldManualQuoteSuccess: WindshieldManualQuoteSuccessStep,
   windshieldAppointmentSuccess: WindshieldAppointmentSuccessStep,
   rockChipContact: RockChipContactStep,
   success: SuccessStep,
@@ -63,6 +65,7 @@ const showFlowControls: Partial<Record<StepId, boolean>> = {
   windshieldContact: true,
   windshieldQuoteResult: false,
   windshieldInsuranceSuccess: false,
+  windshieldManualQuoteSuccess: false,
   windshieldAppointmentSuccess: false,
   rockChipContact: true,
   success: false,
