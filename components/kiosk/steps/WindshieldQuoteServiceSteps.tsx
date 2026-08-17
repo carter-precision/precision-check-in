@@ -492,7 +492,7 @@ export function WindshieldServiceLocationStep({
             ? 'Scheduling your service…'
             : submissionError
               ? 'Try again'
-              : (continueLabel ?? 'Request appointment')}
+              : (continueLabel ?? 'Schedule appointment')}
         </QuoteContinueButton>
       </QuoteForm>
     </KioskStep>

@@ -10,10 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 
 import { KioskStep } from '../KioskPrimitives'
-import {
-  QuoteSuccessDetail,
-  QuoteSuccessDetails,
-} from '../QuoteSuccess'
+import { QuoteSuccessDetail, QuoteSuccessDetails } from '../QuoteSuccess'
 import { getLocationLabel } from '../quote-options'
 import type { KioskData, KioskStepProps } from '../types'
 
@@ -33,7 +30,7 @@ export function WindshieldAppointmentSuccessStep({
           <h1 className="mt-6 text-4xl font-semibold tracking-[-0.04em] text-[#16262f]">
             {needsFollowUp
               ? 'Your appointment request is in'
-              : 'Appointment request received'}
+              : 'Appointment scheduled'}
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-lg font-medium leading-relaxed text-muted-foreground">
             {needsFollowUp

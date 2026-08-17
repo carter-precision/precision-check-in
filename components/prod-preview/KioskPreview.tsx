@@ -30,7 +30,6 @@ import {
 export const kioskPreviewOptions = [
   { value: 'windshield-vehicle', label: 'Windshield · VIN / vehicle' },
   { value: 'windshield-glass', label: 'Windshield · Glass diagram' },
-  { value: 'windshield-scheduler', label: 'Windshield · Scheduler' },
   { value: 'windshield-contact-cash', label: 'Windshield · Cash details' },
   {
     value: 'windshield-contact-insurance',
@@ -41,6 +40,7 @@ export const kioskPreviewOptions = [
     value: 'windshield-success-insurance',
     label: 'Windshield · Insurance success',
   },
+  { value: 'windshield-scheduler', label: 'Windshield · Scheduler' },
   {
     value: 'windshield-appointment-success',
     label: 'Windshield · Appointment success',

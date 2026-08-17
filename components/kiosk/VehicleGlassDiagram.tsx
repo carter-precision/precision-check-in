@@ -6,6 +6,13 @@ import { cn } from '@/lib/utils'
 
 import type { GlassType } from './types'
 
+const WINDSHIELD_PATH =
+  'M112 150 Q210 121 308 150 Q318 153 314 168 L294 230 Q290 243 278 239 Q210 225 142 239 Q130 243 126 230 L106 168 Q102 153 112 150 Z'
+
+// Keep the quarter and vent card artwork ready in case those shortcuts return.
+// They remain available through the glass dropdown while this flag is off.
+const SHOW_QUARTER_AND_VENT_CARDS = false
+
 export function VehicleGlassDiagram({
   selected,
   onSelect,
@@ -125,7 +132,7 @@ export function VehicleGlassDiagram({
 
             <path
               {...interactionProps('windshield', 'Windshield')}
-              d="M112 150 Q210 121 308 150 Q318 153 314 168 L294 230 Q290 243 278 239 Q210 225 142 239 Q130 243 126 230 L106 168 Q102 153 112 150 Z"
+              d={WINDSHIELD_PATH}
             />
 
             <path
@@ -168,34 +175,52 @@ export function VehicleGlassDiagram({
             type="single"
             value={cardSelection}
             aria-label="Additional glass options"
-            className="grid grid-cols-3 gap-5 sm:flex-1 sm:grid-cols-1 sm:grid-rows-3"
+            className="grid grid-cols-2 gap-5 sm:flex-1 sm:grid-cols-1 sm:grid-rows-2"
             onValueChange={(value) => {
               if (value) onSelect(value as GlassType)
             }}
           >
             <GlassOptionCard
-              value="quarter"
-              label="Quarter glass"
-              selected={cardSelection === 'quarter'}
+              value="windshield"
+              label="Windshield"
+              selected={cardSelection === 'windshield'}
               visual={
-                <QuarterGlassVisual selected={cardSelection === 'quarter'} />
+                <WindshieldGlassVisual
+                  selected={cardSelection === 'windshield'}
+                />
               }
             />
-            <GlassOptionCard
-              value="vent"
-              label="Vent glass"
-              selected={cardSelection === 'vent'}
-              visual={<VentGlassVisual selected={cardSelection === 'vent'} />}
-            />
+            {SHOW_QUARTER_AND_VENT_CARDS && (
+              <>
+                <GlassOptionCard
+                  value="quarter"
+                  label="Quarter glass"
+                  selected={cardSelection === 'quarter'}
+                  visual={
+                    <QuarterGlassVisual
+                      selected={cardSelection === 'quarter'}
+                    />
+                  }
+                />
+                <GlassOptionCard
+                  value="vent"
+                  label="Vent glass"
+                  selected={cardSelection === 'vent'}
+                  visual={
+                    <VentGlassVisual selected={cardSelection === 'vent'} />
+                  }
+                />
+              </>
+            )}
             <GlassOptionCard
               value="other"
               label="Not sure or multiple pieces"
               selected={cardSelection === 'other'}
               visual={
                 <CircleQuestionMark
-                  strokeWidth={1}
+                  strokeWidth={0.8}
                   className={cn(
-                    'size-14',
+                    'size-16',
                     cardSelection === 'other'
                       ? 'text-accent-shade'
                       : 'text-[#2f6975]',
@@ -217,7 +242,7 @@ function GlassOptionCard({
   selected,
   visual,
 }: {
-  value: 'quarter' | 'vent' | 'other'
+  value: 'windshield' | 'quarter' | 'vent' | 'other'
   label: string
   selected: boolean
   visual: React.ReactNode
@@ -236,6 +261,22 @@ function GlassOptionCard({
       {visual}
       <span>{label}</span>
     </ToggleGroupPrimitive.Item>
+  )
+}
+
+function WindshieldGlassVisual({ selected }: { selected: boolean }) {
+  return (
+    <svg
+      viewBox="96 116 228 136"
+      className="h-22 w-full max-w-[9.1rem]"
+      aria-hidden="true"
+    >
+      <path
+        d={WINDSHIELD_PATH}
+        className={miniGlassClasses(selected)}
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
 
@@ -289,6 +330,8 @@ function VentGlassVisual({ selected }: { selected: boolean }) {
 }
 
 function getCardSelection(selected: GlassType | null) {
+  if (selected === 'windshield') return 'windshield'
+
   if (
     selected === 'quarter' ||
     selected === 'driver_quarter' ||
@@ -308,12 +351,12 @@ function glassClasses(selected: boolean) {
 
 function miniGlassClasses(selected: boolean) {
   return selected
-    ? 'fill-accent stroke-accent-shade stroke-[2.5]'
-    : 'fill-[#f8fbfb] stroke-[#2f6975] stroke-[2.5]'
+    ? 'fill-accent stroke-accent-shade stroke-[3]'
+    : 'fill-[#f8fbfb] stroke-[#2f6975] stroke-[3]'
 }
 
 function miniGlassStrokeClasses(selected: boolean) {
   return selected
-    ? 'fill-none stroke-accent-shade stroke-[2.5]'
-    : 'fill-none stroke-[#2f6975] stroke-[2.5]'
+    ? 'fill-none stroke-accent-shade stroke-[3]'
+    : 'fill-none stroke-[#2f6975] stroke-[3]'
 }
