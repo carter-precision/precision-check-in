@@ -7,5 +7,10 @@ export function createClient() {
   return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLIC_KEY!,
+    {
+      realtime: {
+        worker: true,
+      },
+    },
   )
 }

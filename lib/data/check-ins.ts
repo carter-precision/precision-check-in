@@ -83,12 +83,20 @@ export async function getActiveDashboardCheckIns(locationSlug: string) {
     throw new Error('Invalid location')
   }
 
+  return getActiveDashboardCheckInsByLocationId(location.id)
+}
+
+export async function getActiveDashboardCheckInsByLocationId(
+  locationId: string,
+) {
+  const supabase = createAdminClient()
+
   const recentCutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString()
 
   const { data, error } = await supabase
     .from('check_ins')
     .select('*')
-    .eq('location_id', location.id)
+    .eq('location_id', locationId)
     .or(`status.eq.waiting,and(status.eq.closed,closed_at.gte.${recentCutoff})`)
     .order('created_at', { ascending: true })
 

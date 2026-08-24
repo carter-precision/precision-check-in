@@ -26,12 +26,13 @@ export function TechDashboard({
   const now = useNow()
   const [showSoundSettings, setShowSoundSettings] = useState(false)
   const [showShopFlowGuide, setShowShopFlowGuide] = useState(false)
-  const { queues, waitingCount, closeCheckIn } = useDashboardCheckIns({
-    location,
-    locationId,
-    initialCheckIns,
-    now,
-  })
+  const { queues, waitingCount, connectionStatus, closeCheckIn } =
+    useDashboardCheckIns({
+      location,
+      locationId,
+      initialCheckIns,
+      now,
+    })
   const { isAudioUnlocked, soundPath, enableChime, changeSound } =
     useCheckInChime(waitingCount > 0)
   const clock = now
@@ -46,6 +47,7 @@ export function TechDashboard({
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-5 sm:px-8 md:px-10">
         <DashboardHeader
           clock={clock}
+          connectionStatus={connectionStatus}
           location={location}
           onOpenShopFlowGuide={() => setShowShopFlowGuide(true)}
           onOpenSoundSettings={() => setShowSoundSettings(true)}
