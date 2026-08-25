@@ -42,6 +42,7 @@ export function DashboardPreview({ state }: { state: DashboardPreviewState }) {
   return (
     <>
       <DashboardView
+        connectionStatus="live"
         location="layton"
         clock="10:30 AM"
         queues={queues}
