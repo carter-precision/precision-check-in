@@ -11,7 +11,7 @@ import { DashboardColumn } from './DashboardColumn'
 import { DashboardHeader } from './DashboardHeader'
 import { EnableSoundOverlay, SoundSettingsDialog } from './DashboardSound'
 import { ShopFlowGuide } from './ShopFlowGuide'
-import type { CheckIn, CheckInQueue } from './types'
+import type { CheckIn, CheckInQueue, DashboardConnectionStatus } from './types'
 import { useDashboardCheckIns } from './useDashboardCheckIns'
 
 type DashboardQueues = {
@@ -31,12 +31,13 @@ export function TechDashboard({
   const now = useNow()
   const [showSoundSettings, setShowSoundSettings] = useState(false)
   const [showShopFlowGuide, setShowShopFlowGuide] = useState(false)
-  const { queues, waitingCount, closeCheckIn } = useDashboardCheckIns({
-    location,
-    locationId,
-    initialCheckIns,
-    now,
-  })
+  const { queues, waitingCount, connectionStatus, closeCheckIn } =
+    useDashboardCheckIns({
+      location,
+      locationId,
+      initialCheckIns,
+      now,
+    })
   const { isAudioUnlocked, soundPath, enableChime, changeSound } =
     useCheckInChime(waitingCount > 0)
   const clock = now
@@ -49,6 +50,7 @@ export function TechDashboard({
   return (
     <>
       <DashboardView
+        connectionStatus={connectionStatus}
         location={location}
         clock={clock}
         queues={queues}
@@ -77,6 +79,7 @@ export function TechDashboard({
 }
 
 export function DashboardView({
+  connectionStatus,
   location,
   clock,
   queues,
@@ -85,6 +88,7 @@ export function DashboardView({
   onOpenShopFlowGuide,
   onOpenSoundSettings,
 }: {
+  connectionStatus: DashboardConnectionStatus
   location: string
   clock: string
   queues: DashboardQueues
@@ -97,8 +101,9 @@ export function DashboardView({
     <main className="min-h-screen bg-[#f7f9f9] text-[#1f2933]">
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-5 sm:px-8 md:px-10">
         <DashboardHeader
-          clock={clock}
+          connectionStatus={connectionStatus}
           location={location}
+          clock={clock}
           onOpenShopFlowGuide={onOpenShopFlowGuide}
           onOpenSoundSettings={onOpenSoundSettings}
         />

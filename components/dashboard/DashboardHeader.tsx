@@ -1,18 +1,46 @@
 import { BookOpen, Volume2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import type { DashboardConnectionStatus } from './types'
+
+const connectionDetails: Record<
+  DashboardConnectionStatus,
+  { label: string; description: string; className: string }
+> = {
+  live: {
+    label: 'Live',
+    description: 'Check-ins are updating in real time.',
+    className: 'bg-[#e5f4ed] text-[#2f7655]',
+  },
+  backup: {
+    label: 'Backup sync',
+    description:
+      'Live updates are reconnecting. Check-ins are refreshing every 10 seconds.',
+    className: 'bg-amber-100 text-amber-800',
+  },
+  offline: {
+    label: 'Offline',
+    description:
+      'The dashboard cannot refresh check-ins. Check the internet connection.',
+    className: 'bg-red-100 text-red-800',
+  },
+}
 
 export function DashboardHeader({
   clock,
+  connectionStatus,
   location,
   onOpenShopFlowGuide,
   onOpenSoundSettings,
 }: {
   clock: string
+  connectionStatus: DashboardConnectionStatus
   location: string
   onOpenShopFlowGuide: () => void
   onOpenSoundSettings: () => void
 }) {
+  const connection = connectionDetails[connectionStatus]
+
   return (
     <header className="flex items-center justify-between px-0.5">
       <div>
@@ -25,6 +53,15 @@ export function DashboardHeader({
       </div>
 
       <div className="flex items-center gap-2">
+        <div
+          role="status"
+          title={connection.description}
+          className={`mr-2 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-bold ${connection.className}`}
+        >
+          <span className="size-2 rounded-full bg-current" aria-hidden="true" />
+          {connection.label}
+        </div>
+
         <Button
           type="button"
           variant="ghost"

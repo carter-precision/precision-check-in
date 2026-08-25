@@ -6,3 +6,5 @@ export type CheckInQueue = {
   waiting: CheckIn[]
   recent: CheckIn[]
 }
+
+export type DashboardConnectionStatus = 'live' | 'backup' | 'offline'

@@ -9,6 +9,7 @@ import {
   closeCheckIn,
   createCheckIn,
   createVerifiedCustomerCheckIn,
+  getActiveDashboardCheckInsByLocationId,
   type CreateCheckInInput,
 } from '@/lib/data/check-ins'
 import { getDeviceByToken } from '@/lib/data/devices'
@@ -78,6 +79,16 @@ export async function closeCheckInAction(id: string, locationSlug: string) {
   )
 
   return closeCheckIn(parsed.id, locationId)
+}
+
+export async function getActiveDashboardCheckInsAction(locationSlug: string) {
+  const parsedLocationSlug = locationSlugSchema.parse(locationSlug)
+  const locationId = await requireDeviceForLocation(
+    'dashboard',
+    parsedLocationSlug,
+  )
+
+  return getActiveDashboardCheckInsByLocationId(locationId)
 }
 
 export async function createCustomerCheckInAction(
