@@ -10,6 +10,8 @@ import type { CheckIn, CheckInQueue, DashboardConnectionStatus } from './types'
 
 const RECENTLY_CLOSED_MS = 30 * 60 * 1000
 const DASHBOARD_SYNC_INTERVAL_MS = 10_000
+const REALTIME_RECOVERY_GRACE_MS = 15_000
+const REALTIME_RECOVERY_COOLDOWN_MS = 30_000
 
 type DashboardQueues = {
   appointments: CheckInQueue
@@ -36,6 +38,10 @@ export function useDashboardCheckIns({
     const supabase = createClient()
     let isActive = true
     let isSyncInFlight = false
+    let isRealtimeHealthyNow = false
+    let isRecoveryInFlight = false
+    let recoveryTimer: number | null = null
+    let channel: ReturnType<typeof supabase.channel> | null = null
 
     async function syncCheckIns() {
       if (isSyncInFlight) return
@@ -65,16 +71,55 @@ export function useDashboardCheckIns({
       }
     }
 
+    function clearRecoveryTimer() {
+      if (recoveryTimer === null) return
+
+      window.clearTimeout(recoveryTimer)
+      recoveryTimer = null
+    }
+
+    function markRealtimeHealthy() {
+      if (!isActive) return
+
+      isRealtimeHealthyNow = true
+      clearRecoveryTimer()
+      setIsRealtimeHealthy(true)
+    }
+
+    function scheduleRealtimeRecovery(delay = REALTIME_RECOVERY_GRACE_MS) {
+      if (
+        !isActive ||
+        isRealtimeHealthyNow ||
+        isRecoveryInFlight ||
+        recoveryTimer !== null
+      ) {
+        return
+      }
+
+      recoveryTimer = window.setTimeout(() => {
+        recoveryTimer = null
+        void recoverRealtimeConnection()
+      }, delay)
+    }
+
     function handleConnectionProblem() {
       if (!isActive) return
 
+      isRealtimeHealthyNow = false
       setIsRealtimeHealthy(false)
       void syncCheckIns()
+      scheduleRealtimeRecovery()
     }
 
     supabase.realtime.onHeartbeat((status) => {
+      if (status === 'ok') {
+        markRealtimeHealthy()
+        return
+      }
+
       if (status === 'error' || status === 'timeout') {
         handleConnectionProblem()
+        return
       }
 
       if (status === 'disconnected') {
@@ -83,9 +128,10 @@ export function useDashboardCheckIns({
       }
     })
 
-    const channel = supabase
-      .channel(`check-ins-${location}`)
-      .on(
+    function subscribeToCheckIns() {
+      if (!isActive) return
+
+      const nextChannel = supabase.channel(`check-ins-${location}`).on(
         'postgres_changes',
         {
           event: '*',
@@ -94,6 +140,8 @@ export function useDashboardCheckIns({
           filter: `location_id=eq.${locationId}`,
         },
         (payload) => {
+          if (!isActive || channel !== nextChannel) return
+
           checkInsRevisionRef.current += 1
           setCheckIns((current) => {
             if (payload.eventType === 'INSERT') {
@@ -108,11 +156,13 @@ export function useDashboardCheckIns({
           })
         },
       )
-      .subscribe((status, error) => {
-        if (!isActive) return
+
+      channel = nextChannel
+      nextChannel.subscribe((status, error) => {
+        if (!isActive || channel !== nextChannel) return
 
         if (status === 'SUBSCRIBED') {
-          setIsRealtimeHealthy(true)
+          markRealtimeHealthy()
           void syncCheckIns()
           return
         }
@@ -129,6 +179,38 @@ export function useDashboardCheckIns({
           handleConnectionProblem()
         }
       })
+    }
+
+    async function recoverRealtimeConnection() {
+      if (!isActive || isRealtimeHealthyNow || isRecoveryInFlight) return
+
+      clearRecoveryTimer()
+      isRecoveryInFlight = true
+      const staleChannel = channel
+      channel = null
+
+      try {
+        await supabase.realtime.disconnect(1000, 'dashboard recovery')
+
+        if (staleChannel) {
+          await supabase.removeChannel(staleChannel)
+        }
+
+        if (!isActive) return
+
+        subscribeToCheckIns()
+      } catch (error) {
+        console.error('Dashboard Realtime recovery failed:', error)
+      } finally {
+        isRecoveryInFlight = false
+
+        if (isActive && !isRealtimeHealthyNow) {
+          scheduleRealtimeRecovery(REALTIME_RECOVERY_COOLDOWN_MS)
+        }
+      }
+    }
+
+    subscribeToCheckIns()
 
     const syncInterval = window.setInterval(
       syncCheckIns,
@@ -137,11 +219,19 @@ export function useDashboardCheckIns({
 
     function handleOnline() {
       void syncCheckIns()
+
+      if (!isRealtimeHealthyNow) {
+        void recoverRealtimeConnection()
+      }
     }
 
     function handleVisibilityChange() {
       if (document.visibilityState === 'visible') {
         void syncCheckIns()
+
+        if (!isRealtimeHealthyNow) {
+          void recoverRealtimeConnection()
+        }
       }
     }
 
@@ -151,9 +241,13 @@ export function useDashboardCheckIns({
     return () => {
       isActive = false
       window.clearInterval(syncInterval)
+      clearRecoveryTimer()
       window.removeEventListener('online', handleOnline)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      void supabase.removeChannel(channel)
+
+      if (channel) {
+        void supabase.removeChannel(channel)
+      }
     }
   }, [location, locationId])
 
