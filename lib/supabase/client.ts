@@ -9,6 +9,7 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLIC_KEY!,
     {
       realtime: {
+        heartbeatIntervalMs: 15_000,
         worker: true,
       },
     },
