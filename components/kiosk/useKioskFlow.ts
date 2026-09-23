@@ -4,8 +4,8 @@ import { createCheckInAction } from '@/app/actions/check-ins'
 
 import { initialKioskData, type KioskData, type StepId } from './types'
 
-const INACTIVITY_WARNING_MS = 52_000
-export const INACTIVITY_RESET_MS = 8_000
+const INACTIVITY_WARNING_MS = 70_000
+export const INACTIVITY_RESET_MS = 10_000
 
 export function useKioskFlow(location: string) {
   const [step, setStep] = useState<StepId>('appointment')
