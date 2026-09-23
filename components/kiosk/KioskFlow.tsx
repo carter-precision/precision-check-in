@@ -12,7 +12,6 @@ import {
   AppointmentStep,
   PaymentTypeStep,
   ServiceTypeStep,
-  WelcomeStep,
 } from './steps/EntrySteps'
 import { NameStep } from './steps/NameStep'
 import { QuoteServiceTypeStep } from './steps/QuoteSteps'
@@ -33,7 +32,6 @@ import type { KioskStepProps, StepId } from './types'
 import { useKioskFlow } from './useKioskFlow'
 
 const stepComponents: Partial<Record<StepId, ComponentType<KioskStepProps>>> = {
-  welcome: WelcomeStep,
   appointment: AppointmentStep,
   serviceType: ServiceTypeStep,
   paymentType: PaymentTypeStep,
@@ -53,7 +51,6 @@ const stepComponents: Partial<Record<StepId, ComponentType<KioskStepProps>>> = {
 }
 
 const showFlowControls: Partial<Record<StepId, boolean>> = {
-  welcome: false,
   appointment: false,
   serviceType: true,
   paymentType: true,
@@ -75,7 +72,7 @@ const showFlowControls: Partial<Record<StepId, boolean>> = {
 export function KioskFlow({ location }: { location: string }) {
   const now = useNow()
   const flow = useKioskFlow(location)
-  const CurrentStep = stepComponents[flow.step] ?? WelcomeStep
+  const CurrentStep = stepComponents[flow.step] ?? AppointmentStep
   const quoteIsSubmitting =
     flow.isSubmitting || flow.data.quoteSubmissionStatus === 'submitting'
   const clock = now

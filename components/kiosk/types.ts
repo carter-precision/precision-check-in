@@ -1,7 +1,6 @@
 import type { QuoteResult } from '@/lib/omega/quote-types'
 
 export type StepId =
-  | 'welcome'
   | 'appointment'
   | 'serviceType'
   | 'paymentType'

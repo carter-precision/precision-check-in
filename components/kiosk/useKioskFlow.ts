@@ -58,7 +58,7 @@ const appointmentInputKeys = new Set<keyof KioskData>([
 ])
 
 export function useKioskFlow(location: string) {
-  const [step, setStep] = useState<StepId>('welcome')
+  const [step, setStep] = useState<StepId>('appointment')
   const [, setHistory] = useState<StepId[]>([])
   const [data, setData] = useState<KioskData>(initialKioskData)
   const lastActivityAt = useRef<number | null>(null)
@@ -105,7 +105,7 @@ export function useKioskFlow(location: string) {
     setHistory((current) => {
       const previousStep = current.at(-1)
 
-      setStep(previousStep ?? 'welcome')
+      setStep(previousStep ?? 'appointment')
       return previousStep ? current.slice(0, -1) : []
     })
   }, [])
@@ -117,7 +117,7 @@ export function useKioskFlow(location: string) {
     setHistory([])
     setShowInactiveWarning(false)
     lastActivityAt.current = Date.now()
-    setStep('welcome')
+    setStep('appointment')
   }, [])
 
   const submitQuote = useCallback(
@@ -376,7 +376,7 @@ export function useKioskFlow(location: string) {
 
   useEffect(() => {
     if (
-      step === 'welcome' ||
+      step === 'appointment' ||
       step === 'success' ||
       showInactiveWarning ||
       data.quoteSubmissionStatus === 'submitting'
