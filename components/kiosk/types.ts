@@ -1,5 +1,4 @@
 export type StepId =
-  | 'welcome'
   | 'appointment'
   | 'serviceType'
   | 'paymentType'

@@ -8,40 +8,16 @@ import {
   Wrench,
 } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
-
-import { ChoiceButton, KioskStep } from '../KioskPrimitives'
+import { ChoiceButton, ChoiceCard, KioskStep } from '../KioskPrimitives'
 import type { KioskStepProps } from '../types'
-
-export function WelcomeStep({ goTo }: KioskStepProps) {
-  return (
-    <KioskStep>
-      <div className="-mt-30 flex flex-1 flex-col items-center justify-center text-center">
-        <h1 className="mb-4 text-5xl font-semibold tracking-[-0.04em]">
-          Happy to see you!
-        </h1>
-        <p className="mb-10 max-w-sm text-xl font-medium leading-snug text-muted-foreground">
-          Let's get things rolling.
-        </p>
-        <Button
-          className="h-20 w-70 rounded-full bg-accent text-xl font-bold shadow-lg shadow-accent/20 hover:bg-accent-shade"
-          onClick={() => goTo('appointment')}
-        >
-          Tap to check in
-        </Button>
-      </div>
-    </KioskStep>
-  )
-}
 
 export function AppointmentStep({ goTo }: KioskStepProps) {
   return (
-    <KioskStep title="Do you have an appointment?">
-      <div className="grid gap-4">
-        <ChoiceButton
+    <KioskStep title="Select an option">
+      <div className="grid grid-cols-3 gap-4 pb-28 pt-5">
+        <ChoiceCard
           icon={<CalendarCheck />}
-          label="Yes, I have an appointment"
-          description="We'll let the shop know you're here."
+          label="Appointment"
           onClick={() =>
             goTo('name', {
               visitType: 'appointment',
@@ -51,10 +27,9 @@ export function AppointmentStep({ goTo }: KioskStepProps) {
           }
         />
 
-        <ChoiceButton
+        <ChoiceCard
           icon={<CarFront />}
-          label="No, I'm a walk-in"
-          description="A technician will come assist you."
+          label="Walk-in"
           onClick={() =>
             goTo('serviceType', {
               visitType: 'walk_in',
@@ -64,10 +39,9 @@ export function AppointmentStep({ goTo }: KioskStepProps) {
           }
         />
 
-        <ChoiceButton
+        <ChoiceCard
           icon={<KeyRound />}
-          label="I'm picking up my vehicle"
-          description="We'll be right out with your keys."
+          label="Vehicle Pickup"
           onClick={() =>
             goTo('name', {
               visitType: 'vehicle_pickup',

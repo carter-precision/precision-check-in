@@ -15,7 +15,6 @@ import {
   AppointmentStep,
   PaymentTypeStep,
   ServiceTypeStep,
-  WelcomeStep,
 } from '@/components/kiosk/steps/EntrySteps'
 import { NameStep } from '@/components/kiosk/steps/NameStep'
 import { QuoteServiceTypeStep } from '@/components/kiosk/steps/QuoteSteps'
@@ -40,7 +39,6 @@ import {
 const legacyStepComponents: Partial<
   Record<StepId, ComponentType<KioskStepProps>>
 > = {
-  welcome: WelcomeStep,
   appointment: AppointmentStep,
   serviceType: ServiceTypeStep,
   paymentType: PaymentTypeStep,
@@ -67,7 +65,6 @@ export function LegacyKioskFlow({ location }: { location: string }) {
       }).format(now)
     : ''
   const showFlowControls =
-    flow.step !== 'welcome' &&
     flow.step !== 'appointment' &&
     flow.step !== 'success'
 

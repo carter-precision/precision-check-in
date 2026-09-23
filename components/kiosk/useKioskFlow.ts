@@ -8,7 +8,7 @@ const INACTIVITY_WARNING_MS = 52_000
 export const INACTIVITY_RESET_MS = 8_000
 
 export function useKioskFlow(location: string) {
-  const [step, setStep] = useState<StepId>('welcome')
+  const [step, setStep] = useState<StepId>('appointment')
   const [, setHistory] = useState<StepId[]>([])
   const [data, setData] = useState<KioskData>(initialKioskData)
   const [lastActivityAt, setLastActivityAt] = useState(() => Date.now())
@@ -33,7 +33,7 @@ export function useKioskFlow(location: string) {
     setHistory((current) => {
       const previousStep = current.at(-1)
 
-      setStep(previousStep ?? 'welcome')
+      setStep(previousStep ?? 'appointment')
       return previousStep ? current.slice(0, -1) : []
     })
   }, [])
@@ -43,7 +43,7 @@ export function useKioskFlow(location: string) {
     setHistory([])
     setShowInactiveWarning(false)
     setLastActivityAt(Date.now())
-    setStep('welcome')
+    setStep('appointment')
   }, [])
 
   const submitCheckIn = useCallback(
@@ -108,7 +108,7 @@ export function useKioskFlow(location: string) {
   }, [showInactiveWarning])
 
   useEffect(() => {
-    if (step === 'welcome' || step === 'success' || showInactiveWarning) return
+    if (step === 'appointment' || step === 'success' || showInactiveWarning) return
 
     const remaining = Math.max(
       0,

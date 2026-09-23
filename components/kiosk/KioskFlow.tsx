@@ -16,7 +16,6 @@ import {
   AppointmentStep,
   PaymentTypeStep,
   ServiceTypeStep,
-  WelcomeStep,
 } from './steps/EntrySteps'
 import { NameStep } from './steps/NameStep'
 import {
@@ -46,7 +45,6 @@ import type { KioskStepProps, StepId } from './types'
 import { useKioskFlow } from './useKioskFlow'
 
 const stepComponents: Record<StepId, ComponentType<KioskStepProps>> = {
-  welcome: WelcomeStep,
   appointment: AppointmentStep,
   serviceType: ServiceTypeStep,
   paymentType: PaymentTypeStep,
@@ -67,7 +65,6 @@ const stepComponents: Record<StepId, ComponentType<KioskStepProps>> = {
 }
 
 const showFlowControls: Record<StepId, boolean> = {
-  welcome: false,
   appointment: false,
   serviceType: true,
   paymentType: true,
