@@ -1,6 +1,6 @@
 import {
   CalendarCheck,
-  Car,
+  UserRound,
   CircleHelp,
   CreditCard,
   KeyRound,
@@ -28,7 +28,7 @@ export function AppointmentStep({ goTo }: KioskStepProps) {
         />
 
         <ChoiceCard
-          icon={<Car strokeWidth={1.3} className="scale-115" />}
+          icon={<UserRound strokeWidth={1.3} />}
           label="Walk-in"
           onClick={() =>
             goTo('serviceType', {
