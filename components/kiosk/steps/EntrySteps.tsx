@@ -16,7 +16,7 @@ export function AppointmentStep({ goTo }: KioskStepProps) {
     <KioskStep title="Select an option to get started">
       <div className="grid grid-cols-3 gap-4 pb-28 pt-5">
         <ChoiceCard
-          icon={<CalendarCheck />}
+          icon={<CalendarCheck strokeWidth={1} />}
           label="Appointment"
           onClick={() =>
             goTo('name', {
@@ -28,7 +28,7 @@ export function AppointmentStep({ goTo }: KioskStepProps) {
         />
 
         <ChoiceCard
-          icon={<CarFront />}
+          icon={<CarFront strokeWidth={1} />}
           label="Walk-in"
           onClick={() =>
             goTo('serviceType', {
@@ -40,7 +40,7 @@ export function AppointmentStep({ goTo }: KioskStepProps) {
         />
 
         <ChoiceCard
-          icon={<KeyRound />}
+          icon={<KeyRound strokeWidth={1} />}
           label="Vehicle Pickup"
           onClick={() =>
             goTo('name', {

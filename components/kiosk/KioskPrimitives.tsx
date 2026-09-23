@@ -124,7 +124,7 @@ export function ChoiceCard({
 export function RingTeamButton({ onClick }: { onClick: () => void }) {
   return (
     <FloatingActionButton
-      icon={<BellRing className="size-8" />}
+      icon={<BellRing className="size-[30px]" />}
       onClick={onClick}
     >
       Ring for a team member
@@ -135,7 +135,7 @@ export function RingTeamButton({ onClick }: { onClick: () => void }) {
 export function PayCashInsteadButton({ onClick }: { onClick: () => void }) {
   return (
     <FloatingActionButton
-      icon={<CreditCard className="size-8" />}
+      icon={<CreditCard className="size-[30px]" />}
       onClick={onClick}
     >
       Pay cash instead
