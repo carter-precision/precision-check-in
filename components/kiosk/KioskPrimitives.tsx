@@ -111,7 +111,7 @@ export function ChoiceCard({
       onClick={onClick}
       className="group flex min-h-64 min-w-0 cursor-pointer flex-col items-center justify-center gap-6 rounded-[1.4rem] border border-[#d7e1e3] bg-white px-3 py-8 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-[#a9c7ce] hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent active:translate-y-0 md:min-h-72 md:px-5"
     >
-      <span aria-hidden="true" className="flex size-24 shrink-0 items-center justify-center rounded-3xl bg-accent-tint text-accent transition group-hover:brightness-97 [&_svg]:size-12 md:size-28 md:[&_svg]:size-14">
+      <span aria-hidden="true" className="flex size-24 shrink-0 items-center justify-center rounded-full bg-accent-tint text-accent transition group-hover:brightness-97 [&_svg]:size-12 md:size-28 md:[&_svg]:size-14">
         {icon}
       </span>
       <span className="text-xl font-bold tracking-[-0.02em] text-[#16262f] md:text-2xl">

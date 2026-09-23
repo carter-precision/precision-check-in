@@ -13,7 +13,7 @@ import type { KioskStepProps } from '../types'
 
 export function AppointmentStep({ goTo }: KioskStepProps) {
   return (
-    <KioskStep title="Select an option">
+    <KioskStep title="Select an option to get started">
       <div className="grid grid-cols-3 gap-4 pb-28 pt-5">
         <ChoiceCard
           icon={<CalendarCheck />}
